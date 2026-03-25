@@ -731,7 +731,7 @@ async function fetchFireWeatherOutlook(day) {
     // ── Key discussion text — skip header boilerplate ─────────────────
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 30);
     const skipLine = l => /^(SPC|SFUS|WWUS|ZCZC|VALID|FORECASTER|DAY\s+\d|FIRE WEATHER OUTLOOK|ISSUED BY|NWS|NOAA|\.{3}[A-Z])/i.test(l);
-    const keyText = lines.filter(l => !skipLine(l)).slice(0, 4).join(' ').replace(/\s{2,}/g, ' ').trim().slice(0, 500);
+    const keyText = lines.filter(l => !skipLine(l)).slice(0, 10).join(' ').replace(/\s{2,}/g, ' ').trim().slice(0, 1200);
 
     return cacheSet(key, {
       day, risk, threats, areas, rhVal, windVal, timing, keyText,
@@ -749,16 +749,12 @@ async function loadAndRenderWpcSection() {
   const el = document.getElementById('wpcDataCards');
   if (!el) return;
 
-  // Fetch WPC products in parallel
-  const [wwo, pfr, qpferd] = await Promise.all([
-    fetchWpcProduct('WWO'),   // Winter Weather Outlook
-    Promise.resolve({text:'', issuanceTime:''}),  // unused slot
-    fetchWpcProduct('QPFERD'),// Excessive Rainfall Discussion
+  const [wwo, qpferd] = await Promise.all([
+    fetchWpcProduct('WWO'),
+    fetchWpcProduct('QPFERD'),
   ]);
 
-  const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-
-  // Parse ERO risk from discussion text
+  // ── ERO parsing ───────────────────────────────────────────────────────
   let eroRisk = 'No Excessive Rainfall Risk';
   if (qpferd.text) {
     const t = qpferd.text.toUpperCase();
@@ -769,16 +765,44 @@ async function loadAndRenderWpcSection() {
     else eroRisk = 'Below 5% — No ERO Risk';
   }
 
-  // Parse WWO highlights
-  let wwoSummary = 'No active winter weather outlook.';
-  if (wwo.text) {
-    const lines = wwo.text.split('\n').filter(l => l.trim().length > 30 && !/^\d{6}Z|^NWS |^FXUS|^\.\.\./.test(l.trim()));
-    wwoSummary = lines.slice(0,3).join(' ').slice(0,400) || wwoSummary;
-  }
+  // Parse QPF amounts
+  const qpfMatches = (qpferd.text||'').matchAll(/(\d+(?:\.\d+)?)\s*(?:TO\s*(\d+(?:\.\d+)?)\s*)?(?:INCHES?|IN)/gi);
+  const qpfAmounts = [...qpfMatches].map(m => m[2] ? `${m[1]}–${m[2]}"` : `${m[1]}"`).slice(0,4);
+
+  // Parse affected areas from ERO text
+  const eroAreaRx = /\b(OKLAHOMA|TEXAS|KANSAS|NEBRASKA|IOWA|MISSOURI|ILLINOIS|INDIANA|OHIO|KENTUCKY|TENNESSEE|MISSISSIPPI|ALABAMA|GEORGIA|FLORIDA|ARKANSAS|LOUISIANA|MINNESOTA|WISCONSIN|MICHIGAN|PENNSYLVANIA|NEW YORK|PLAINS|MIDWEST|SOUTH|SOUTHEAST|GULF COAST|OHIO VALLEY|LOWER MISSISSIPPI|TENNESSEE VALLEY|CENTRAL PLAINS|SOUTHERN PLAINS|UPPER MIDWEST|GREAT LAKES|OZARKS|MID-ATLANTIC|NEW ENGLAND)S?/g;
+  const eroAreas = [...new Set([...(qpferd.text||'').toUpperCase().matchAll(eroAreaRx)].map(m=>m[0].replace(/S$/,'')))].slice(0,6).map(a=>a.charAt(0)+a.slice(1).toLowerCase());
+
+  // Parse ERO discussion lines
+  const eroLines = (qpferd.text||'').split('\n').map(l=>l.trim()).filter(l=>l.length>30&&!/^(\d{6}Z|NWS |FXUS|QPFERD|WPC|EXCESSIVE RAINFALL|VALID|ISSUED)/i.test(l));
+  const eroShort = eroLines.slice(0,4).join(' ').replace(/\s{2,}/g,' ').trim().slice(0,800);
+  const eroFull = eroLines.join(' ').replace(/\s{2,}/g,' ').trim().slice(0,3000);
+
+  // ── WWO parsing ───────────────────────────────────────────────────────
+  const wwoLines = (wwo.text||'').split('\n').map(l=>l.trim()).filter(l=>l.length>30&&!/^(\d{6}Z|NWS |FXUS|WWO|WPC|WINTER WEATHER|VALID|ISSUED)/i.test(l));
+  const wwoShort = wwoLines.slice(0,4).join(' ').replace(/\s{2,}/g,' ').trim().slice(0,800);
+  const wwoFull = wwoLines.join(' ').replace(/\s{2,}/g,' ').trim().slice(0,3000);
+
+  // Parse winter impacts
+  const wwoUpper = (wwo.text||'').toUpperCase();
+  const winterImpacts = [];
+  if (/HEAVY SNOW|SNOWFALL/.test(wwoUpper)) winterImpacts.push({icon:'❄', label:'Heavy Snow'});
+  if (/FREEZING RAIN|GLAZE|ICE ACCRETION/.test(wwoUpper)) winterImpacts.push({icon:'🧊', label:'Freezing Rain / Ice'});
+  if (/SLEET/.test(wwoUpper)) winterImpacts.push({icon:'🌨', label:'Sleet'});
+  if (/BLIZZARD/.test(wwoUpper)) winterImpacts.push({icon:'🌬', label:'Blizzard Conditions'});
+  if (/TRAVEL|ROAD/.test(wwoUpper)) winterImpacts.push({icon:'🚗', label:'Travel Impacts'});
+  if (/POWER|OUTAGE/.test(wwoUpper)) winterImpacts.push({icon:'⚡', label:'Power Outages'});
+
+  // Parse winter affected areas
+  const wwoAreaRx = /\b(MAINE|NEW HAMPSHIRE|VERMONT|MASSACHUSETTS|CONNECTICUT|NEW YORK|NEW JERSEY|PENNSYLVANIA|OHIO|MICHIGAN|WISCONSIN|MINNESOTA|NORTH DAKOTA|SOUTH DAKOTA|MONTANA|IDAHO|WYOMING|COLORADO|UTAH|NEVADA|OREGON|WASHINGTON|GREAT LAKES|NORTHEAST|NORTHERN PLAINS|UPPER MIDWEST|ROCKY MOUNTAIN|INTERMOUNTAIN|PACIFIC NORTHWEST|NEW ENGLAND|MID-ATLANTIC)S?/g;
+  const wwoAreas = [...new Set([...(wwo.text||'').toUpperCase().matchAll(wwoAreaRx)].map(m=>m[0].replace(/S$/,'')))].slice(0,6).map(a=>a.charAt(0)+a.slice(1).toLowerCase());
 
   const eroColor = eroRisk.includes('High')?'#cc0000':eroRisk.includes('Moderate')?'#ff4400':eroRisk.includes('Slight')?'#ffcc00':eroRisk.includes('Marginal')?'#66cc44':'#5568a0';
   const eroIssued = qpferd.issuanceTime ? new Date(qpferd.issuanceTime).toLocaleString([],{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
   const wwoIssued = wwo.issuanceTime ? new Date(wwo.issuanceTime).toLocaleString([],{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+  const sectionLabel = s => `<div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">${s}</div>`;
+  const expandBtn = (id) => `<button onclick="toggleExpand('${id}',this)" style="margin-top:6px;background:none;border:none;color:var(--accent);font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;padding:0;">Show more ↓</button>`;
 
   el.innerHTML = `
     <div class="dataCardGrid">
@@ -787,15 +811,40 @@ async function loadAndRenderWpcSection() {
           <div class="dataCardTitle">WPC Excessive Rainfall Outlook</div>
           <div class="dataCardBadge" style="background:${eroColor}22;border-color:${eroColor}66;color:${eroColor};">${escHtml(eroRisk)}</div>
         </div>
-        <div class="dataCardBody">${escHtml(qpferd.text ? qpferd.text.replace(/^.*\n/,'').slice(0,500)+'…' : 'No ERO discussion available.')}</div>
-        <div class="dataCardMeta">Source: NWS QPFERD product · Issued: ${escHtml(eroIssued)} · <a href="https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php" target="_blank" rel="noopener" style="color:var(--accent);">Full ERO ↗</a></div>
+        <div class="dataCardBody">
+          ${qpfAmounts.length ? `<div style="margin-bottom:10px;">${sectionLabel('QPF Amounts')}
+            <div style="font-family:var(--font-display);font-size:13px;color:#80ccff;">${qpfAmounts.join(' · ')}</div>
+          </div>` : ''}
+          ${eroAreas.length ? `<div style="margin-bottom:10px;">${sectionLabel('Affected Areas')}
+            <div style="font-family:var(--font-display);font-size:12px;color:var(--text);">${eroAreas.map(a=>escHtml(a)).join(' · ')}</div>
+          </div>` : ''}
+          ${eroShort ? `<div style="margin-bottom:6px;">${sectionLabel('Discussion')}
+            <div id="eroText" data-short="${escHtml(eroShort)}" data-full="${escHtml(eroFull)}" style="font-size:12px;color:var(--text-dim);line-height:1.7;">${escHtml(eroShort)}${eroFull.length > eroShort.length ? '…' : ''}</div>
+            ${eroFull.length > eroShort.length ? expandBtn('eroText') : ''}
+          </div>` : '<div style="font-size:12px;color:var(--text-muted);">No ERO discussion available.</div>'}
+        </div>
+        <div class="dataCardMeta">Source: WPC QPFERD · Issued: ${escHtml(eroIssued)} · <a href="https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php" target="_blank" rel="noopener" style="color:var(--accent);">Full ERO ↗</a></div>
       </div>
+
       <div class="dataCard accent-winter">
         <div class="dataCardHead">
           <div class="dataCardTitle">WPC Winter Weather Outlook</div>
         </div>
-        <div class="dataCardBody">${escHtml(wwoSummary)}</div>
-        <div class="dataCardMeta">Source: NWS WWO product · Issued: ${escHtml(wwoIssued)} · <a href="https://www.wpc.ncep.noaa.gov/wwd/winter_wx.shtml" target="_blank" rel="noopener" style="color:var(--accent);">Full outlook ↗</a></div>
+        <div class="dataCardBody">
+          ${winterImpacts.length ? `<div style="margin-bottom:10px;">${sectionLabel('Winter Impacts')}
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${winterImpacts.map(t=>`<span style="background:rgba(41,198,255,0.1);border:1px solid rgba(41,198,255,0.3);color:#80ccff;font-family:var(--font-display);font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;">${t.icon} ${escHtml(t.label)}</span>`).join('')}
+            </div>
+          </div>` : ''}
+          ${wwoAreas.length ? `<div style="margin-bottom:10px;">${sectionLabel('Affected Areas')}
+            <div style="font-family:var(--font-display);font-size:12px;color:var(--text);">${wwoAreas.map(a=>escHtml(a)).join(' · ')}</div>
+          </div>` : ''}
+          ${wwoShort ? `<div style="margin-bottom:6px;">${sectionLabel('Discussion')}
+            <div id="wwoText" data-short="${escHtml(wwoShort)}" data-full="${escHtml(wwoFull)}" style="font-size:12px;color:var(--text-dim);line-height:1.7;">${escHtml(wwoShort)}${wwoFull.length > wwoShort.length ? '…' : ''}</div>
+            ${wwoFull.length > wwoShort.length ? expandBtn('wwoText') : ''}
+          </div>` : '<div style="font-size:12px;color:var(--text-muted);">No winter weather outlook available.</div>'}
+        </div>
+        <div class="dataCardMeta">Source: WPC WWO · Issued: ${escHtml(wwoIssued)} · <a href="https://www.wpc.ncep.noaa.gov/wwd/winter_wx.shtml" target="_blank" rel="noopener" style="color:var(--accent);">Full outlook ↗</a></div>
       </div>
     </div>`;
 }
@@ -849,8 +898,14 @@ async function loadAndRenderFireSection() {
         : '';
 
       // Discussion text
+      const fireCardId = `fireCard${d.day}Text`;
+      const fireShort = (d.keyText || '').slice(0, 500);
+      const fireHasMore = (d.keyText || '').length > 500;
       const textHtml = d.keyText
-        ? `<div style="font-size:12px;color:var(--text-dim);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">${escHtml(d.keyText)}</div>`
+        ? `<div style="font-size:12px;color:var(--text-dim);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+            <div id="${fireCardId}" data-short="${escHtml(fireShort)}" data-full="${escHtml(d.keyText || '')}">${escHtml(fireShort)}${fireHasMore ? '…' : ''}</div>
+            ${fireHasMore ? `<button onclick="toggleExpand('${fireCardId}',this)" style="margin-top:6px;background:none;border:none;color:var(--accent);font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;padding:0;">Show more ↓</button>` : ''}
+           </div>`
         : '';
 
       return `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);overflow:hidden;height:100%;">
@@ -1101,7 +1156,7 @@ function renderSpcDataCard(outlook, containerId) {
       l.length > 40 &&
       !/^(SPC|SWO|ACUS|MCS|ZCZC|WWUS|VALID|FORECASTER|STORM PREDICTION|CONVECTIVE OUTLOOK|ISSUED|THUNDERSTORM\s+AREA|DAY\s+\d)/i.test(l)
     );
-    const keyText = keyLines.slice(0,3).join(' ').replace(/\s{2,}/g,' ').trim().slice(0,600);
+    const keyText = keyLines.slice(0, 8).join(' ').replace(/\s{2,}/g, ' ').trim().slice(0, 1500);
 
     return {areas: areas.slice(0,6), threats: [...new Map(threats.map(t=>[t.label,t])).values()], timing, keyText};
   };
@@ -1133,8 +1188,15 @@ function renderSpcDataCard(outlook, containerId) {
       </div>
     </div>` : '';
 
-  const summaryHtml = cleanSummary
-    ? `<div style="font-size:12px;color:var(--text);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">${escHtml(cleanSummary)}</div>`
+  const fullText = (outlook.text || '').replace(/\s{2,}/g, ' ').trim();
+  const shortText = cleanSummary.slice(0, 600);
+  const hasMore = fullText.length > 600;
+  const cardId = `spcCard${day}Text`;
+  const summaryHtml = shortText
+    ? `<div style="font-size:12px;color:var(--text);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+        <div id="${cardId}" data-short="${escHtml(shortText)}" data-full="${escHtml(fullText)}">${escHtml(shortText)}${hasMore ? '…' : ''}</div>
+        ${hasMore ? `<button onclick="toggleExpand('${cardId}',this)" style="margin-top:6px;background:none;border:none;color:var(--accent);font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;padding:0;">Show more ↓</button>` : ''}
+       </div>`
     : '';
 
   el.innerHTML = `
@@ -1388,6 +1450,19 @@ function beginTask(t){ if(t!==swccLoadToken) return; swccPendingTasks+=1; const 
 function endTask(t){ if(t!==swccLoadToken) return; swccPendingTasks=Math.max(0,swccPendingTasks-1); if(swccPendingTasks===0){const b=document.getElementById("swccLoadingBanner"); if(b) b.style.display="none";} }
 
 function safeText(s){ return(s&&String(s).trim())?String(s):"—"; }
+function toggleExpand(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.dataset.expanded) {
+    el.innerHTML = el.dataset.short + '…';
+    delete el.dataset.expanded;
+    btn.textContent = 'Show more ↓';
+  } else {
+    el.innerHTML = el.dataset.full;
+    el.dataset.expanded = '1';
+    btn.textContent = 'Show less ↑';
+  }
+}
 function escHtml(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function parseTimeMs(iso){ if(!iso) return 0; const t=Date.parse(String(iso)); return Number.isFinite(t)?t:0; }
 function prettyTime(iso){ if(!iso) return "—"; try{ return new Date(iso).toLocaleString([],{month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }catch(e){return"—";} }
@@ -1800,15 +1875,84 @@ function renderEroBadges(eroDays) {
 /* ═══════════════════════════════════════════════════
    BUILD REGION RANKING
 ═══════════════════════════════════════════════════ */
-function buildRegionRanking(alerts, regionForecasts) {
+function buildRegionRanking(alerts, regionForecasts, spcOutlooks, fireOutlooks, wpcData) {
+  const spcD1 = spcOutlooks?.[0] || null;
+  const spcD2 = spcOutlooks?.[1] || null;
+  const spcD3 = spcOutlooks?.[2] || null;
+  const fireD1 = fireOutlooks?.[0] || null;
+  const fireD2 = fireOutlooks?.[1] || null;
+
+  // SPC risk score — higher risk = more points
+  const spcRiskScore = (outlook) => {
+    const label = (outlook?.risk?.label || '').toLowerCase();
+    if (label.includes('high')) return 5;
+    if (label.includes('moderate')) return 4;
+    if (label.includes('enhanced')) return 3;
+    if (label.includes('slight')) return 2;
+    if (label.includes('marginal')) return 1;
+    return 0;
+  };
+
+  // Fire risk score
+  const fireRiskScore = (outlook) => {
+    const risk = (outlook?.risk || '').toLowerCase();
+    if (risk.includes('extreme')) return 4;
+    if (risk.includes('critical')) return 3;
+    if (risk.includes('elevated')) return 2;
+    return 0;
+  };
+
+  // WPC rainfall score
+  const wpcScore = wpcData?.eroLabels?.[0]?.category ? (() => {
+    const cat = wpcData.eroLabels[0].category.toLowerCase();
+    if (cat.includes('high')) return 3;
+    if (cat.includes('moderate')) return 2;
+    if (cat.includes('slight')) return 1;
+    return 0;
+  })() : 0;
+
+  // Global forecast boost — applies to all regions proportionally when SPC has risk
+  const d1Score = spcRiskScore(spcD1);
+  const d2Score = spcRiskScore(spcD2);
+  const d3Score = spcRiskScore(spcD3);
+  const fD1Score = fireRiskScore(fireD1);
+  const fD2Score = fireRiskScore(fireD2);
+
   return REGION_ORDER.map(region => {
     const s = REGION_STATES[region];
     const tornado = regionScore(alerts,s,a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("tornado")||isPossibleTornadoSevere(a);});
     const severe  = regionScore(alerts,s,a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("severe thunderstorm")||ev.includes("extreme wind");});
     const flood   = regionScore(alerts,s,a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("flash flood")||ev.includes("flood");});
     const winter  = regionForecasts?.[region]?(classifyRegionHazards(regionForecasts[region]).winter?2:0):0;
-    return {name:region, tornado, severe, flood, winter, total:tornado+severe+flood+winter, forecast:regionForecasts?.[region]||null};
-  }).sort((a,b)=>b.total-a.total);
+
+    // Check if SPC outlook text mentions this region
+    const regionMentioned = (outlook) => {
+      if (!outlook?.text) return false;
+      const txt = outlook.text.toUpperCase();
+      const states = REGION_STATES[region] || [];
+      return states.some(st => txt.includes(st.toUpperCase()));
+    };
+
+    // Forecast score — boost regions mentioned in outlooks
+    const forecastBoost =
+      (regionMentioned(spcD1) ? d1Score : Math.floor(d1Score * 0.3)) +
+      (regionMentioned(spcD2) ? d2Score * 0.7 : Math.floor(d2Score * 0.2)) +
+      (regionMentioned(spcD3) ? d3Score * 0.5 : Math.floor(d3Score * 0.1)) +
+      (regionMentioned(fireD1) ? fD1Score : 0) +
+      (regionMentioned(fireD2) ? fD2Score * 0.7 : 0) +
+      (flood > 0 ? wpcScore * 0.5 : 0);
+
+    const total = tornado + severe + flood + winter + Math.round(forecastBoost);
+    return {
+      name: region, tornado, severe, flood, winter,
+      forecastBoost: Math.round(forecastBoost),
+      d1Risk: spcD1?.risk?.label || null,
+      d2Risk: spcD2?.risk?.label || null,
+      fireRisk: fireD1?.risk || null,
+      total,
+      forecast: regionForecasts?.[region] || null
+    };
+  }).sort((a,b) => b.total - a.total);
 }
 
 /* ═══════════════════════════════════════════════════
@@ -1819,7 +1963,7 @@ function buildRegionRanking(alerts, regionForecasts) {
 /* ═══════════════════════════════════════════════════
    RENDER FUNCTIONS
 ═══════════════════════════════════════════════════ */
-function renderNationalSituation(alerts, regionRankings, nhcData) {
+function renderNationalSituation(alerts, regionRankings, nhcData, spcOutlooks, fireOutlooks, wpcData) {
   const el = document.getElementById('nationSitBody'); if(!el) return;
   const tsEl = document.getElementById('situationTs');
   if (tsEl) tsEl.textContent = `As of ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
@@ -1832,6 +1976,13 @@ function renderNationalSituation(alerts, regionRankings, nhcData) {
   const pds     = alerts.filter(a=>hasTag(a,"PDS")).length;
   const top1    = regionRankings[0];
 
+  const spcD1 = spcOutlooks?.[0] || null;
+  const spcD2 = spcOutlooks?.[1] || null;
+  const spcD3 = spcOutlooks?.[2] || null;
+  const fireD1 = fireOutlooks?.[0] || null;
+  const fireD2 = fireOutlooks?.[1] || null;
+  const eroLabels = wpcData?.eroLabels || [];
+
   let narr = "";
   if (emg > 0)      narr = `<strong>⚠ TORNADO EMERGENCY IN EFFECT.</strong> ${emg} tornado emergency alert${emg>1?"s":""} active. This is the highest NWS tornado threat designation — catastrophic destruction possible. `;
   else if (torWarn > 0) narr = `<strong>Active tornado warnings in effect.</strong> ${torWarn} tornado warning${torWarn>1?"s":""} currently active across the country. `;
@@ -1839,8 +1990,49 @@ function renderNationalSituation(alerts, regionRankings, nhcData) {
   else if (ffWarn > 0)  narr = `<strong>Flash flood threat elevated.</strong> ${ffWarn} flash flood warning${ffWarn>1?"s":""} active. `;
   else narr = "<strong>No active tornado, severe thunderstorm, or flash flood warnings.</strong> National severe weather posture is relatively quiet. ";
 
-  if (top1 && top1.total > 0) narr += `Highest-concern region: <strong>${top1.name}</strong> (score: ${top1.total}). `;
+  if (top1 && top1.total > 0) narr += `Highest-concern region: <strong>${top1.name}</strong>. `;
   if (nhcData?.active) narr += `<strong>Active tropical cyclone(s)</strong> in NHC advisory. `;
+
+  // SPC Convective Outlook rows
+  const riskColor = r => {
+    if (!r) return '#5568a0';
+    const l = r.toLowerCase();
+    if (l.includes('high')) return '#ff2929';
+    if (l.includes('moderate')) return '#ff6a00';
+    if (l.includes('enhanced')) return '#ffcc00';
+    if (l.includes('slight')) return '#29c6ff';
+    if (l.includes('marginal')) return '#00e676';
+    return '#5568a0';
+  };
+
+  const spcRows = [spcD1,spcD2,spcD3].map((d,i) => d ? `
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid rgba(55,75,130,0.4);border-radius:7px;background:rgba(0,0,0,0.2);">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;color:#5568a0;min-width:48px;">DAY ${i+1}</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:${riskColor(d.risk?.label)};min-width:120px;">${d.risk?.label||'No Thunderstorm Area'}</span>
+      ${d.probs?.tor ? `<span style="font-size:11px;color:#8898cc;">Tor: ${d.probs.tor}%</span>` : ''}
+      ${d.probs?.wind ? `<span style="font-size:11px;color:#8898cc;">Wind: ${d.probs.wind}%</span>` : ''}
+      ${d.probs?.hail ? `<span style="font-size:11px;color:#8898cc;">Hail: ${d.probs.hail}%</span>` : ''}
+      <span style="font-size:11px;color:#5568a0;margin-left:auto;">${d.validTime||''}</span>
+    </div>` : '').join('');
+
+  const fireRows = [fireD1,fireD2].map((d,i) => d ? `
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid rgba(55,75,130,0.4);border-radius:7px;background:rgba(0,0,0,0.2);">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;color:#5568a0;min-width:48px;">DAY ${i+1}</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:${d.risk?.includes('Extreme')?'#ff2929':d.risk?.includes('Critical')?'#ff6a00':d.risk?.includes('Elevated')?'#ffcc00':'#5568a0'};">${d.risk||'No Critical Areas'}</span>
+      ${d.threats?.length ? `<span style="font-size:11px;color:#8898cc;">${d.threats.map(t=>t.label).join(' · ')}</span>` : ''}
+      ${d.areas?.length ? `<span style="font-size:11px;color:#5568a0;margin-left:auto;">${d.areas.slice(0,3).join(', ')}</span>` : ''}
+    </div>` : '').join('');
+
+  const wpcRow = eroLabels.length ? `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${eroLabels.slice(0,3).map((e,i) => `
+        <div style="flex:1;min-width:100px;padding:7px 10px;border:1px solid rgba(55,75,130,0.4);border-radius:7px;background:rgba(0,0,0,0.2);text-align:center;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:1px;color:#5568a0;margin-bottom:3px;">DAY ${i+1} ERO</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:${e.category?.toLowerCase().includes('high')?'#ff2929':e.category?.toLowerCase().includes('moderate')?'#ff6a00':e.category?.toLowerCase().includes('slight')?'#ffcc00':'#5568a0'};">${e.category||'—'}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const sectionLabel = s => `<div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#5568a0;text-transform:uppercase;margin:12px 0 6px;">${s}</div>`;
 
   el.innerHTML = `
     <div class="nationRow">
@@ -1853,26 +2045,67 @@ function renderNationalSituation(alerts, regionRankings, nhcData) {
     </div>
     <div class="nationNarr">${narr}
       <div class="nationMeta">Total alerts: ${alerts.length} &nbsp;·&nbsp; Severe+: ${severePlusAlerts(alerts).length} &nbsp;·&nbsp; Active threat regions: ${regionRankings.filter(r=>r.total>0).map(r=>r.name).join(", ")||"None"}</div>
-    </div>`;
+    </div>
+    ${spcRows ? sectionLabel('SPC Convective Outlooks') + `<div style="display:grid;gap:5px;">${spcRows}</div>` : ''}
+    ${fireRows ? sectionLabel('SPC Fire Weather Outlooks') + `<div style="display:grid;gap:5px;">${fireRows}</div>` : ''}
+    ${wpcRow ? sectionLabel('WPC Excessive Rainfall Outlook') + wpcRow : ''}
+  `;
 }
 
-function renderThreatMatrix(regionRankings, regionForecasts) {
+function renderThreatMatrix(regionRankings, regionForecasts, spcOutlooks, fireOutlooks, eroLabels) {
   const el = document.getElementById('threatMatrixContainer'); if(!el) return;
   const maxTor=Math.max(...regionRankings.map(r=>r.tornado),1);
   const maxSev=Math.max(...regionRankings.map(r=>r.severe),1);
   const maxFld=Math.max(...regionRankings.map(r=>r.flood),1);
+  const spcD1 = spcOutlooks?.[0] || null;
+  const spcD2 = spcOutlooks?.[1] || null;
+  const fireD1 = fireOutlooks?.[0] || null;
+
+  const riskColor = r => {
+    if (!r) return 'var(--text-muted)';
+    const l = r.toLowerCase();
+    if (l.includes('high')||l.includes('extreme')) return '#ff2929';
+    if (l.includes('moderate')||l.includes('critical')) return '#ff6a00';
+    if (l.includes('enhanced')||l.includes('elevated')) return '#ffcc00';
+    if (l.includes('slight')) return '#29c6ff';
+    if (l.includes('marginal')) return '#00e676';
+    return 'var(--text-muted)';
+  };
+
+  const regionMentioned = (outlook, name) => {
+    if (!outlook?.text) return false;
+    const txt = outlook.text.toUpperCase();
+    const states = REGION_STATES[name] || [];
+    return states.some(st => txt.includes(st.toUpperCase()));
+  };
+
   const rows = REGION_ORDER.map(name => {
-    const r  = regionRankings.find(x=>x.name===name)||{tornado:0,severe:0,flood:0,winter:0};
+    const r  = regionRankings.find(x=>x.name===name)||{tornado:0,severe:0,flood:0,winter:0,forecastBoost:0};
     const rf = regionForecasts[name];
     const hz = rf?classifyRegionHazards(rf):{};
     const mc = (s,m,cls) => { const p=m>0?Math.round((s/m)*100):0; return `<td><div class="mci"><div class="mbt"><div class="mbf ${cls}" style="width:${p}%"></div></div><span class="msc">${s}</span></div></td>`; };
     const mb = (on,cls) => `<td><div class="mci"><div class="mbt"><div class="mbf ${cls}" style="width:${on?100:0}%"></div></div><span class="msig ${on?"on":""}">${on?"YES":"—"}</span></div></td>`;
-    return `<tr><td><div class="matrixRegion">${escHtml(name)}</div><div class="matrixStates">${escHtml(REGION_ABBR[name]||"")}</div></td>${mc(r.tornado,maxTor,"tor")}${mc(r.severe,maxSev,"sev")}${mc(r.flood,maxFld,"fld")}${mb(r.winter>0,"win")}${mb(hz.wind||false,"wnd")}${mb(hz.visibility||false,"vis")}</tr>`;
+
+    const d1Mentioned = regionMentioned(spcD1, name);
+    const d2Mentioned = regionMentioned(spcD2, name);
+    const fireMentioned = regionMentioned(fireD1, name);
+    const d1Risk = d1Mentioned ? (spcD1?.risk?.label||null) : null;
+    const d2Risk = d2Mentioned ? (spcD2?.risk?.label||null) : null;
+    const fireRisk = fireMentioned ? (fireD1?.risk||null) : null;
+
+    const spcCell = `<td style="font-family:var(--font-display);font-size:10px;font-weight:800;">
+      ${d1Risk ? `<span style="color:${riskColor(d1Risk)}">D1:${d1Risk.split(' ')[0]}</span>` : '<span style="color:var(--text-muted)">—</span>'}
+      ${d2Risk ? `<br><span style="color:${riskColor(d2Risk)};font-size:9px;">D2:${d2Risk.split(' ')[0]}</span>` : ''}
+    </td>`;
+    const fireCell = `<td style="font-family:var(--font-display);font-size:10px;font-weight:800;color:${fireRisk?riskColor(fireRisk):'var(--text-muted)'};">${fireRisk?fireRisk.split(' ')[0]:'—'}</td>`;
+
+    return `<tr><td><div class="matrixRegion">${escHtml(name)}</div><div class="matrixStates">${escHtml(REGION_ABBR[name]||"")}</div></td>${mc(r.tornado,maxTor,"tor")}${mc(r.severe,maxSev,"sev")}${mc(r.flood,maxFld,"fld")}${mb(r.winter>0,"win")}${spcCell}${fireCell}${mb(hz.wind||false,"wnd")}</tr>`;
   }).join("");
-  el.innerHTML = `<table class="threatMatrix"><thead><tr><th>Region</th><th>Tornado</th><th>Severe T-Storm</th><th>Flood</th><th>Winter / Ice</th><th>Wind</th><th>Visibility</th></tr></thead><tbody>${rows}</tbody></table>`;
+
+  el.innerHTML = `<table class="threatMatrix"><thead><tr><th>Region</th><th>Tornado</th><th>Severe T-Storm</th><th>Flood</th><th>Winter</th><th>SPC Outlook</th><th>Fire Wx</th><th>Wind</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function renderRegionalDeepDive(regionPackages, regionForecasts, regionRankings, alerts) {
+function renderRegionalDeepDive(regionPackages, regionForecasts, regionRankings, alerts, spcOutlooks, fireOutlooks, eroLabels) {
   const el = document.getElementById('regionDeepGrid'); if(!el) return;
   el.innerHTML = REGION_ORDER.map(region => {
     const r    = regionForecasts[region];
@@ -1889,7 +2122,19 @@ function renderRegionalDeepDive(regionPackages, regionForecasts, regionRankings,
     if(ri.flood>0)   chips.push(`<span class="badge badgeCool">Flood</span>`);
     if(hz.winter)    chips.push(`<span class="badge">Winter</span>`);
     if(hz.wind)      chips.push(`<span class="badge">Wind</span>`);
-    if(chips.length===0) chips.push(`<span class="badge badgeGood">Quiet</span>`);
+    // Add SPC forecast chips
+    const spcD1 = spcOutlooks?.[0] || null;
+    const spcD2 = spcOutlooks?.[1] || null;
+    const fireD1 = fireOutlooks?.[0] || null;
+    const regionMentioned = (o) => { if (!o?.text) return false; const t = o.text.toUpperCase(); return (REGION_STATES[region] || []).some(s => t.includes(s.toUpperCase())); };
+    const d1Risk = regionMentioned(spcD1) ? spcD1?.risk?.label : null;
+    const d2Risk = regionMentioned(spcD2) ? spcD2?.risk?.label : null;
+    const fireRisk = regionMentioned(fireD1) ? fireD1?.risk : null;
+    const eroD1 = eroLabels?.[0]?.category || null;
+    if (d1Risk) chips.push(`<span class="badge" style="border-color:rgba(41,198,255,0.5);color:#29c6ff;">SPC D1: ${d1Risk}</span>`);
+    if (d2Risk) chips.push(`<span class="badge" style="border-color:rgba(41,198,255,0.3);color:#5568a0;">SPC D2: ${d2Risk}</span>`);
+    if (fireRisk && fireRisk !== 'No Critical Areas' && fireRisk !== 'No Data') chips.push(`<span class="badge" style="border-color:rgba(255,106,0,0.5);color:#ff6a00;">Fire: ${fireRisk}</span>`);
+    if (chips.length === 0) chips.push(`<span class="badge badgeGood">Quiet</span>`);
     const cityRows = pkgs.map(pkg => {
       const o = summarizeObservation(pkg?.observation||{});
       return `<tr>
@@ -2027,7 +2272,7 @@ async function loadForecastSection(alerts, token) {
       fetchStormReports(),
       fetchSpcMDs(),
     ]);
-    renderNationalSituation(alerts, [], nhcData);
+    renderNationalSituation(alerts, [], nhcData, [], [], {});
     renderStormReports(stormReports);
     renderSpcMDs(spcMDs, document.getElementById('mdList'));
     setTs('tsNational', 'Updated');
@@ -2069,6 +2314,21 @@ async function loadForecastSection(alerts, token) {
 
   // ── Step 3: Regional forecast data (NWS API, slow, staggered) ────────
   let regionForecasts = {}, regionPackages = {}, regionRankings = [];
+  let spcOutlooks = [], fireOutlooks = [], wpcData = {};
+  try {
+    [spcOutlooks, fireOutlooks] = await Promise.all([
+      Promise.all([
+        fetchSpcOutlookText(1).catch(() => null),
+        fetchSpcOutlookText(2).catch(() => null),
+        fetchSpcOutlookText(3).catch(() => null),
+      ]),
+      Promise.all([
+        fetchFireWeatherOutlook(1).catch(() => null),
+        fetchFireWeatherOutlook(2).catch(() => null),
+      ]),
+    ]);
+    wpcData = { eroLabels: await fetchEroLabels().catch(() => []) };
+  } catch (e) { console.warn('[Step 3 forecast fetch]', e); }
   try {
     // Run all regions in parallel — cities within each region are staggered 200ms
     const [regionPairs, regionPkgPairs] = await Promise.all([
@@ -2077,14 +2337,14 @@ async function loadForecastSection(alerts, token) {
     ]);
     regionForecasts = Object.fromEntries(regionPairs.filter(([,v]) => v));
     regionPackages  = Object.fromEntries(regionPkgPairs.filter(([,v]) => v));
-    regionRankings  = buildRegionRanking(alerts, regionForecasts);
+    regionRankings = buildRegionRanking(alerts, regionForecasts, spcOutlooks, fireOutlooks, wpcData);
 
     // Re-render national situation with full regional data
     const [,,, nhcData] = await Promise.all([
       Promise.resolve(), Promise.resolve(), Promise.resolve(),
       fetchNhcStorms(),
     ]).catch(() => [null,null,null,{storms:[],active:false}]);
-    renderNationalSituation(alerts, regionRankings, nhcData || {storms:[],active:false});
+    renderNationalSituation(alerts, regionRankings, nhcData || { storms: [], active: false }, spcOutlooks, fireOutlooks, wpcData);
   } catch(e) {
     console.warn('[loadForecastSection] Regional data failed:', e);
     ['threatMatrixContainer','regionDeepGrid','currentRegionGrid','fcstTimelineGrid'].forEach(id => {
@@ -2095,8 +2355,8 @@ async function loadForecastSection(alerts, token) {
 
   // ── Step 4: Render regional panels (only if we got data) ─────────────
   if (Object.keys(regionForecasts).length > 0) {
-    try { renderThreatMatrix(regionRankings, regionForecasts); } catch(e) { console.warn(e); }
-    try { renderRegionalDeepDive(regionPackages, regionForecasts, regionRankings, alerts); } catch(e) { console.warn(e); }
+    try { renderThreatMatrix(regionRankings, regionForecasts, spcOutlooks, fireOutlooks, wpcData?.eroLabels); } catch (e) { console.warn(e); }
+    try { renderRegionalDeepDive(regionPackages, regionForecasts, regionRankings, alerts, spcOutlooks, fireOutlooks, wpcData?.eroLabels); } catch (e) { console.warn(e); }
     try { renderCurrentConditions(regionForecasts); } catch(e) { console.warn(e); }
     try { renderForecastTimeline(regionForecasts, regionRankings); } catch(e) { console.warn(e); }
     setTs('tsRegional', 'Updated');
@@ -2104,17 +2364,49 @@ async function loadForecastSection(alerts, token) {
 
   // ── Step 5: Forecast narratives (depends on regional data) ───────────
   try {
-    const nhcData = await fetchNhcStorms().catch(() => ({storms:[],active:false}));
-    const stormReports = await fetchStormReports().catch(() => ({torReports:[],windReports:[],hailReports:[]}));
+    const nhcData = await fetchNhcStorms().catch(() => ({ storms: [], active: false }));
+    const stormReports = await fetchStormReports().catch(() => ({ torReports: [], windReports: [], hailReports: [] }));
     const eroLabels = await fetchEroLabels().catch(() => []);
+    // Fetch SPC outlook text for narrative cards
+    const [spcD1, spcD2, spcD3] = await Promise.all([
+      fetchSpcOutlookText(1).catch(() => null),
+      fetchSpcOutlookText(2).catch(() => null),
+      fetchSpcOutlookText(3).catch(() => null),
+    ]);
 
-    // Narratives
-    document.getElementById("outlookTornado").textContent = topRegionSummary(alerts, a => String(a.event||"").toLowerCase().includes("tornado") || isPossibleTornadoSevere(a), "No strong tornado concern areas currently stand out") + ".";
-    document.getElementById("outlookTornadoMeta").textContent = `${alerts.filter(a=>String(a.event||"").toLowerCase().includes("tornado warning")).length} active tornado warnings + ${alerts.filter(a=>String(a.event||"").toLowerCase().includes("tornado watch")).length} watches.`;
-    document.getElementById("outlookSevere").textContent = topRegionSummary(alerts, a => {const ev=String(a.event||"").toLowerCase();return ev.includes("severe thunderstorm")||ev.includes("extreme wind");}, "No strong severe concern areas currently stand out") + ".";
-    document.getElementById("outlookSevereMeta").textContent = `${alerts.filter(a=>String(a.event||"").toLowerCase().includes("severe thunderstorm")).length} active severe thunderstorm alerts.`;
-    document.getElementById("outlookFlood").textContent = `Flood concern based on active flash flood and flood alerts. Day 1 WPC ERO: ${eroLabels[0]?.category||"—"} · Day 2: ${eroLabels[1]?.category||"—"} · Day 3: ${eroLabels[2]?.category||"—"}.`;
-    document.getElementById("outlookFloodMeta").textContent = `${alerts.filter(a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("flash flood")||ev.includes("flood");}).length} active flood-type alerts.`;
+    // Tornado narrative — use SPC Day 1 summary if available, fall back to active alerts
+    const torWarnCount = alerts.filter(a=>String(a.event||"").toLowerCase().includes("tornado warning")).length;
+    const torWatchCount = alerts.filter(a=>String(a.event||"").toLowerCase().includes("tornado watch")).length;
+    if (spcD1?.summary && spcD1.summary.length > 20) {
+      document.getElementById("outlookTornado").textContent = spcD1.summary;
+      document.getElementById("outlookTornadoMeta").textContent = `SPC Day 1 · ${spcD1.risk?.label||'See outlook'} · ${torWarnCount} active warnings · ${torWatchCount} watches`;
+    } else {
+      document.getElementById("outlookTornado").textContent = topRegionSummary(alerts, a => String(a.event||"").toLowerCase().includes("tornado") || isPossibleTornadoSevere(a), "No strong tornado concern areas currently stand out") + ".";
+      document.getElementById("outlookTornadoMeta").textContent = `${torWarnCount} active tornado warnings + ${torWatchCount} watches.`;
+    }
+
+    // Severe T-Storm narrative — SPC Day 1 probs + Day 2 risk
+    const sevWarnCount = alerts.filter(a=>String(a.event||"").toLowerCase().includes("severe thunderstorm")).length;
+    const d1Risk = spcD1?.risk?.label || null;
+    const d2Risk = spcD2?.risk?.label || null;
+    if (d1Risk || d2Risk) {
+      document.getElementById("outlookSevere").textContent = [
+        d1Risk ? `Day 1: ${d1Risk}` : null,
+        d2Risk ? `Day 2: ${d2Risk}` : null,
+        spcD1?.probs?.tor ? `Tornado prob: ${spcD1.probs.tor}%` : null,
+      ].filter(Boolean).join(" · ") + ".";
+      document.getElementById("outlookSevereMeta").textContent = `${sevWarnCount} active severe thunderstorm warnings · SPC outlook data`;
+    } else {
+      document.getElementById("outlookSevere").textContent = topRegionSummary(alerts, a => {const ev=String(a.event||"").toLowerCase();return ev.includes("severe thunderstorm")||ev.includes("extreme wind");}, "No strong severe concern areas currently stand out") + ".";
+      document.getElementById("outlookSevereMeta").textContent = `${sevWarnCount} active severe thunderstorm alerts.`;
+    }
+
+    // Flood narrative — WPC ERO + active alerts
+    const floodCount = alerts.filter(a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("flash flood")||ev.includes("flood");}).length;
+    document.getElementById("outlookFlood").textContent = `Flood concern: Day 1 WPC ERO: ${eroLabels[0]?.category||"—"} · Day 2: ${eroLabels[1]?.category||"—"} · Day 3: ${eroLabels[2]?.category||"—"}.`;
+    document.getElementById("outlookFloodMeta").textContent = `${floodCount} active flood-type alerts · WPC ERO data`;
+
+    // Winter narrative
     const winterLeaders = regionRankings.filter(r=>r.winter>0).slice(0,3).map(r=>r.name).join(" · ") || "No strong winter signal";
     document.getElementById("outlookWinter").textContent = `Winter / visibility concern: ${winterLeaders}.`;
     document.getElementById("outlookWinterMeta").textContent = "Based on NWS forecast wording analysis.";
@@ -2165,18 +2457,59 @@ async function loadForecastSection(alerts, token) {
     // 5-day board
     const boardEl = document.getElementById("fiveDayBoard");
     if (boardEl) boardEl.innerHTML = ["Day 1","Day 2","Day 3","Day 4","Day 5"].map((dn,idx) => {
-      const torP = regionRankings.filter(x=>x.tornado>0).slice(0,2);
-      const sevP = regionRankings.filter(x=>x.severe>0).slice(0,2);
-      const fldP = regionRankings.filter(x=>x.flood>0).slice(0,2);
-      const winP = regionRankings.filter(x=>x.winter>0).slice(0,1);
+      // Active alert data (only meaningful for Day 1)
+      const torP = idx === 0 ? regionRankings.filter(x=>x.tornado>0).slice(0,2) : [];
+      const sevP = idx === 0 ? regionRankings.filter(x=>x.severe>0).slice(0,2) : [];
+      const fldP = idx === 0 ? regionRankings.filter(x=>x.flood>0).slice(0,2) : [];
+      const winP = idx === 0 ? regionRankings.filter(x=>x.winter>0).slice(0,1) : [];
+
+      // SPC outlook for this day
+      const spc = spcOutlooks?.[idx] || null;
+      const spcRisk = spc?.risk?.label || null;
+      const spcSum = spc?.summary || null;
+      const spcProbs = spc ? [
+        spc.probs?.tor ? `Tor: ${spc.probs.tor}%` : null,
+        spc.probs?.wind ? `Wind: ${spc.probs.wind}%` : null,
+        spc.probs?.hail ? `Hail: ${spc.probs.hail}%` : null,
+      ].filter(Boolean).join(' · ') : null;
+
+      // Fire weather
+      const fire = fireOutlooks?.[idx] || null;
+      const fireRisk = fire?.risk || null;
+
+      // WPC ERO
+      const eroLabel = eroLabels?.[Math.min(idx,2)]?.category || null;
+
+      const riskColor = r => {
+        if (!r) return '#5568a0';
+        const l = r.toLowerCase();
+        if (l.includes('high') || l.includes('extreme')) return '#ff2929';
+        if (l.includes('moderate') || l.includes('critical')) return '#ff6a00';
+        if (l.includes('enhanced') || l.includes('elevated')) return '#ffcc00';
+        if (l.includes('slight')) return '#29c6ff';
+        if (l.includes('marginal')) return '#00e676';
+        return '#5568a0';
+      };
+
       const conf = ["Highest confidence","High confidence","Moderate confidence","Lower confidence","Awareness only"][idx];
-      return `<div class="dayCard"><div class="dayTitle">${escHtml(dn)}</div><div class="badges" style="justify-content:flex-start;margin-bottom:8px;"><span class="badge">${escHtml(conf)}</span></div><div class="dayMeta">
-        <div><strong>Tornado:</strong> ${torP.length ? torP.map(x=>`${x.name} (${x.tornado})`).join(" · ") : "No strong signal"}</div>
-        <div><strong>Severe:</strong> ${sevP.length ? sevP.map(x=>x.name).join(" · ") : "No strong signal"}</div>
-        <div><strong>Flood:</strong> ${fldP.length ? fldP.map(x=>x.name).join(" · ") : "None · ERO: "+( eroLabels[Math.min(idx,2)]?.category||"—")}</div>
-        <div><strong>Winter:</strong> ${winP.length ? winP.map(x=>x.name).join(" · ") : "No strong signal"}</div>
-        <div><strong>Tropical:</strong> ${nhcData.active ? nhcData.storms.map(s=>s.name).join(", ") : "No activity"}</div>
-      </div></div>`;
+
+      return `<div class="dayCard">
+        <div class="dayTitle">${escHtml(dn)}</div>
+        <div class="badges" style="justify-content:flex-start;margin-bottom:8px;">
+          <span class="badge">${escHtml(conf)}</span>
+          ${spcRisk ? `<span class="badge" style="color:${riskColor(spcRisk)};border-color:${riskColor(spcRisk)}33;">${escHtml(spcRisk)}</span>` : ''}
+        </div>
+        <div class="dayMeta">
+          <div><strong>Convective:</strong> ${spcRisk ? `<span style="color:${riskColor(spcRisk)}">${escHtml(spcRisk)}</span>${spcProbs ? ` · ${escHtml(spcProbs)}` : ''}` : (idx===0&&torP.length ? torP.map(x=>x.name).join(' · ') : 'No SPC risk area')}</div>
+          <div><strong>Tornado:</strong> ${idx===0&&torP.length ? torP.map(x=>`${x.name} (${x.tornado})`).join(' · ') : (spc?.probs?.tor && spc.probs.tor > 0 ? `${spc.probs.tor}% probability` : 'No strong signal')}</div>
+          <div><strong>Severe:</strong> ${idx===0&&sevP.length ? sevP.map(x=>x.name).join(' · ') : (spc?.probs?.wind && spc.probs.wind > 0 ? `${spc.probs.wind}% wind prob` : 'No strong signal')}</div>
+          <div><strong>Flood:</strong> ${idx===0&&fldP.length ? fldP.map(x=>x.name).join(' · ') : '—'} ${eroLabel ? `· ERO: ${escHtml(eroLabel)}` : ''}</div>
+          <div><strong>Winter:</strong> ${idx===0&&winP.length ? winP.map(x=>x.name).join(' · ') : 'No strong signal'}</div>
+          <div><strong>Fire:</strong> ${fireRisk && fireRisk!=='No Critical Areas'&&fireRisk!=='No Data' ? `<span style="color:${riskColor(fireRisk)}">${escHtml(fireRisk)}</span>${fire?.areas?.length?` · ${fire.areas.slice(0,2).join(', ')}`:''}`  : 'No critical fire areas'}</div>
+          <div><strong>Tropical:</strong> ${nhcData.active ? nhcData.storms.map(s=>s.name).join(', ') : 'No activity'}</div>
+          ${spcSum && idx > 0 ? `<div style="margin-top:6px;font-size:11px;color:#5568a0;line-height:1.4;">${escHtml(spcSum.slice(0,120))}${spcSum.length>120?'…':''}</div>` : ''}
+        </div>
+      </div>`;
     }).join("");
 
     // Intensifying / steady / improving
