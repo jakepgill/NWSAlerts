@@ -1,0 +1,62 @@
+{
+  "name": "nwsalerts",
+  "version": "1.4.3",
+  "description": "Live NWS weather alerts dashboard for Windows",
+  "main": "main.js",
+  "author": "NWSAlerts",
+  "license": "ISC",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^36.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "net.nwsalerts.app",
+    "productName": "NWSAlerts",
+    "copyright": "Copyright © 2026 NWSAlerts",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "static/favicon.ico"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://nwsalerts.net/static/updates/"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "static/favicon.ico",
+      "uninstallerIcon": "static/favicon.ico",
+      "installerHeaderIcon": "static/favicon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NWSAlerts"
+    },
+    "files": [
+      "main.js",
+      "tray.js",
+      "preferences.js",
+      "settings.html",
+      "static/logo.png",
+      "static/favicon.ico",
+      "static/tray16.png",
+      "static/tray64.png",
+      "package.json"
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3",
+    "sharp": "^0.34.5"
+  }
+}
