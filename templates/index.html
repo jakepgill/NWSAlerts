@@ -1,0 +1,3625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NWS Alerts — Live Weather Alert Map</title>
+  <meta name="description"
+    content="Track live National Weather Service alerts on an interactive map. Real-time tornado warnings, severe thunderstorm warnings, flood alerts and more across the US. Free, no signup required.">
+  <meta name="keywords"
+    content="NWS alerts, live weather alerts, tornado warning map, severe weather tracker, national weather service, real-time weather warnings, weather alert dashboard">
+  <meta name="author" content="NWSAlerts">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nwsalerts.net/">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nwsalerts.net/">
+  <meta property="og:title" content="NWS Alerts — Live Weather Alert Map">
+  <meta property="og:description"
+    content="Track live National Weather Service alerts on an interactive map. Real-time tornado warnings, severe thunderstorm warnings, flood alerts and more across the US.">
+  <meta property="og:image" content="https://nwsalerts.net/static/og-image.png">
+  <meta property="og:site_name" content="NWSAlerts">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NWS Alerts — Live Weather Alert Map">
+  <meta name="twitter:description"
+    content="Track live NWS weather alerts on an interactive map. Free, real-time, no signup needed.">
+  <meta name="twitter:image" content="https://nwsalerts.net/static/og-image.png">
+  
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "NWSAlerts",
+      "url": "https://nwsalerts.net",
+      "description": "Real-time National Weather Service alert dashboard with interactive map, tornado warnings, severe weather tracking and desktop notifications.",
+      "applicationCategory": "WeatherApplication",
+      "operatingSystem": "Web, Windows",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "NWSAlerts",
+        "url": "https://nwsalerts.net"
+      }
+    }
+    </script>
+  
+  <link rel="icon" href="/static/favicon.ico">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-M6Q5WPPW30"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-M6Q5WPPW30');
+  </script>
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4890462861504777"
+    crossorigin="anonymous"></script>
+
+  <!-- Fonts: Barlow Condensed + Barlow + Share Tech Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;600;700&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <style>
+    :root {
+      --bg: #04060d;
+      --border: rgba(55,75,130,0.9);
+      --border-dim: rgba(38,50,90,0.7);
+      --text: #dde4ff;
+      --muted: #8898cc;
+      --danger: #ff2929;
+      --panel: rgba(8,11,22,0.85);
+      --font-display: 'Barlow Condensed', Arial, sans-serif;
+      --font-mono: 'Share Tech Mono', 'Courier New', monospace;
+      --font-body: 'Barlow', system-ui, sans-serif;
+    }
+
+    html, body { height: 100%; margin: 0; }
+
+    body {
+      background: #04060d;
+      color: var(--text);
+      font-family: var(--font-body);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Grid overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(38,50,90,0.07) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(38,50,90,0.07) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: var(--font-body);
+      transition: background 120ms;
+    }
+    .btn:hover { background: rgba(255,255,255,0.12); }
+
+    .btnSmall {
+      border: 1px solid rgba(34,42,68,0.9);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      font-family: var(--font-body);
+      transition: background 120ms;
+    }
+    .btnSmall:hover { background: rgba(255,255,255,0.12); }
+
+    /* ── Overlays / Modals ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: none; z-index: 10000;
+      backdrop-filter: blur(2px);
+    }
+    .overlay.show { display: block; }
+
+    .panelModal {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 920px;
+      max-width: calc(100% - 24px);
+      max-height: calc(100% - 24px);
+      background: rgba(8,11,20,0.97);
+      border: 1px solid rgba(34,42,68,0.95);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.75);
+      display: none; z-index: 10001; overflow: hidden;
+    }
+    .panelModal.show { display: flex; flex-direction: column; }
+
+    .modalHeader {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(34,42,68,0.9);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      background: rgba(255,255,255,0.03);
+    }
+    .modalHeader .h {
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      font-size: 13px;
+      font-family: var(--font-display);
+      font-size: 16px;
+    }
+    .modalHeader .close {
+      cursor: pointer;
+      border: 1px solid rgba(34,42,68,0.9);
+      border-radius: 10px;
+      padding: 6px 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.06);
+      font-size: 12px;
+    }
+    .modalHeader .close:hover { background: rgba(255,255,255,0.12); }
+
+    .modalBody {
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 14px;
+      overflow: auto;
+    }
+
+    .card {
+      border: 1px solid rgba(34,42,68,0.9);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      padding: 12px;
+    }
+    .cardTitle {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.8px;
+      color: #dfe6ff;
+      margin-bottom: 10px;
+      font-family: var(--font-display);
+    }
+
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0; }
+    .toggle { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 12px; }
+    input[type="checkbox"] { transform: scale(1.2); cursor: pointer; }
+
+    .input, .searchBox {
+      width: 100%;
+      border: 1px solid rgba(34,42,68,0.9);
+      background: rgba(0,0,0,0.35);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 11px;
+      font-weight: 600;
+      outline: none;
+      box-sizing: border-box;
+      font-size: 12px;
+      font-family: var(--font-body);
+      transition: border-color 150ms;
+    }
+    .input:focus, .searchBox:focus {
+      border-color: rgba(100,120,220,0.6);
+    }
+
+    .eventList {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px 10px;
+      margin-top: 10px;
+    }
+    .eventItem {
+      border: 1px solid rgba(34,42,68,0.7);
+      border-radius: 10px;
+      padding: 6px 8px;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: background 100ms;
+    }
+    .eventItem:hover { background: rgba(255,255,255,0.05); }
+    .eventItem span {
+      font-weight: 600;
+      font-size: 11px;
+      color: #dfe6ff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Map weather overlay ── */
+    .wxOverlay {
+      position: absolute;
+      left: 12px; bottom: 12px;
+      z-index: 500;
+      width: 300px;
+      max-width: calc(100% - 24px);
+      border: 1px solid rgba(34,42,68,0.92);
+      border-radius: 14px;
+      background: rgba(5,7,14,0.72);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+      padding: 10px 12px;
+      pointer-events: auto;
+    }
+    .wxTop {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .wxTitle {
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+      font-family: var(--font-display);
+    }
+    .wxMeta {
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+    .wxBody { font-size: 12px; line-height: 1.3; color: var(--text); }
+    .wxRow {
+      display: flex; justify-content: space-between; gap: 10px; margin: 3px 0;
+    }
+    .wxKey { color: var(--muted); font-size: 11px; font-family: var(--font-mono); }
+    .wxVal { text-align: right; font-size: 11px; font-family: var(--font-mono); font-weight: 600; }
+
+    /* ── Details Modal ── */
+    .detailsModal {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 980px;
+      max-width: calc(100% - 24px);
+      max-height: calc(100% - 24px);
+      background: rgba(6,8,16,0.97);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.85);
+      display: none; z-index: 11000; overflow: hidden;
+    }
+    .detailsModal.show { display: flex; flex-direction: column; }
+
+    .detailsHeader {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+    }
+    .detailsHeader .title {
+      font-weight: 700;
+      font-size: 18px;
+      font-family: var(--font-display);
+      letter-spacing: 0.5px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .chip {
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      font-family: var(--font-body);
+    }
+
+    .detailsBody {
+      padding: 12px 16px;
+      overflow: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .detailsBlock {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .detailsBlock h3 {
+      margin: 0 0 8px 0;
+      font-size: 10px;
+      letter-spacing: 1.2px;
+      font-weight: 700;
+      color: var(--muted);
+      font-family: var(--font-display);
+    }
+    .detailsText {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.4;
+      font-weight: 400;
+      color: #e8ecff;
+      font-size: 12px;
+    }
+    .detailsFooter {
+      padding: 10px 16px;
+      border-top: 1px solid rgba(255,255,255,0.10);
+      display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      height: 64px;
+      display: flex; align-items: center; padding: 0 14px;
+      background: linear-gradient(135deg, rgba(12,6,24,0.98) 0%, rgba(8,10,26,0.98) 40%, rgba(5,12,30,0.98) 100%);
+      border-bottom: 1px solid rgba(55,75,130,0.9);
+      box-shadow: 0 2px 24px rgba(0,0,0,0.6);
+      box-sizing: border-box; gap: 12px;
+      flex-shrink: 0; position: relative; z-index: 10;
+    }
+    .topbar::after {
+      content: '';
+      position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(41,198,255,0.4), rgba(124,111,255,0.4), transparent);
+    }
+    .brand { display: flex; align-items: center; justify-content: flex-start; min-width: 180px; }
+    .headerLogo { height: 56px; width: auto; display: block; }
+
+    .tickerWrap {
+      flex: 1; height: 38px;
+      border: 1px solid rgba(55,75,130,0.7);
+      border-radius: 10px;
+      background: rgba(5,7,14,0.8);
+      display: flex; align-items: center; padding: 0 10px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .tickerLabel {
+      background: var(--danger);
+      color: white;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 8px;
+      letter-spacing: 1px;
+      margin-right: 10px;
+      white-space: nowrap;
+      font-family: var(--font-display);
+    }
+    .tickerViewport {
+      position: relative; flex: 1; overflow: hidden;
+      height: 38px; display: flex; align-items: center;
+    }
+    .tickerMarquee {
+      position: relative;
+      white-space: nowrap;
+      will-change: transform;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--font-display);
+      letter-spacing: 0.3px;
+      transform: translateX(0);
+    }
+    .tickerMarquee.scroll {
+      animation: wwMarquee var(--marqueeDur, 10s) linear infinite;
+    }
+    @keyframes wwMarquee {
+      0%   { transform: translateX(0); }
+      10%  { transform: translateX(0); }
+      100% { transform: translateX(var(--marqueeEnd, -200px)); }
+    }
+    .tickerMarquee .muted { color: var(--muted); font-weight: 600; }
+
+    /* ── Main layout ── */
+    .main {
+      flex: 1 1 auto; min-height: 0;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 10px; padding: 10px;
+      box-sizing: border-box;
+    }
+    .panel {
+      border: 1px solid rgba(55,75,130,0.9);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+      overflow: hidden;
+      position: relative;
+    }
+    /* Corner accents */
+    .panel::before, .panel::after {
+      content: ''; position: absolute;
+      width: 12px; height: 12px;
+      border-color: rgba(41,198,255,0.5); border-style: solid;
+      z-index: 1; pointer-events: none;
+    }
+    .panel::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+    .panel::after  { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+
+    /* ── Alert list panel ── */
+    .listHeader {
+      padding: 10px 12px 8px;
+      background: linear-gradient(180deg, rgba(255,41,41,0.15) 0%, rgba(255,41,41,0.00) 70%);
+      border-bottom: 1px solid rgba(55,75,130,0.7);
+      flex-shrink: 0;
+    }
+    .listHeader h2 {
+      margin: 0 0 6px 0;
+      font-size: 17px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      font-weight: 800;
+      font-family: var(--font-display);
+    }
+    .listHeaderControls {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+
+    /* Search box inside the list */
+    .alertSearch {
+      flex: 1; min-width: 120px;
+      border: 1px solid rgba(55,75,130,0.7);
+      background: rgba(0,0,0,0.3);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-family: var(--font-body);
+      outline: none;
+      transition: border-color 150ms;
+    }
+    .alertSearch:focus { border-color: rgba(41,198,255,0.5); }
+    .alertSearch::placeholder { color: var(--muted); }
+
+    .sortWrap { display: flex; align-items: center; gap: 6px; }
+    .sortWrap span { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+    /* Severity summary bar */
+    .severityBar {
+      display: flex; gap: 5px; flex-wrap: wrap; margin-top: 7px;
+    }
+    .sevPill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: var(--font-display);
+      letter-spacing: 0.5px;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .sevPill-extreme { background: rgba(139,0,0,0.45); border-color: #8b0000; color: #ffaaaa; }
+    .sevPill-severe  { background: rgba(255,60,0,0.35); border-color: #ff4500; color: #ffccaa; }
+    .sevPill-moderate{ background: rgba(255,179,0,0.30); border-color: #ffb300; color: #ffe8aa; }
+    .sevPill-minor   { background: rgba(100,140,255,0.25); border-color: #4477cc; color: #aaccff; }
+    .sevPill-other   { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); color: var(--muted); }
+
+    .listBody {
+      padding: 8px; overflow-y: auto; overflow-x: hidden;
+      height: calc(100% - 112px);   /* dynamic via JS on resize */
+    }
+
+    /* ── Alert Cards ── */
+    .alertCard {
+      background: rgba(6,8,18,0.75);
+      border: 1px solid rgba(55,75,130,0.5);
+      border-left: 4px solid #666;
+      border-radius: 10px;
+      padding: 9px 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 100ms, transform 100ms;
+    }
+    .alertCard:hover {
+      background: rgba(12,16,32,0.85);
+      transform: translateX(1px);
+    }
+    @keyframes pulseOutline {
+      0%,100% { opacity:1; } 50% { opacity:0.4; }
+    }
+    .alertCard.focusCard {
+      outline: 2px solid rgba(255,255,255,0.3);
+      box-shadow: 0 0 18px rgba(255,255,255,0.12);
+    }
+    @keyframes wwFlash {
+      0%   { box-shadow: 0 0 0 rgba(255,255,255,0.0); background: rgba(6,8,16,0.75); }
+      50%  { box-shadow: 0 0 24px rgba(255,255,255,0.22); background: rgba(255,255,255,0.08); }
+      100% { box-shadow: 0 0 0 rgba(255,255,255,0.0); background: rgba(6,8,16,0.75); }
+    }
+    .flashCard { animation: wwFlash 0.65s ease-in-out infinite; }
+
+    /* Continuous flash for tornado/severe+tornado — pulses to near-black */
+    @keyframes wwFlashContinuous {
+      0%   { background: rgba(6,8,16,0.75);  box-shadow: none; }
+      40%  { background: var(--flash-color, rgba(255,26,26,0.25)); box-shadow: 0 0 18px var(--flash-color, rgba(255,26,26,0.4)); }
+      50%  { background: rgba(0,0,0,0.92);   box-shadow: 0 0 6px rgba(0,0,0,0.8); }
+      90%  { background: var(--flash-color, rgba(255,26,26,0.25)); box-shadow: 0 0 18px var(--flash-color, rgba(255,26,26,0.4)); }
+      100% { background: rgba(6,8,16,0.75);  box-shadow: none; }
+    }
+    .flashCardContinuous {
+      animation: wwFlashContinuous 0.8s ease-in-out infinite;
+    }
+
+    .alertCardTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .alertEventName {
+      font-weight: 800;
+      font-size: 14px;
+      font-family: var(--font-display);
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+    }
+    .alertCardArea {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 400;
+      line-height: 1.3;
+    }
+    .alertCardHeadline {
+      margin-top: 5px;
+      font-size: 11px;
+      font-weight: 400;
+      color: #c8d0f0;
+      line-height: 1.3;
+    }
+    .alertCardMeta {
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      line-height: 1.4;
+    }
+
+    .badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; }
+
+    /* Standard badge */
+    .badge {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    /* Special alert tag badges */
+    .badge-emergency {
+      background: rgba(255,0,80,0.18);
+      border: 1px solid rgba(255,0,80,0.6);
+      color: #ff5090;
+      animation: emergencyPulse 1s ease-in-out infinite;
+    }
+    @keyframes emergencyPulse {
+      0%,100% { box-shadow: 0 0 4px rgba(255,0,80,0.4); }
+      50%      { box-shadow: 0 0 12px rgba(255,0,80,0.9); }
+    }
+    .badge-pds {
+      background: rgba(160,32,240,0.18);
+      border: 1px solid rgba(160,32,240,0.6);
+      color: #d070ff;
+    }
+    .badge-confirmed {
+      background: rgba(255,100,0,0.18);
+      border: 1px solid rgba(255,100,0,0.5);
+      color: #ff9955;
+    }
+    .badge-tornado-possible {
+      background: rgba(255,220,0,0.18);
+      border: 1px solid rgba(255,220,0,0.5);
+      color: #ffe566;
+    }
+    .badge-flash-flood-emergency {
+      background: rgba(0,180,255,0.18);
+      border: 1px solid rgba(0,180,255,0.6);
+      color: #33ccff;
+      animation: emergencyPulse 1s ease-in-out infinite;
+    }
+    .badge-destructive {
+      background: rgba(255,80,0,0.18);
+      border: 1px solid rgba(255,80,0,0.5);
+      color: #ff7040;
+    }
+    .badge-considerable {
+      background: rgba(255,160,0,0.18);
+      border: 1px solid rgba(255,160,0,0.5);
+      color: #ffb833;
+    }
+    .badge-life-threatening {
+      background: rgba(220,0,0,0.18);
+      border: 1px solid rgba(220,0,0,0.5);
+      color: #ff6060;
+    }
+    .badge-catastrophic {
+      background: rgba(120,0,255,0.18);
+      border: 1px solid rgba(120,0,255,0.6);
+      color: #aa66ff;
+      animation: emergencyPulse 1.2s ease-in-out infinite;
+    }
+    .badge-tw {
+      background: rgba(255,26,26,0.15);
+      border: 1px solid rgba(255,26,26,0.5);
+      color: #ff6666;
+    }
+    .badge-override-user {
+      background: rgba(41,198,255,0.1);
+      border: 1px solid rgba(41,198,255,0.35);
+      color: #29c6ff;
+      font-size: 9px;
+    }
+    .badge-override-admin {
+      background: rgba(255,200,0,0.1);
+      border: 1px solid rgba(255,200,0,0.35);
+      color: #ffc800;
+      font-size: 9px;
+    }
+
+    .expTimer {
+      margin-top: 5px;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: #e8ecff;
+      white-space: nowrap;
+    }
+    .expTimer .muted { color: var(--muted); }
+
+    /* ── Map panel ── */
+    .mapHeader {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(55,75,130,0.7);
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(5,8,20,0.7); gap: 10px; flex-shrink: 0;
+    }
+    .mapHeader .right { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+    .pill {
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,75,130,0.7);
+      background: rgba(255,255,255,0.04);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+
+    #mapWrap { position: relative; height: calc(100% - 46px); width: 100%; background: #000; }
+    #map { position: absolute; inset: 0; }
+
+    #mapJumpControls {
+      position: absolute; top: 10px; right: 10px;
+      z-index: 1200;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #btnLatestSevere {
+      background: rgba(15,18,34,0.9);
+      border: 1px solid rgba(255,255,255,0.22);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      font-family: var(--font-display);
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+    #btnLatestSevere:hover { background: rgba(30,36,65,0.95); }
+
+    @media (min-width: 768px) { #btnExpandMap { display: inline-flex !important; } }
+    #btnExpandMap {
+      background: rgba(15,18,34,0.9);
+      border: 1px solid rgba(79,195,255,0.45);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      font-family: var(--font-display);
+      font-size: 13px;
+      letter-spacing: 0.3px;
+      color: #4fc3ff;
+    }
+    #btnExpandMap:hover { background: rgba(30,36,65,0.95); }
+    #btnMapTheme:hover { background: rgba(79,195,255,0.15); border-color: rgba(79,195,255,0.6); color: #4fc3ff; cursor: pointer; }
+
+    /* ── Radar controls ── */
+    #radarControls {
+      position: absolute; bottom: 12px; right: 12px;
+      z-index: 1200;
+      width: 260px;
+      background: rgba(6,8,16,0.92);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 13px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .radarRow { display: flex; align-items: center; gap: 8px; }
+    .radarLabel { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted); font-family: var(--font-mono); white-space: nowrap; }
+    .radarBtn {
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      color: var(--text); font-weight: 700; font-size: 11px;
+      padding: 4px 10px; border-radius: 7px; cursor: pointer;
+      font-family: var(--font-display); letter-spacing: 0.5px;
+      transition: background 120ms;
+    }
+    .radarBtn:hover { background: rgba(255,255,255,0.14); }
+    .radarBtn.active { background: rgba(79,195,255,0.2); border-color: rgba(79,195,255,0.6); color: #4fc3ff; }
+    .radarSlider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.12); outline: none; cursor: pointer;
+    }
+    .radarSlider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: #4fc3ff; cursor: pointer;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+    .radarTs { font-size: 10px; font-family: var(--font-mono); color: #4fc3ff; text-align: center; min-height: 14px; }
+
+    /* ── Expanded map mode ── */
+    .main.mapExpanded { grid-template-columns: 52px 1fr; }
+    .main.mapExpanded .listBody { overflow: hidden; }
+    .main.mapExpanded #alertList { display: none; }
+    .main.mapExpanded .listHeader { display: none; }
+    .main.mapExpanded .severityBar { display: none; }
+    .sidebarStrip {
+      display: none; flex-direction: column; align-items: center;
+      gap: 6px; padding: 8px 4px; overflow: hidden;
+    }
+    .main.mapExpanded .sidebarStrip { display: flex; }
+    .stripCount {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      color: var(--text); writing-mode: vertical-rl;
+      text-orientation: mixed; letter-spacing: 1px;
+    }
+    .stripDot {
+      width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+    }
+
+    /* ── Bottom bar ── */
+    .bottombar {
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 5px 12px;
+      border-top: 1px solid rgba(55,75,130,0.7);
+      background: rgba(4,6,13,0.97);
+      box-sizing: border-box; gap: 5px;
+      flex-shrink: 0; position: relative; z-index: 10;
+    }
+    .bottomRowTop {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .statusLeft { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .statusRight { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .statusItem {
+      border: 1px solid rgba(55,75,130,0.6);
+      background: rgba(255,255,255,0.03);
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-weight: 400;
+      font-size: 10px;
+      color: var(--text);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+    .statusItem span { color: var(--muted); font-size: 10px; margin-right: 4px; }
+
+    /* Connection status dot */
+    .statusDot {
+      width: 7px; height: 7px; border-radius: 50%;
+      display: inline-block; margin-right: 5px; vertical-align: middle;
+    }
+    .statusDot.ok { background: #22dd88; box-shadow: 0 0 5px rgba(34,221,136,0.5); }
+    .statusDot.err { background: #ff3333; box-shadow: 0 0 5px rgba(255,51,51,0.5); }
+    .statusDot.loading { background: #ffaa00; }
+
+    .clockItem {
+      border: 1px solid rgba(55,75,130,0.6);
+      background: rgba(255,255,255,0.03);
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-size: 10px;
+      color: var(--text);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+    .clockItem .tz { color: var(--muted); margin-right: 5px; }
+
+    .bottomFoot {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center; gap: 10px;
+      padding-top: 4px;
+      border-top: 1px solid rgba(55,75,130,0.4);
+      font-size: 10px; color: var(--muted);
+    }
+    .bottomFoot a { color: rgba(174,183,223,0.7); text-decoration: none; }
+    .bottomFoot a:hover { color: var(--text); text-decoration: underline; }
+    .bottomFootRight { text-align: right; }
+
+    /* ── Polygon picker popup ── */
+    #polyPicker {
+      position: fixed;
+      z-index: 12000;
+      background: rgba(6,8,16,0.97);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 13px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.75);
+      padding: 6px;
+      min-width: 220px;
+      max-width: 300px;
+      max-height: 340px;
+      overflow-y: auto;
+      display: none;
+    }
+    #polyPicker.show { display: block; }
+    .polyPickerTitle {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-family: var(--font-display);
+      padding: 4px 8px 8px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 4px;
+    }
+    .polyPickerItem {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      transition: background 100ms;
+    }
+    .polyPickerItem:hover { background: rgba(255,255,255,0.08); }
+    .polyPickerDot {
+      width: 10px; height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .polyPickerSev {
+      font-size: 10px;
+      color: var(--muted);
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    /* ── Alert map labels ── */
+    .alert-label {
+      background: rgba(0,0,0,0.8);
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 2px 6px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      font-family: var(--font-display);
+    }
+    .alert-label .dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 2px; margin-right: 5px;
+      border: 1px solid rgba(255,255,255,0.3); vertical-align: -1px;
+    }
+    .alert-map-tags {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: flex-start;
+      filter: drop-shadow(0 1px 4px rgba(0,0,0,0.8));
+    }
+
+    /* ── Mobile ── */
+    .mobileSwitch {
+      display: none;
+      position: sticky; top: 0; z-index: 9999;
+      gap: 8px; padding: 8px 10px;
+      background: rgba(5,7,14,0.95);
+      border-bottom: 1px solid rgba(34,42,68,0.8);
+    }
+    .mobileSwitch .btn { flex: 1; }
+    .mobileHide { display: none !important; }
+    .debugHide { display: none !important; }
+
+    /* Announcements */
+    #announcementBanner{display:none;position:relative;z-index:200;background:rgba(41,198,255,0.1);border-bottom:1px solid rgba(41,198,255,0.4);padding:10px 48px 10px 20px;font-size:13px;color:#dde4ff;line-height:1.4;}
+    #announcementBannerClose{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#5568a0;font-size:18px;cursor:pointer;padding:4px 8px;}
+    #announcementBannerClose:hover{color:#dde4ff;}
+    #announcementModal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;}
+    #announcementModal.show{display:flex;}
+    #announcementModalBox{background:#0a0e1a;border:1px solid rgba(55,75,130,0.9);border-radius:12px;padding:28px;max-width:480px;width:90%;position:relative;}
+    #announcementModalBox::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(41,198,255,0.4),transparent);border-radius:12px 12px 0 0;}
+    #announcementModalClose{position:absolute;top:12px;right:14px;background:none;border:none;color:#5568a0;font-size:20px;cursor:pointer;}
+    #announcementModalClose:hover{color:#dde4ff;}
+    #announcementModalMsg{font-size:14px;color:#dde4ff;line-height:1.6;margin-top:8px;}
+
+    /* Topbar button group */
+    .topButtons {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    @media (max-width: 820px) {
+      body { overflow: auto; }
+
+      .topbar {
+        height: auto; flex-wrap: wrap; gap: 8px; padding: 10px;
+        align-items: center; position: relative;
+      }
+      .brand { order: 1; width: 100%; justify-content: center; }
+      .headerLogo { height: 50px; margin: 0 auto; }
+
+      .topButtons {
+        order: 1; position: absolute; top: 10px; left: 10px; right: 10px;
+        justify-content: space-between; pointer-events: none;
+      }
+      .topButtons .btn { pointer-events: auto; }
+
+      .tickerWrap { width: 100%; order: 2; margin-top: 4px; }
+      .tickerMarquee { font-size: 13px; }
+
+      .main { flex: 1 1 auto; min-height: 0; grid-template-columns: 1fr; }
+      #mapWrap { height: 56vh; }
+      .listBody { height: auto; max-height: 40vh; }
+
+      .bottombar { height: auto; padding: 8px 10px; gap: 8px; }
+      .bottomRowTop { flex-wrap: wrap; }
+      .statusLeft, .statusRight { flex: 1 1 100%; }
+
+      .panelModal, .detailsModal {
+        width: calc(100% - 16px); max-width: calc(100% - 16px);
+        max-height: calc(100% - 16px);
+      }
+      .modalBody { grid-template-columns: 1fr; }
+      .detailsBody { grid-template-columns: 1fr; }
+
+      .wxOverlay { left: 8px; right: 8px; bottom: 8px; width: auto; }
+      .mobileSwitch { display: flex; }
+      .bottomFoot { grid-template-columns: 1fr; text-align: center; }
+      .bottomFootRight { text-align: center; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="overlay" id="overlay"></div>
+
+  <!-- ── Settings Modal ── -->
+  <div class="panelModal" id="settingsModal">
+    <div class="modalHeader">
+      <div class="h">SETTINGS</div>
+      <div class="close" id="closeSettings">✕ Close</div>
+    </div>
+    <div class="modalBody">
+      <div class="card">
+        <div class="cardTitle">DASHBOARD SETTINGS</div>
+
+        <div class="row">
+          <div style="font-weight:600;font-size:12px;">Sound</div>
+          <div class="toggle"><input type="checkbox" id="toggleSound"><span id="soundText">OFF</span></div>
+        </div>
+
+        <div class="row">
+          <div style="font-weight:600;font-size:12px;">Voice Announce (Severe+ only)</div>
+          <div class="toggle"><input type="checkbox" id="toggleVoice"><span id="voiceText">OFF</span></div>
+        </div>
+
+        <div class="row" style="flex-direction:column;align-items:stretch;">
+          <select id="voiceSelect" class="input" style="margin-bottom:6px;">
+            <option value="">System Default Voice</option>
+          </select>
+          <button class="btnSmall" id="btnTestVoice">Test Voice</button>
+        </div>
+
+        <div class="row">
+          <div style="font-weight:600;font-size:12px;">Auto-Zoom to NEW alert</div>
+          <div class="toggle"><input type="checkbox" id="toggleAutoZoom"><span id="autoZoomText">OFF</span></div>
+        </div>
+
+        <div class="row" style="flex-direction:column;align-items:stretch;">
+          <div style="font-weight:600;font-size:12px;margin-bottom:6px;">Auto-Zoom Types</div>
+          <select id="autoZoomModeSelect" class="input">
+            <option value="all">All New Alerts</option>
+            <option value="severe_plus">Severe+ Only</option>
+            <option value="tornado_extreme">Tornado / Extreme Only</option>
+            <option value="selected_only">Selected Types Only</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div style="font-weight:600;font-size:12px;">Rotation</div>
+          <div class="toggle"><input type="checkbox" id="toggleRotate"><span id="rotateText">ON</span></div>
+        </div>
+
+        <div class="row">
+          <div style="font-weight:600;font-size:12px;">State Filter</div>
+          <div class="toggle"><input type="checkbox" id="toggleStateFilter"><span id="stateFilterText">OFF</span></div>
+        </div>
+        <div id="stateFilterPanel" style="display:none;flex-direction:column;gap:6px;margin-top:4px;">
+          <div style="font-size:10px;color:var(--muted);">Show alerts only from selected states.</div>
+          <input class="input" id="stateFilterSearch" placeholder="Search states…" autocomplete="off">
+          <div id="stateFilterList"
+            style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:160px;overflow-y:auto;border:1px solid rgba(55,75,130,0.5);border-radius:8px;padding:6px;background:rgba(0,0,0,0.2);">
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btnSmall" id="btnStateAll">All States</button>
+            <button class="btnSmall" id="btnStateNone">Clear</button>
+          </div>
+        </div>
+
+        <div class="row" style="flex-direction:column;align-items:stretch;">
+          <div style="font-weight:600;font-size:12px;margin-bottom:4px;">Flash Speed</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Controls how fast Tornado Warnings and active severe
+            alerts flash on the map and in the sidebar.</div>
+          <select id="flashSpeedSelect" class="input">
+            <option value="slow">Slow</option>
+            <option value="medium">Medium</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
+        <div class="row" style="flex-direction:column;align-items:stretch;">
+          <div style="font-weight:600;font-size:12px;margin-bottom:4px;">Ticker Speed</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Controls how fast the alert ticker scrolls across
+            the top bar. Faster means quicker scrolling through long alert names.</div>
+          <select id="tickerSpeedSelect" class="input">
+            <option value="slow">Slow</option>
+            <option value="medium">Medium</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
+        <div class="row">
+          <div style="font-weight:600;font-size:12px;">Disable Alaska alerts</div>
+          <div class="toggle"><input type="checkbox" id="toggleNoAlaska"><span id="noAlaskaText">OFF</span></div>
+        </div>
+
+        <div class="row">
+          <div style="font-weight:600;font-size:12px;">Hide Debug Stats</div>
+          <div class="toggle"><input type="checkbox" id="toggleDebug"><span id="debugText">OFF</span></div>
+        </div>
+
+        <div class="row" style="flex-direction:column;align-items:stretch;">
+          <div style="font-weight:600;font-size:12px;margin-bottom:6px;">Cycle Mode</div>
+          <select id="cycleModeSelect" class="input">
+            <option value="all">All Selected</option>
+            <option value="severe_plus">Severe+ Only</option>
+            <option value="most_severe">Most Severe Only</option>
+          </select>
+        </div>
+
+        <div class="row" style="gap:6px;flex-wrap:wrap;">
+          <button class="btnSmall" id="btnSelectAll">Select All</button>
+          <button class="btnSmall" id="btnSelectNone">Select None</button>
+          <button class="btnSmall" id="btnResetDefaults">Reset Defaults</button>
+        </div>
+        <div class="card">
+          <div class="cardTitle">KEYBOARD SHORTCUTS</div>
+          <div style="display:grid;gap:8px;margin-top:4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+              <span style="color:var(--muted);">Open Settings</span>
+              <kbd
+                style="background:rgba(255,255,255,0.08);border:1px solid rgba(55,75,130,0.7);border-radius:5px;padding:2px 8px;font-family:var(--font-mono);font-size:11px;">S</kbd>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+              <span style="color:var(--muted);">Toggle Fullscreen</span>
+              <kbd
+                style="background:rgba(255,255,255,0.08);border:1px solid rgba(55,75,130,0.7);border-radius:5px;padding:2px 8px;font-family:var(--font-mono);font-size:11px;">F</kbd>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+              <span style="color:var(--muted);">Close Modals</span>
+              <kbd
+                style="background:rgba(255,255,255,0.08);border:1px solid rgba(55,75,130,0.7);border-radius:5px;padding:2px 8px;font-family:var(--font-mono);font-size:11px;">Esc</kbd>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardTitle">PICK NWS ALERT TYPES</div>
+        <input class="searchBox" id="eventSearch" placeholder="Search types (e.g. Wind, Flood)…">
+        <div class="eventList" id="eventList">Loading…</div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(55,75,130,0.5);">
+          <div class="cardTitle">ABOUT</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px;">
+            <div
+              style="margin-bottom:6px;color:var(--text);font-weight:700;font-size:13px;font-family:var(--font-display);letter-spacing:1px;">
+              NWS ALERTS</div>
+            <div style="margin-bottom:8px;">An independent real-time dashboard for National Weather Service alerts. Not
+              affiliated with NOAA, NWS, or the U.S. Government.</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <a href="/dsa" target="_blank" style="color:#29c6ff;text-decoration:none;font-size:11px;">📡 Data Sources</a>
+              <a href="/terms" target="_blank" style="color:#29c6ff;text-decoration:none;font-size:11px;">📄 Terms of
+                Service</a>
+              <a href="/privacy" target="_blank" style="color:#29c6ff;text-decoration:none;font-size:11px;">🔒 Privacy
+                Policy</a>
+              <a href="/changelog" target="_blank" style="color:#29c6ff;text-decoration:none;font-size:11px;">📋 Changelog</a>
+              <a href="https://feedback.nwsalerts.net" target="_blank" rel="noopener"
+                style="color:#29c6ff;text-decoration:none;font-size:11px;">💬 Submit Feedback</a>
+              <a href="/download" target="_blank" id="aboutDownloadLink" style="color:#29c6ff;text-decoration:none;font-size:11px;">⬇
+                Download Desktop App</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
+
+  <!-- ── Details Modal ── -->
+  <div class="overlay" id="detailsOverlay" style="z-index:10999;"></div>
+  <div class="detailsModal" id="detailsModal">
+    <div class="detailsHeader">
+      <div class="title">
+        <span id="dEvent">—</span>
+        <span class="chip" id="dSeverity">—</span>
+        <span class="chip" id="dUrgency">—</span>
+        <span class="chip" id="dCertainty">—</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btnSmall" id="btnZoomAlert">⊕ Zoom to Alert</button>
+        <button class="btnSmall" id="btnCloseDetails">✕ Close</button>
+      </div>
+    </div>
+    <div class="detailsBody">
+      <div class="detailsBlock"><h3>AREA</h3><div class="detailsText" id="dArea">—</div></div>
+      <div class="detailsBlock"><h3>TIMING</h3><div class="detailsText" id="dTiming">—</div></div>
+      <div class="detailsBlock"><h3>HEADLINE</h3><div class="detailsText" id="dHeadline">—</div></div>
+      <div class="detailsBlock"><h3>INSTRUCTIONS</h3><div class="detailsText" id="dInstruction">—</div></div>
+      <div class="detailsBlock" style="grid-column:1/-1;"><h3>DESCRIPTION</h3><div class="detailsText" id="dDescription">—</div></div>
+    </div>
+    <div class="detailsBlock" style="grid-column:1/-1;" id="dTagsBlock">
+      <h3>TAGS</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;" id="dCurrentTags"></div>
+      <div id="dTagOverrideUI" style="display:none;flex-direction:column;gap:8px;">
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);">SELECT TAGS TO APPLY:</div>
+        <div id="dTagCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btnSmall" id="btnSaveTagOverride">✔ Save</button>
+          <button class="btnSmall" id="btnClearTagOverride">✕ Clear Override</button>
+          <button class="btnSmall" id="btnCancelTagOverride">Cancel</button>
+        </div>
+      </div>
+      <div id="dTagOverrideToggle">
+        <button class="btnSmall" id="btnEditTags" style="margin-top:6px;">✎ Override Tags</button>
+      </div>
+    </div>
+    <div class="detailsFooter">
+      <div class="chip" id="dSender">—</div>
+      <div class="chip" id="dId">—</div>
+    </div>
+    </div>
+
+  <!-- ── Polygon picker popup ── -->
+  <div id="polyPicker">
+    <div class="polyPickerTitle">MULTIPLE ALERTS — SELECT ONE</div>
+  </div>
+
+  <!-- ── Top Bar ── -->
+  <div id="announcementBanner">
+    <span id="announcementBannerMsg"></span>
+    <button id="announcementBannerClose" onclick="dismissAnnouncement()">✕</button>
+  </div>
+  
+  <div id="announcementModal">
+    <div id="announcementModalBox">
+      <button id="announcementModalClose" onclick="dismissAnnouncement()">✕</button>
+      <div
+        style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:2px;color:#29c6ff;text-transform:uppercase;margin-bottom:4px;">
+        Announcement</div>
+      <div id="announcementModalMsg"></div>
+      <button class="btn" style="margin-top:16px;width:100%;justify-content:center;" onclick="dismissAnnouncement()">Got
+        it</button>
+    </div>
+  </div>
+  <div class="topbar">
+    <div class="brand">
+      <img src="/static/logo.png" class="headerLogo" alt="NWS Alerts">
+    </div>
+    <div class="tickerWrap">
+      <div class="tickerLabel">ALERTS</div>
+      <div class="tickerViewport">
+        <div class="tickerMarquee" id="tickerText"><span class="muted">Loading…</span></div>
+      </div>
+    </div>
+    <div class="topButtons">
+      <button class="btn" id="btnSettings">⚙ Settings</button>
+      <button class="btn" id="btnFullscreen">⛶ Fullscreen</button>
+    </div>
+  </div>
+
+  <!-- ── Mobile Tab Switch ── -->
+  <div class="mobileSwitch" id="mobileSwitch">
+    <button class="btn" id="btnShowAlerts" type="button">Alerts</button>
+    <button class="btn" id="btnShowMap" type="button">Map</button>
+  </div>
+
+  <!-- ── Main Content ── -->
+  <div class="main">
+    <!-- Alert list panel -->
+    <div class="panel" style="display:flex;flex-direction:column;">
+      <div class="sidebarStrip" id="sidebarStrip"></div>
+      <div class="listHeader">
+        <h2>ACTIVE ALERTS</h2>
+        <div class="listHeaderControls">
+          <input type="text" id="alertSearch" class="alertSearch" placeholder="🔍 Search alerts…" autocomplete="off">
+          <div class="sortWrap">
+            <span>Sort:</span>
+            <select id="sortMode" class="input" style="width:auto;padding:6px 8px;">
+              <option value="severity_desc">Severity ↓</option>
+              <option value="sent_desc">Newest ↓</option>
+              <option value="expires_asc">Expires ↑</option>
+            </select>
+          </div>
+        </div>
+        <div class="severityBar" id="severityBar"></div>
+      </div>
+      <div class="listBody" id="alertList">
+        <div class="alertCard" style="border-left-color:#2fd3ff;cursor:default;">
+          <div class="alertEventName">Loading alerts…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map panel -->
+    <div class="panel" style="display:flex;flex-direction:column;">
+      <div class="mapHeader">
+        <div>
+          <div
+            style="font-size:13px;font-weight:800;letter-spacing:1.5px;font-family:var(--font-display);text-transform:uppercase;color:#29c6ff;">
+            RADAR + SELECTED ALERTS</div>
+          <div style="color:var(--muted);font-size:10px;" id="subLine">Click alerts for details</div>
+        </div>
+        <div class="right">
+          <div class="pill" id="pillCount">Shown: 0</div>
+          <div class="pill" id="pillClock">—</div>
+          <div class="pill" id="btnMapTheme" style="cursor:pointer;user-select:none;">☀ Light</div>
+        </div>
+      </div>
+
+      <div id="mapWrap">
+        <div id="mapJumpControls">
+          <button class="btn" id="btnLatestSevere" type="button">⚠ Latest Severe+</button>
+          <button class="btn" id="btnExpandMap" type="button" style="display:none;" class="desktopOnly">⤢ Expand</button>
+        </div>
+        <div id="map"></div>
+        <div id="mapNoAlerts"
+          style="display:none;position:absolute;inset:0;z-index:400;align-items:center;justify-content:center;pointer-events:none;">
+          <div
+            style="background:rgba(6,8,16,0.82);border:1px solid rgba(55,75,130,0.6);border-radius:12px;padding:16px 22px;font-family:'Barlow Condensed',sans-serif;backdrop-filter:blur(8px);text-align:center;">
+            <div style="font-size:14px;font-weight:800;letter-spacing:1.5px;color:#5568a0;margin-bottom:6px;">NO ACTIVE ALERTS
+              SELECTED</div>
+            <div style="font-size:12px;font-weight:600;color:#3a4a70;letter-spacing:0.5px;">Click <span style="color:#29c6ff;">⚙
+                Settings</span> → Pick NWS Alert Types to select alerts to display.</div>
+          </div>
+        </div>
+        <div class="wxOverlay" id="wxOverlay">
+          <div class="wxTop">
+            <div class="wxTitle">FOCUSED WEATHER</div>
+            <div class="wxMeta" id="wxMeta">Center of map</div>
+          </div>
+          <div class="wxBody" id="wxBody"><span class="muted">Pan/zoom the map…</span></div>
+          </div>
+          <div id="radarControls">
+            <div class="radarRow">
+              <span class="radarLabel" style="font-weight:900;color:#4fc3ff;">NEXRAD REFLECTIVITY</span>
+              <span class="radarLabel" style="margin-left:auto;">OPACITY</span>
+              <input type="range" class="radarSlider" id="radarOpacity" min="10" max="90" value="40" style="width:70px;">
+            </div>
+            <div class="radarRow">
+              <button class="radarBtn" id="btnRadarPlay">▶ Play</button>
+              <input type="range" class="radarSlider" id="radarFrame" min="0" max="11" value="11" style="flex:1;">
+              <span class="radarTs" id="radarTs">—</span>
+            </div>
+          </div>
+        </div>
+     </div>
+    </div>
+
+  <!-- ── Bottom Bar ── -->
+  <div class="bottombar">
+    <div class="bottomRowTop">
+      <div class="statusLeft" id="statusLeft">
+        <div class="statusItem" id="statusConn">
+          <span class="statusDot loading" id="statusDot"></span>
+          <span id="statusConnText">Connecting…</span>
+        </div>
+        <div class="statusItem"><span>Selected</span><span id="selCount">0</span></div>
+        <div class="statusItem"><span>Total</span><span id="totalCount">0</span></div>
+        <div class="statusItem"><span>Shown</span><span id="matchCount">0</span></div>
+        <div class="statusItem"><span>HTTP</span><span id="httpCode">—</span></div>
+        <div class="statusItem"><span>NWS</span><span id="nwsTotal">0</span></div>
+        <div class="statusItem"><span>Actual</span><span id="actualCount">0</span></div>
+        <div class="statusItem"><span>Rotation</span><span id="rotStatus">—</span></div>
+        <div id="debugClocks" style="display:none;gap:6px;flex-wrap:wrap;align-items:center;"></div>
+      </div>
+      <div class="statusRight">
+        <a class="btn" href="/stats">📊 Stats</a>
+        <a class="btn" href="/swcc">SWCC</a>
+        <a class="btn" href="https://feedback.nwsalerts.net" target="_blank" rel="noopener">💬 Feedback</a>
+      </div>
+    </div>
+    <div class="bottomFoot">
+      <div>
+        <a href="/terms">Terms</a> • <a href="/privacy">Privacy</a> • <a href="/dsa">Data Sources</a> • <a href="/changelog">Changelog</a> • <a href="/download" id="footerDownloadLink">⬇ Download</a>
+      </div>
+      <div class="bottomFootRight">Beta Version 1.4.3 • Updated Mar 22 2026</div>
+    </div>
+  </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  // ── Constants ─────────────────────────────────────────────────────────────
+  const DEFAULT_VIEW   = [39.5, -98.35];
+  const DEFAULT_ZOOM   = 4;
+  const REFRESH_MS     = 15_000;
+  const NEW_ALERT_FLASH_MS    = 15_000;
+  const EXPIRING_SOON_MS = 5 * 60 * 1000;
+  const EXPIRING_FLASH_MS = 5_000;
+  const EXPIRING_SCROLL_MS = 5 * 60 * 1000;
+  const EXPIRED_TICKER_MS     = 6_500;
+  const EXP_TIMER_SHOW_MS     = 30 * 60 * 1000;
+  let FLASH_TICK_MS = 400;
+  function applyFlashSpeed() {
+    const speed = settings.flashSpeed || "medium";
+    FLASH_TICK_MS = speed === "slow" ? 700 : speed === "fast" ? 200 : 400;
+    if (flashInterval) { clearInterval(flashInterval); flashInterval = setInterval(() => { flashOn = !flashOn; pruneFlashing(); applyPolygonFlash(); updateCardFlashClasses(); }, FLASH_TICK_MS); }
+  }
+  const ROTATION_PAUSE_PAD_MS = 800;
+  const LABEL_HIDE_ALL_BELOW_Z    = 6;
+  const LABEL_SHOW_ALL_AT_OR_ABOVE_Z = 8;
+  const FOCUSED_WEATHER_MIN_ZOOM  = 6;
+  let MARQUEE_PX_PER_SEC = 70;
+  function applyTickerSpeed() {
+    const speed = settings.tickerSpeed || "medium";
+    MARQUEE_PX_PER_SEC = speed === "slow" ? 40 : speed === "fast" ? 120 : 70;
+  }
+
+  const DEFAULT_SELECTED = {{ default_events|tojson }};
+
+  // ── Utility helpers ────────────────────────────────────────────────────────
+  const norm      = s => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+  const safeText  = s => (s && String(s).trim()) ? String(s) : "—";
+  const prettyTimeISO = t => {
+      if (!t) return "";
+      try { return new Date(t).toLocaleString([], { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }); }
+      catch (e) { return String(t).replace("T", " "); }
+    };
+
+  function severityRank(sev) {
+    const s = String(sev || "").toLowerCase().trim();
+    if (s === "extreme") return 4;
+    if (s === "severe")  return 3;
+    if (s === "moderate") return 2;
+    if (s === "minor")   return 1;
+    return 0;
+  }
+
+  function parseTimeMs(iso) {
+    if (!iso) return 0;
+    const t = Date.parse(String(iso));
+    return Number.isFinite(t) ? t : 0;
+  }
+  const issuedTimeMs  = a => parseTimeMs(a.sent) || parseTimeMs(a.effective) || parseTimeMs(a.onset) || 0;
+  const expiresTimeMs = a => parseTimeMs(a.expires) || 0;
+
+  const STATE_ABBR = {
+    "Alabama":"AL","Alaska":"AK","Arizona":"AZ","Arkansas":"AR","California":"CA","Colorado":"CO",
+    "Connecticut":"CT","Delaware":"DE","Florida":"FL","Georgia":"GA","Hawaii":"HI","Idaho":"ID",
+    "Illinois":"IL","Indiana":"IN","Iowa":"IA","Kansas":"KS","Kentucky":"KY","Louisiana":"LA",
+    "Maine":"ME","Maryland":"MD","Massachusetts":"MA","Michigan":"MI","Minnesota":"MN",
+    "Mississippi":"MS","Missouri":"MO","Montana":"MT","Nebraska":"NE","Nevada":"NV",
+    "New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC",
+    "North Dakota":"ND","Ohio":"OH","Oklahoma":"OK","Oregon":"OR","Pennsylvania":"PA",
+    "Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD","Tennessee":"TN","Texas":"TX",
+    "Utah":"UT","Vermont":"VT","Virginia":"VA","Washington":"WA","West Virginia":"WV",
+    "Wisconsin":"WI","Wyoming":"WY","District of Columbia":"DC"
+  };
+  const ABBR_TO_STATE = Object.fromEntries(Object.entries(STATE_ABBR).map(([n,a]) => [a,n]));
+
+  function formatArea(area) {
+    let s = String(area || "").trim();
+    if (!s) return "—";
+    for (const [name, ab] of Object.entries(STATE_ABBR)) {
+      s = s.replace(new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") + "\\b","g"), ab);
+    }
+    return s.replace(/\s+/g," ").trim();
+  }
+
+  function formatAreaForVoice(area) {
+    let s = String(area || "").trim();
+    if (!s) return "—";
+    for (const [ab, name] of Object.entries(ABBR_TO_STATE)) {
+      s = s.replace(new RegExp("\\b" + ab.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") + "\\b","g"), name);
+    }
+    return s.replace(/\s+/g," ").trim();
+  }
+
+  const isAlaskaAlert = a => {
+    try { return (a?.zone_ids||[]).some(x => typeof x==="string" && x.toUpperCase().startsWith("AK")); }
+    catch(e) { return false; }
+  };
+  const isNJAlert = a => {
+    try { return (a?.zone_ids||[]).some(x => typeof x==="string" && x.toUpperCase().startsWith("NJ")); }
+    catch(e) { return false; }
+  };
+  const isTornadoWatchOrWarningUS = a => {
+    const ev = String(a?.event||"").toLowerCase();
+    return ev==="tornado warning" || ev==="tornado watch";
+  };
+
+  // ── Sorting ────────────────────────────────────────────────────────────────
+  function sortAlerts(alerts) {
+    const mode = settings.sortMode || "severity_desc";
+    return [...(alerts||[])].sort((a,b) => {
+      if (mode === "severity_desc") {
+        const sd = severityRank(b.severity) - severityRank(a.severity);
+        return sd !== 0 ? sd : issuedTimeMs(b) - issuedTimeMs(a);
+      }
+      if (mode === "sent_desc") {
+        const td = issuedTimeMs(b) - issuedTimeMs(a);
+        return td !== 0 ? td : severityRank(b.severity) - severityRank(a.severity);
+      }
+      if (mode === "expires_asc") {
+        const ea = expiresTimeMs(a), eb = expiresTimeMs(b);
+        if (ea>0 && !eb) return -1;
+        if (!ea && eb>0) return 1;
+        const ed = ea - eb;
+        return ed !== 0 ? ed : severityRank(b.severity) - severityRank(a.severity);
+      }
+      return 0;
+    });
+  }
+
+  const severePlusOnly  = alerts => (alerts||[]).filter(a => severityRank(a?.severity)>=3);
+  const mostSevereOnly  = alerts => {
+    if (!(alerts||[]).length) return [];
+    const mx = Math.max(...alerts.map(a=>severityRank(a?.severity)));
+    return alerts.filter(a=>severityRank(a?.severity)===mx);
+  };
+
+  function buildCycleList(sorted, cycleMode) {
+    if (!sorted.length) return sorted;
+    const mode = cycleMode || "all";
+    if (mode==="severe_plus")  { const r=severePlusOnly(sorted);  return r.length?r:sorted; }
+    if (mode==="most_severe")  { const r=mostSevereOnly(sorted);  return r.length?r:sorted; }
+    return sorted;
+  }
+
+  function buildMapRenderSignature(alerts) {
+    return (alerts||[]).map(a => [
+      a?.id||"", a?.event||"", a?.severity||"", a?.updated||"", a?.expires||"",
+      a?.geometry?.type||"",
+      a?.centroid ? `${a.centroid.lat||""},${a.centroid.lon||""}` : ""
+    ].join("|")).join("||");
+  }
+
+  function mostRecentSeverePlus(alerts) {
+    const arr = [...severePlusOnly(alerts||[])].sort((a,b)=>issuedTimeMs(b)-issuedTimeMs(a));
+    return arr[0]||null;
+  }
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+  const LS_KEY = "weatherwise_settings_stream_v28";
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) throw new Error("no settings");
+      const s = JSON.parse(raw);
+      if (!Array.isArray(s.selectedKeys) || s.selectedKeys.length === 0)
+        s.selectedKeys = DEFAULT_SELECTED.map(norm);
+      s.selectedKeys = s.selectedKeys.map(norm).filter(Boolean);
+      // Final safety net: if still empty after norm, restore defaults.
+      if (s.selectedKeys.length === 0) s.selectedKeys = DEFAULT_SELECTED.map(norm);
+      if (typeof s.soundEnabled !== "boolean")  s.soundEnabled  = false;
+      if (typeof s.voiceEnabled !== "boolean")  s.voiceEnabled  = false;
+      if (typeof s.voiceName !== "string")      s.voiceName     = "";
+      if (typeof s.autoZoomNew !== "boolean")   s.autoZoomNew   = false;
+      if (typeof s.autoZoomMode !== "string")   s.autoZoomMode  = "all";
+      if (!["all","severe_plus","tornado_extreme","selected_only"].includes(s.autoZoomMode)) s.autoZoomMode="all";
+      if (typeof s.rotateEnabled !== "boolean") s.rotateEnabled = true;
+      if (typeof s.noAlaska !== "boolean")      s.noAlaska      = false;
+      if (typeof s.debugEnabled !== "boolean")  s.debugEnabled  = true;
+      if (typeof s.flashSpeed !== "string") s.flashSpeed = "medium";
+      if (!["slow", "medium", "fast"].includes(s.flashSpeed)) s.flashSpeed = "medium";
+      if (typeof s.tickerSpeed !== "string") s.tickerSpeed = "medium";
+      if (!["slow", "medium", "fast"].includes(s.tickerSpeed)) s.tickerSpeed = "medium";
+      if (typeof s.mapDark !== "boolean") s.mapDark = false;
+      if (!Array.isArray(s.stateFilter)) s.stateFilter = [];
+      if (typeof s.stateFilterEnabled !== "boolean") s.stateFilterEnabled = false;
+      if (typeof s.cycleMode !== "string")      s.cycleMode     = "all";
+      if (!["all","severe_plus","most_severe"].includes(s.cycleMode)) s.cycleMode="all";
+      if (typeof s.sortMode !== "string")       s.sortMode      = "severity_desc";
+      if (typeof s.mobileView !== "string")     s.mobileView    = "map";
+      return s;
+    } catch(e) {
+      return {
+        selectedKeys: DEFAULT_SELECTED.map(norm),
+        soundEnabled: true, voiceEnabled: true, voiceName: "",
+        autoZoomNew: true, autoZoomMode: "all",
+        rotateEnabled: false, noAlaska: false, debugEnabled: true,
+        stateFilter: [], stateFilterEnabled: false, flashSpeed: "medium", tickerSpeed: "medium", mapDark: false, cycleMode: "all", sortMode: "severity_desc", mobileView: "map",
+      };
+    }
+  }
+  const saveSettings = () => localStorage.setItem(LS_KEY, JSON.stringify(settings));
+  let settings = loadSettings();
+
+  // ── Alert search ───────────────────────────────────────────────────────────
+  let alertSearchTerm = "";
+
+  function matchesSearch(a, term) {
+    if (!term) return true;
+    return [a.event, a.area, a.headline, a.description, a.sender]
+      .some(s => s && String(s).toLowerCase().includes(term));
+  }
+
+  document.getElementById("alertSearch").addEventListener("input", e => {
+    alertSearchTerm = (e.target.value || "").trim().toLowerCase();
+    renderList(currentShownAlerts);
+  });
+
+  // ── Severity summary bar ───────────────────────────────────────────────────
+  function renderSeverityBar(alerts) {
+    const bar = document.getElementById("severityBar");
+    if (!bar) return;
+    const counts = { Extreme:0, Severe:0, Moderate:0, Minor:0, Unknown:0 };
+    for (const a of (alerts||[])) {
+      const sev = String(a.severity||"").trim();
+      if (sev in counts) counts[sev]++;
+      else counts.Unknown++;
+    }
+    const parts = [];
+    if (counts.Extreme)  parts.push(`<span class="sevPill sevPill-extreme">⚡ ${counts.Extreme} Extreme</span>`);
+    if (counts.Severe)   parts.push(`<span class="sevPill sevPill-severe">🔴 ${counts.Severe} Severe</span>`);
+    if (counts.Moderate) parts.push(`<span class="sevPill sevPill-moderate">🟡 ${counts.Moderate} Moderate</span>`);
+    if (counts.Minor)    parts.push(`<span class="sevPill sevPill-minor">🔵 ${counts.Minor} Minor</span>`);
+    if (counts.Unknown)  parts.push(`<span class="sevPill sevPill-other">${counts.Unknown} Unknown</span>`);
+    bar.innerHTML = parts.join("");
+  }
+
+  // ── Alert color system ────────────────────────────────────────────────────
+  const ALERT_COLOR_MAP = {
+    "Tornado Warning":"#FF1A1A","Tornado Watch":"#FFE600",
+    "Severe Thunderstorm Warning":"#FF6A00","Severe Thunderstorm Watch":"#FFC400",
+    "Extreme Wind Warning":"#B00020",
+    "Flash Flood Warning":"#00A651","Flash Flood Watch":"#7ED957",
+    "Flood Warning":"#228B22","Flood Advisory":"#8A9A00",
+    "Coastal Flood Warning":"#003366","Coastal Flood Advisory":"#5C7FA3",
+    "Blizzard Warning":"#00BFFF","Winter Storm Warning":"#0066FF",
+    "Winter Storm Watch":"#7C83FD","Winter Weather Advisory":"#A7D8FF",
+    "Snow Squall Warning":"#00E5FF","Ice Storm Warning":"#00FFFF",
+    "Freeze Warning":"#9BE7FF","Frost Advisory":"#C6F7E2",
+    "High Wind Warning":"#555555","High Wind Watch":"#5F7EA7","Wind Advisory":"#9E9E9E",
+    "Red Flag Warning":"#8E24AA","Fire Weather Watch":"#B35BD6",
+    "Extreme Heat Warning":"#8B0000","Excessive Heat Warning":"#FF4500","Heat Advisory":"#FFB300",
+    "Hurricane Warning":"#FF00AA","Hurricane Watch":"#FF6EC7",
+    "Tropical Storm Warning":"#FF6F61","Tropical Storm Watch":"#FF9E80",
+    "Storm Surge Warning":"#006D6F","Storm Surge Watch":"#00B8B8",
+    "Dense Fog Advisory":"#CFCFCF","Air Quality Alert":"#8D6E63",
+    "Dust Storm Warning":"#C19A6B",
+    "Civil Emergency Message":"#000000","Evacuation Immediate":"#FF1744",
+    "Shelter In Place Warning":"#283593","Local Area Emergency":"#AD1457",
+    "Special Weather Statement":"#FFF59D","Hazardous Weather Outlook":"#FFD180",
+  };
+
+  function stableColorFor(event, alertObj=null) {
+    const name = String(event||"").trim();
+    const n    = name.toLowerCase();
+    const hl   = String(alertObj?.headline||"").toLowerCase();
+    const desc = String(alertObj?.description||"").toLowerCase();
+    const full = `${hl} ${desc}`;
+
+    const tags = detectTags(alertObj);
+    const isPDS = tags.includes("pds");
+    const isEmergency = tags.includes("emergency");
+    const isConfirmed = tags.includes("confirmed");
+
+    if (n.includes("tornado warning")) {
+      if (isEmergency) return "#FF4DCC";
+      if (isPDS) return "#A020F0";
+      if (isConfirmed) return "#8B0000";
+      return "#FF1A1A";
+    }
+    if (n.includes("tornado watch")) { return isPDS ? "#A020F0" : "#FFE600"; }
+    if (n.includes("flash flood warning") && tags.includes("flash-flood-emergency")) return "#00BFFF";
+    if (ALERT_COLOR_MAP[name])  return ALERT_COLOR_MAP[name];
+
+    if (n.includes("severe thunderstorm") && n.includes("warning")) return "#FF6A00";
+    if (n.includes("severe thunderstorm") && n.includes("watch"))   return "#FFC400";
+    if (n.includes("flash flood") && n.includes("warning")) return "#00A651";
+    if (n.includes("flash flood") && n.includes("watch"))   return "#7ED957";
+    if (n.includes("flood") && n.includes("warning")) return "#228B22";
+    if (n.includes("flood") && n.includes("advisory")) return "#8A9A00";
+    if (n.includes("blizzard")) return "#00BFFF";
+    if (n.includes("ice storm")) return "#00FFFF";
+    if (n.includes("snow squall")) return "#00E5FF";
+    if (n.includes("winter storm") && n.includes("warning")) return "#0066FF";
+    if (n.includes("winter storm") && n.includes("watch"))   return "#7C83FD";
+    if (n.includes("winter weather")) return "#A7D8FF";
+    if (n.includes("hurricane") && n.includes("warning")) return "#FF00AA";
+    if (n.includes("hurricane") && n.includes("watch"))   return "#FF6EC7";
+    if (n.includes("tropical storm") && n.includes("warning")) return "#FF6F61";
+    if (n.includes("tropical storm") && n.includes("watch"))   return "#FF9E80";
+    if (n.includes("storm surge") && n.includes("warning")) return "#006D6F";
+    if (n.includes("storm surge") && n.includes("watch"))   return "#00B8B8";
+    if (n.includes("red flag")) return "#8E24AA";
+    if (n.includes("fire weather")) return "#B35BD6";
+    if (n.includes("extreme heat")) return "#8B0000";
+    if (n.includes("excessive heat")) return "#FF4500";
+    if (n.includes("heat advisory")) return "#FFB300";
+    if (n.includes("high wind") && n.includes("warning")) return "#555555";
+    if (n.includes("high wind") && n.includes("watch"))   return "#5F7EA7";
+    if (n.includes("wind advisory")) return "#9E9E9E";
+    if (n.includes("extreme wind")) return "#B00020";
+    if (n.includes("dense fog")) return "#CFCFCF";
+    if (n.includes("air quality")) return "#8D6E63";
+    if (n.includes("dust storm")) return "#C19A6B";
+    if (n.includes("civil emergency")) return "#000000";
+    if (n.includes("evacuation immediate")) return "#FF1744";
+    if (n.includes("shelter in place")) return "#283593";
+    if (n.includes("local area emergency")) return "#AD1457";
+    if (n.includes("special weather statement")) return "#FFF59D";
+    if (n.includes("hazardous weather outlook")) return "#FFD180";
+    if (n.includes("hydrologic outlook")) return "#00ACC1";
+    return "#FF3D00";
+  }
+
+  // ── Tag detection ──────────────────────────────────────────────────────────
+
+    function alertFullText(a) {
+      return `${a?.headline || ""} ${a?.description || ""} ${a?.instruction || ""}`.toLowerCase();
+    }
+
+    // Per-alert user overrides (localStorage) and admin overrides (server)
+    let _userTagOverrides = {};
+    try { _userTagOverrides = JSON.parse(localStorage.getItem("nwsalerts_tag_overrides") || "{}"); } catch(e) {}
+    function saveTagOverrides() { localStorage.setItem("nwsalerts_tag_overrides", JSON.stringify(_userTagOverrides)); }
+
+    let _adminTagOverrides = {};
+    let _userOverrideEnabled = true;
+
+    function normalizeAlertId(aid) {
+        if (!aid) return "";
+        return String(aid).replace(/^https?:\/\/api\.weather\.gov\/alerts\//, "");
+      }
+
+      function getMergedOverride(aid) {
+        const nid = normalizeAlertId(aid);
+        const adminOverride = _adminTagOverrides[nid];
+        if (adminOverride) return adminOverride;
+        if (_userOverrideEnabled && _userTagOverrides[nid]) return _userTagOverrides[nid];
+        return null;
+      }
+
+    const _tagOverrides = new Proxy({}, {
+      get(_, aid) { return getMergedOverride(aid); },
+      set() { return true; },
+      deleteProperty() { return true; },
+    });
+
+    const TAG_DEFS = [
+      {
+        key: "emergency",
+        cls: "badge-emergency",
+        txt: "🚨 EMERGENCY",
+        patterns: [
+          /tornado emergency/, /this is a tornado emergency/, /tornado emergency for/,
+          /flash flood emergency/, /flash flood emergency for/, /this is a flash flood emergency/,
+        ],
+        suppressedBy: [],
+      },
+      {
+        key: "flash-flood-emergency",
+        cls: "badge-flash-flood-emergency",
+        txt: "💧 FLASH FLOOD EMERGENCY",
+        patterns: [
+          /flash flood emergency/, /this is a flash flood emergency/,
+          /extremely life-threatening flooding/, /catastrophic flooding is occurring/,
+          /catastrophic and life-threatening flooding/,
+        ],
+        suppressedBy: ["emergency"],
+      },
+      {
+        key: "pds",
+        cls: "badge-pds",
+        txt: "⚠ PDS",
+        patterns: [
+          /particularly dangerous situation/, /\bpds\b/,
+          /this is a particularly dangerous situation/,
+          /pds tornado/, /pds severe/, /pds flash flood/,
+        ],
+        suppressedBy: ["emergency"],
+      },
+      {
+        key: "confirmed",
+        cls: "badge-confirmed",
+        txt: "✓ CONFIRMED",
+        patterns: [
+          /confirmed tornado/, /confirmed large/, /radar confirmed/,
+          /weather spotters confirmed tornado/, /law enforcement confirmed tornado/,
+          /emergency management confirmed tornado/, /broadcast media confirmed tornado/,
+          /observed tornado/, /tornado observed/, /tornado on the ground/,
+          /a tornado was observed/, /trained weather spotters reported a tornado/,
+        ],
+        suppressedBy: [],
+      },
+      {
+        key: "tornado-possible",
+        cls: "badge-tornado-possible",
+        txt: "🌪 TORNADO POSSIBLE",
+        patterns: [
+          /tornado possible/, /brief tornado possible/, /remain alert for a possible tornado/,
+          /tornadoes can develop quickly/, /radar indicated rotation/,
+          /cannot be ruled out/, /capable of producing a tornado/,
+          /this storm may produce a tornado/, /tornado indicated/,
+          /rotating wall cloud/, /funnel cloud/, /wall cloud/,
+          /rotation has been detected/, /tornadic/,
+        ],
+        suppressedBy: ["emergency", "confirmed"],
+      },
+      {
+        key: "catastrophic",
+        cls: "badge-catastrophic",
+        txt: "🌊 CATASTROPHIC",
+        patterns: [
+          /catastrophic/, /damage threat.*catastrophic/, /catastrophic damage/,
+          /catastrophic flooding/, /catastrophic destruction/,
+          /complete destruction is possible/, /complete destruction likely/,
+          /tornado damage threat.*catastrophic/, /deadly tornado/,
+        ],
+        suppressedBy: ["emergency", "flash-flood-emergency"],
+      },
+      {
+        key: "destructive",
+        cls: "badge-destructive",
+        txt: "💥 DESTRUCTIVE",
+        patterns: [
+          /\bdestructive\b/, /damage threat.*destructive/, /tornado damage threat.*destructive/,
+          /baseball.?size.?hail/, /baseball.?sized hail/, /hail.*baseball/,
+          /80 mph winds/, /90 mph winds/, /100 mph winds/,
+          /winds in excess of 80/, /winds in excess of 90/,
+          /extremely dangerous tornado/, /large and extremely dangerous/,
+        ],
+        suppressedBy: ["emergency", "catastrophic"],
+      },
+      {
+        key: "life-threatening",
+        cls: "badge-life-threatening",
+        txt: "☠ LIFE THREATENING",
+        patterns: [
+          /life.threatening situation/, /life.threatening flooding/,
+          /unsurvivable/, /unsurvivable storm surge/,
+          /a matter of life and death/, /fatal flooding/,
+          /you are in a life.threatening situation/,
+          /this is a life.threatening situation/,
+          /risk to life/, /threat to life/,
+          /people and animals outdoors will be severely injured/,
+        ],
+        suppressedBy: ["emergency", "flash-flood-emergency", "catastrophic"],
+      },
+      {
+        key: "considerable",
+        cls: "badge-considerable",
+        txt: "⚡ CONSIDERABLE",
+        patterns: [
+          /\bconsiderable\b/, /damage threat.*considerable/, /tornado damage threat.*considerable/,
+          /considerable damage/, /significant damage is expected/,
+          /expect considerable/, /considerable tree damage/,
+          /considerable damage to homes/,
+        ],
+        suppressedBy: ["emergency", "catastrophic", "destructive"],
+      },
+    ];
+
+    function detectTags(a) {
+      const full = alertFullText(a);
+      const found = new Set();
+
+      for (const def of TAG_DEFS) {
+        if (def.patterns.some(p => p.test(full))) {
+          found.add(def.key);
+        }
+      }
+
+      // Apply suppression rules
+      for (const def of TAG_DEFS) {
+        if (found.has(def.key) && def.suppressedBy.some(s => found.has(s))) {
+          found.delete(def.key);
+        }
+      }
+
+      return [...found];
+    }
+
+    function alertTagBadges(a, showOverrideLabel) {
+      const aid = a?.id || "";
+      const autoTags = detectTags(a);
+      const override = _tagOverrides[aid];
+      let activeTags = autoTags;
+
+      if (override) {
+        activeTags = override.tags;
+      }
+
+      const badges = activeTags.map(key => {
+        const def = TAG_DEFS.find(d => d.key === key);
+        if (!def) return "";
+        return `<span class="badge ${def.cls}">${def.txt}</span>`;
+      }).join("");
+
+      let overrideLabel = "";
+      if (override && showOverrideLabel) {
+        const by = override.by === "admin" ? "admin" : "user";
+        const cls = by === "admin" ? "badge-override-admin" : "badge-override-user";
+        overrideLabel = `<span class="badge ${cls}">✎ overridden by ${by}</span>`;
+      }
+
+      return badges + overrideLabel;
+    }
+
+    function isPossibleTornadoSevere(a) {
+        const ev = String(a?.event || "").toLowerCase();
+        if (!ev.includes("severe thunderstorm")) return false;
+        return detectTags(a).includes("tornado-possible");
+      }
+
+      const abbrev = event => {
+    const parts = String(event||"").split(" ").filter(Boolean);
+    return parts.slice(0,3).map(p=>p[0]).join("").toUpperCase() || "AL";
+  };
+
+  // ── Leaflet map setup ──────────────────────────────────────────────────────
+  const map = L.map("map", { preferCanvas: true }).setView(DEFAULT_VIEW, DEFAULT_ZOOM);
+  const sharedCanvasRenderer = L.canvas({ padding: 0.5 });
+
+  const TILE_LIGHT = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+    const TILE_DARK = "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png";
+    let mapDarkMode = !!settings.mapDark;
+    let baseTileLayer = L.tileLayer(mapDarkMode ? TILE_DARK : TILE_LIGHT, { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    document.getElementById("btnMapTheme").textContent = mapDarkMode ? "🌙 Dark" : "☀ Light";
+
+    document.getElementById("btnMapTheme").addEventListener("click", () => {
+      mapDarkMode = !mapDarkMode;
+      settings.mapDark = mapDarkMode;
+      saveSettings();
+      map.removeLayer(baseTileLayer);
+      baseTileLayer = L.tileLayer(mapDarkMode ? TILE_DARK : TILE_LIGHT, {
+        maxZoom: 19, attribution: "© OpenStreetMap"
+      }).addTo(map);
+      baseTileLayer.bringToBack();
+      document.getElementById("btnMapTheme").textContent = mapDarkMode ? "🌙 Dark" : "☀ Light";
+    });
+  // ── Radar player ──────────────────────────────────────────────────────────
+    const RADAR_PRODUCT = "nexrad-n0q";
+    const RADAR_FRAMES = 12;
+    const RADAR_INTERVAL = 500; // ms per frame during playback
+
+    let radarProduct = "REF";
+    let radarOpacity = 0.40;
+    let radarFrames = [];      // array of {time, layer}
+    let radarFrameIdx = RADAR_FRAMES - 1;
+    let radarPlaying = false;
+    let radarTimer = null;
+    let radarTimes = [];      // ISO strings for each frame
+
+    async function fetchRadarTimes(product) {
+      try {
+        const prod = RADAR_PRODUCTS[product];
+        const url = `/dataproxy?url=${encodeURIComponent(`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/${prod}/times.json`)}`;
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) throw new Error();
+        const data = await r.json();
+        const times = Array.isArray(data) ? data : (data.times || []);
+        return times.slice(-RADAR_FRAMES);
+      } catch (e) {
+        // Fallback — generate approximate times (5 min intervals)
+        const now = Date.now();
+        return Array.from({ length: RADAR_FRAMES }, (_, i) =>
+          new Date(now - (RADAR_FRAMES - 1 - i) * 5 * 60 * 1000).toISOString()
+        );
+      }
+    }
+
+    function buildRadarLayer(product, time) {
+        const prod = RADAR_PRODUCT;
+        const d = new Date(time);
+        const ts = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}${String(d.getUTCHours()).padStart(2, "0")}${String(d.getUTCMinutes()).padStart(2, "0")}`;
+        return L.tileLayer(
+          `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/${prod}-900913/{z}/{x}/{y}.png?ts=${ts}`,
+          { opacity: radarOpacity, zIndex: 200 }
+        );
+      }
+
+      function buildRadarLayerCurrent(product) {
+        const prod = RADAR_PRODUCT;
+        return L.tileLayer(
+          `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/${prod}-900913/{z}/{x}/{y}.png`,
+          { opacity: radarOpacity, zIndex: 200 }
+        );
+      }
+
+    function showRadarFrame(idx) {
+      radarFrames.forEach((f, i) => {
+        if (f.layer) {
+          if (i === idx) {
+            if (!map.hasLayer(f.layer)) f.layer.addTo(map);
+          } else {
+            if (map.hasLayer(f.layer)) map.removeLayer(f.layer);
+          }
+        }
+      });
+      radarFrameIdx = idx;
+      document.getElementById("radarFrame").value = idx;
+      const ts = radarTimes[idx];
+      document.getElementById("radarTs").textContent = ts
+        ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : "LIVE";
+    }
+
+    async function initRadar(product) {
+      // Remove all existing radar layers
+      radarFrames.forEach(f => { if (f.layer && map.hasLayer(f.layer)) map.removeLayer(f.layer); });
+      radarFrames = [];
+      if (radarTimer) { clearInterval(radarTimer); radarTimer = null; radarPlaying = false; document.getElementById("btnRadarPlay").textContent = "▶ Play"; }
+
+      radarTimes = await fetchRadarTimes(product);
+
+      // Build layers (don't add to map yet)
+      radarFrames = radarTimes.map(t => ({ time: t, layer: buildRadarLayer(product, t) }));
+      // Last frame = current
+      radarFrames[radarFrames.length - 1].layer = buildRadarLayerCurrent(product);
+      radarTimes[radarTimes.length - 1] = null; // marks as "LIVE"
+
+      showRadarFrame(RADAR_FRAMES - 1);
+    }
+
+    function radarPlayPause() {
+      if (radarPlaying) {
+        clearInterval(radarTimer); radarTimer = null; radarPlaying = false;
+        document.getElementById("btnRadarPlay").textContent = "▶ Play";
+      } else {
+        radarPlaying = true;
+        document.getElementById("btnRadarPlay").textContent = "⏸ Pause";
+        radarTimer = setInterval(() => {
+          const next = (radarFrameIdx + 1) % RADAR_FRAMES;
+          showRadarFrame(next);
+        }, RADAR_INTERVAL);
+      }
+    }
+
+    // Init radar on load
+      initRadar("REF");
+
+      // Auto-refresh live radar frame every 5 minutes
+      setInterval(() => {
+        const liveIdx = RADAR_FRAMES - 1;
+        if (radarFrames[liveIdx]?.layer) {
+          if (map.hasLayer(radarFrames[liveIdx].layer)) map.removeLayer(radarFrames[liveIdx].layer);
+        }
+        radarFrames[liveIdx] = { time: null, layer: buildRadarLayerCurrent() };
+        if (radarFrameIdx === liveIdx) showRadarFrame(liveIdx);
+      }, 5 * 60 * 1000);
+
+    // Radar control wiring
+    document.getElementById("btnRadarPlay").addEventListener("click", radarPlayPause);
+    document.getElementById("radarFrame").addEventListener("input", e => {
+      if (radarPlaying) { clearInterval(radarTimer); radarTimer = null; radarPlaying = false; document.getElementById("btnRadarPlay").textContent = "▶ Play"; }
+      showRadarFrame(+e.target.value);
+    });
+    document.getElementById("radarOpacity").addEventListener("input", e => {
+      radarOpacity = +e.target.value / 100;
+      radarFrames.forEach(f => { if (f.layer) f.layer.setOpacity(radarOpacity); });
+    });
+
+  // Layers now managed in the map rendering section below
+
+  // ── Geometry helpers ───────────────────────────────────────────────────────
+  /** Wrap a raw GeoJSON geometry in a Feature so Leaflet handles it correctly. */
+  function toGeoJSONFeature(geometry) {
+    return { type: "Feature", geometry: geometry, properties: {} };
+  }
+
+  function extendBoundsFromCoords(bounds, coords) {
+    if (!Array.isArray(coords)) return;
+    if (coords.length >= 2 && typeof coords[0] === "number" && typeof coords[1] === "number") {
+      bounds.extend([coords[1], coords[0]]);
+      return;
+    }
+    for (const part of coords) extendBoundsFromCoords(bounds, part);
+  }
+
+  function computeGeometryBounds(geometry) {
+    if (!geometry?.coordinates) return null;
+    try {
+      const bounds = L.latLngBounds([]);
+      extendBoundsFromCoords(bounds, geometry.coordinates);
+      return bounds.isValid() ? bounds : null;
+    } catch(e) { return null; }
+  }
+
+  const alertBoundsCache = new Map();
+
+  function getAlertBounds(a) {
+    if (!a) return null;
+    const key = String(a.id||"");
+    if (key && alertBoundsCache.has(key)) return alertBoundsCache.get(key);
+
+    let bounds = null;
+    if (a.geometry?.coordinates) {
+      bounds = computeGeometryBounds(a.geometry);
+    } else if (typeof a.centroid?.lat === "number" && typeof a.centroid?.lon === "number") {
+      const ll = L.latLng(a.centroid.lat, a.centroid.lon);
+      bounds = L.latLngBounds(ll, ll);
+    }
+    if (key && bounds) alertBoundsCache.set(key, bounds);
+    return bounds;
+  }
+
+  function zoomToAlert(a) {
+    if (!a) return false;
+    const bounds = getAlertBounds(a);
+    if (bounds?.isValid?.()) {
+      try {
+        const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
+        if (sw.lat===ne.lat && sw.lng===ne.lng) map.setView([bounds.getCenter().lat, bounds.getCenter().lng], 7);
+        else map.fitBounds(bounds, { padding:[45,45], maxZoom:8 });
+        return true;
+      } catch(e) {}
+    }
+    if (typeof a.centroid?.lat === "number") {
+      map.setView([a.centroid.lat, a.centroid.lon], 7);
+      return true;
+    }
+    return false;
+  }
+
+  // ── Polygon click picker ─────────────────────────────────────────────────
+  // Single FeatureCollection layer only fires click on topmost polygon.
+  // Instead, use point-in-polygon on every map click to find ALL alerts.
+  const polyPicker = document.getElementById("polyPicker");
+  let pickerCloseTimer = null;
+
+  function closePicker() {
+    polyPicker.classList.remove("show");
+    polyPicker.style.display = "none";
+    if (pickerCloseTimer) { clearTimeout(pickerCloseTimer); pickerCloseTimer = null; }
+  }
+
+  function pointInRing(px, py, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi))
+        inside = !inside;
+    }
+    return inside;
+  }
+
+  function pointInGeometry(lon, lat, geom) {
+    if (!geom?.coordinates) return false;
+    try {
+      if (geom.type === "Polygon")      return pointInRing(lon, lat, geom.coordinates[0]);
+      if (geom.type === "MultiPolygon") return geom.coordinates.some(p => pointInRing(lon, lat, p[0]));
+    } catch(e) {}
+    return false;
+  }
+
+  function getAlertsAtLatLng(latlng) {
+    const hits = [];
+    for (const a of currentShownAlerts) {
+      if (a.geometry && pointInGeometry(latlng.lng, latlng.lat, a.geometry)) hits.push(a);
+    }
+    return hits.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+  }
+
+  function showPicker(hits, mouseEvt) {
+    if (!hits.length) return;
+    if (hits.length === 1) {
+      openDetails(hits[0], "polygon");
+      if (!settings.rotateEnabled) scrollSidebarToAlert(hits[0], true);
+      return;
+    }
+    let html = `<div class="polyPickerTitle">${hits.length} OVERLAPPING ALERTS</div>`;
+    html += hits.map((a, i) => {
+      const c = stableColorFor(a.event, a);
+      return `<div class="polyPickerItem" data-picker-idx="${i}">
+        <div class="polyPickerDot" style="background:${c}"></div>
+        <div style="min-width:0;flex:1;">
+          <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:${c};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.event}</div>
+          <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${formatArea(a.area||"").slice(0,40)}</div>
+        </div>
+        ${a.severity?`<div class="polyPickerSev">${a.severity}</div>`:""}
+      </div>`;
+    }).join("");
+    polyPicker.innerHTML = html;
+    polyPicker.style.display = "block";
+    polyPicker.style.left = "0"; polyPicker.style.top = "0";
+    const pw = polyPicker.offsetWidth||260, ph = polyPicker.offsetHeight||200;
+    const px = mouseEvt.originalEvent.clientX, py = mouseEvt.originalEvent.clientY;
+    polyPicker.style.left = Math.min(px+10, window.innerWidth -pw-12)+"px";
+    polyPicker.style.top  = Math.min(py+10, window.innerHeight-ph-12)+"px";
+    polyPicker.classList.add("show");
+    polyPicker.querySelectorAll(".polyPickerItem").forEach(el => {
+      el.addEventListener("click", () => {
+        const a = hits[+el.getAttribute("data-picker-idx")];
+        closePicker(); openDetails(a,"polygon");
+        if (!settings.rotateEnabled) scrollSidebarToAlert(a,true);
+      });
+    });
+    if (pickerCloseTimer) clearTimeout(pickerCloseTimer);
+    pickerCloseTimer = setTimeout(closePicker, 10000);
+  }
+
+  map.on("click", e => { closePicker(); const hits=getAlertsAtLatLng(e.latlng); if(hits.length) showPicker(hits,e); });
+  map.on("dragstart", closePicker);
+  document.addEventListener("keydown", e => {
+      if (e.key === "Escape") { closePicker(); closeSettings(); closeDetails(); }
+      if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
+      if (e.key === "s" || e.key === "S") openSettings();
+      if (e.key === "f" || e.key === "F") document.getElementById("btnFullscreen").click();
+    });
+
+    // ── Map rendering ────────────────────────────────────────────────────────
+  // Single GeoJSON layer for ALL alerts — massively better performance than
+  // one Leaflet layer object per alert.
+
+  let alertsLayer   = null;   // single L.geoJSON for all base polygons
+  let hoveredAlertId = null;
+  let rotateLayer   = null;   // single L.geoJSON for the currently-rotated alert
+  let labelsLayer   = L.layerGroup().addTo(map);
+  let currentShownAlerts   = [];
+  let lastMapRenderSignature = "";
+  let alertById = new Map();
+
+  function styleForAlert(color, zoom, sevRankVal, isTornPoss) {
+    const zoomedIn = zoom >= 7;
+    const major    = sevRankVal >= 3;
+    return {
+      color:       color,
+      weight:      zoomedIn ? 2.5 : (major ? 1.5 : 1.0),
+      opacity:     zoomedIn ? 1.0 : (major ? 0.85 : 0.45),
+      fillColor:   color,
+      fillOpacity: zoomedIn ? 0.08 : 0.0,
+      dashArray:   isTornPoss ? "8 6" : null,
+      lineJoin:    "round",
+    };
+  }
+
+  function alertStyle(feature) {
+    const a   = alertById.get(feature.properties.id);
+    if (!a) return { opacity: 0, fillOpacity: 0 };
+    const c   = stableColorFor(a.event, a);
+    const sev = severityRank(a.severity);
+    const iTP = isPossibleTornadoSevere(a);
+    return styleForAlert(c, map.getZoom(), sev, iTP);
+  }
+
+  function buildFeatureCollection(alerts) {
+    const features = [];
+    for (const a of (alerts || [])) {
+      if (!a.geometry?.coordinates) continue;
+      features.push({
+        type: "Feature",
+        geometry: a.geometry,
+        properties: { id: a.id }
+      });
+    }
+    return { type: "FeatureCollection", features };
+  }
+
+  function rebuildMap(alerts) {
+    // Rebuild alert lookup
+    alertById = new Map((alerts || []).map(a => [a.id, a]));
+
+    // Remove old layers
+    if (alertsLayer) { alertsLayer.remove(); alertsLayer = null; }
+    if (rotateLayer) { rotateLayer.remove(); rotateLayer = null; }
+    labelsLayer.clearLayers();
+
+    const fc = buildFeatureCollection(alerts);
+    const noAlertsLabel = document.getElementById("mapNoAlerts");
+    if (noAlertsLabel) noAlertsLabel.style.display = fc.features.length ? "none" : "flex";
+    if (!fc.features.length) return;
+
+    alertsLayer = L.geoJSON(fc, {
+      renderer: sharedCanvasRenderer,
+      style: alertStyle,
+      onEachFeature: (feature, layer) => {
+        layer.on("mouseover", () => {
+          const a = alertById.get(feature.properties.id);
+          if (!a) return;
+          if (hoveredAlertId && hoveredAlertId !== a.id) unhighlightAlertOnMap(hoveredAlertId);
+          hoveredAlertId = a.id;
+          highlightAlertOnMap(a.id);
+          // Highlight sidebar card
+          document.querySelectorAll(".alertCard[data-aid]").forEach(c => {
+            c.classList.toggle("focusCard", c.getAttribute("data-aid") === a.id);
+          });
+        });
+        layer.on("mouseout", () => {
+          const a = alertById.get(feature.properties.id);
+          if (!a) return;
+          stopHoverPulse();
+          unhighlightAlertOnMap(a.id);
+          hoveredAlertId = null;
+          document.querySelectorAll(".alertCard[data-aid]").forEach(c => {
+            c.classList.remove("focusCard");
+          });
+        });
+      }
+    }).addTo(map);
+
+    // Labels — tornado warnings always show; special tags combined into same badge
+    const z = map.getZoom();
+    for (const a of (alerts || [])) {
+      if (!a.centroid) continue;
+      const ev   = String(a?.event || "").toLowerCase();
+      const isTW = ev === "tornado warning";
+      const tagHtml = alertTagBadges(a, false);
+      const tags = detectTags(a);
+
+      const overrideInfo = getMergedOverride(a?.id || "");
+      if (!isTW && !tagHtml && !overrideInfo) continue;
+
+      let badgeHtml;
+      const overrideSuffix = overrideInfo ? `<span class="badge" style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.35);color:#ffc800;font-size:9px;">✎ ${overrideInfo.by === "admin" ? "ADMIN" : "USER"}</span>` : "";
+      if (isTW) {
+        let cls = "badge-tw";
+        let extra = "";
+        if (tags.includes("emergency")) { cls = "badge-emergency"; extra = " • EMERGENCY"; }
+        else if (tags.includes("pds")) { cls = "badge-pds"; extra = " • PDS"; }
+        else if (tags.includes("confirmed")) { cls = "badge-confirmed"; extra = " • CONFIRMED"; }
+        badgeHtml = `<div class="alert-map-tags"><span class="badge ${cls}">TW${extra}${overrideSuffix}</span></div>`;
+      } else {
+        badgeHtml = `<div class="alert-map-tags">${tagHtml}${overrideSuffix}</div>`;
+      }
+
+      try {
+        const icon = L.divIcon({ className: "", html: badgeHtml, iconSize: null });
+        const m    = L.marker([a.centroid.lat, a.centroid.lon], { icon, interactive: true });
+        m._alertRef = a;
+        m.on("click", () => openDetails(a, "label"));
+        labelsLayer.addLayer(m);
+      } catch(e) {}
+    }
+  }
+
+  let _hoverPulseInterval = null;
+    let _hoverPulsePhase = 0;
+
+    function highlightAlertOnMap(aid) {
+      if (!alertsLayer) return;
+      let targetLayer = null;
+      alertsLayer.eachLayer(layer => {
+        const a = alertById.get(layer.feature?.properties?.id);
+        if (!a || a.id !== aid) return;
+        const c = stableColorFor(a.event, a);
+        layer.setStyle({ color: c, weight: 4, opacity: 1, fillOpacity: 0.18, dashArray: null });
+        layer.bringToFront();
+        targetLayer = layer;
+      });
+      if (!targetLayer) return;
+      _hoverPulsePhase = 0;
+      if (_hoverPulseInterval) clearInterval(_hoverPulseInterval);
+      _hoverPulseInterval = setInterval(() => {
+        if (!hoveredAlertId) { clearInterval(_hoverPulseInterval); return; }
+        const a = alertById.get(targetLayer.feature?.properties?.id);
+        if (!a) return;
+        const c = stableColorFor(a.event, a);
+        _hoverPulsePhase = (_hoverPulsePhase + 1) % 20;
+        const t = _hoverPulsePhase / 19;
+        const sine = Math.sin(t * Math.PI);
+        const weight = 2.5 + sine * 3.5;
+        const fillOpacity = 0.08 + sine * 0.18;
+        targetLayer.setStyle({ color: c, weight, opacity: 1, fillOpacity, dashArray: null });
+      }, 50);
+    }
+
+    function stopHoverPulse() {
+      if (_hoverPulseInterval) { clearInterval(_hoverPulseInterval); _hoverPulseInterval = null; }
+    }
+
+    function unhighlightAlertOnMap(aid) {
+      if (!alertsLayer) return;
+      alertsLayer.eachLayer(layer => {
+        const a = alertById.get(layer.feature?.properties?.id);
+        if (!a || a.id !== aid) return;
+        const c = stableColorFor(a.event, a);
+        const sev = severityRank(a.severity);
+        const iTP = isPossibleTornadoSevere(a);
+        layer.setStyle(styleForAlert(c, map.getZoom(), sev, iTP));
+      });
+    }
+
+  function restyleAllPolygons() {
+    if (!alertsLayer) return;
+    alertsLayer.eachLayer(layer => {
+      try {
+        const a = alertById.get(layer.feature?.properties?.id);
+        if (!a) return;
+        if (a.id === hoveredAlertId) return; // preserve hover highlight
+        const c   = stableColorFor(a.event, a);
+        const sev = severityRank(a.severity);
+        const iTP = isPossibleTornadoSevere(a);
+        layer.setStyle(styleForAlert(c, map.getZoom(), sev, iTP));
+      } catch(e) {}
+    });
+    updateLabelVisibility();
+  }
+
+  let _rotatePulseInterval = null;
+  let _rotatePulsePhase = 0;
+
+  function setRotateVisibilityForAlert(alertObj) {
+    if (rotateLayer) { rotateLayer.remove(); rotateLayer = null; }
+    if (_rotatePulseInterval) { clearInterval(_rotatePulseInterval); _rotatePulseInterval = null; }
+    if (!alertObj?.geometry?.coordinates) return;
+
+    const c   = stableColorFor(alertObj.event, alertObj);
+    const sev = severityRank(alertObj.severity);
+    const iTP = isPossibleTornadoSevere(alertObj);
+    const style = { ...styleForAlert(c, Math.max(map.getZoom(), 7), sev, iTP), weight: 3.5, fillOpacity: 0.12 };
+
+    rotateLayer = L.geoJSON(toGeoJSONFeature(alertObj.geometry), {
+      renderer: sharedCanvasRenderer,
+      style:    style
+    }).addTo(map);
+
+    document.getElementById("rotStatus").textContent = alertObj.event || "—";
+
+    // Pulsing border for rotation highlight
+    _rotatePulsePhase = 0;
+    _rotatePulseInterval = setInterval(() => {
+      if (!rotateLayer) { clearInterval(_rotatePulseInterval); return; }
+      _rotatePulsePhase = (_rotatePulsePhase + 1) % 20;
+      const sine = Math.sin((_rotatePulsePhase / 19) * Math.PI);
+      const weight = 2.5 + sine * 3.5;
+      const fillOpacity = 0.08 + sine * 0.18;
+      rotateLayer.setStyle({ color: c, weight, opacity: 1, fillOpacity, dashArray: null });
+    }, 50);
+  }
+
+  // No polygon flash — just flash the sidebar cards (already done via CSS)
+  function applyPolygonFlash() {
+    if (!alertsLayer) return;
+    alertsLayer.eachLayer(layer => {
+      try {
+        const id = layer.feature?.properties?.id;
+        if (!id) return;
+        if (id === hoveredAlertId) return; // preserve hover highlight
+        const a = alertById.get(id);
+        if (!a) return;
+        const c   = flashColorFor(a);
+        const sev = severityRank(a.severity);
+        const iTP = isPossibleTornadoSevere(a);
+        const base = styleForAlert(c, map.getZoom(), sev, iTP);
+
+        if (isFlashing(id)) {
+          if (flashOn) {
+            // ON phase: full alert color, bright fill
+            layer.setStyle({ ...base, color: c, opacity: 1.0, fillColor: c, fillOpacity: 0.20 });
+          } else {
+            // OFF phase: pulse to black
+            layer.setStyle({ ...base, color: "#000000", opacity: 0.85, fillColor: "#000000", fillOpacity: 0.15 });
+          }
+        } else {
+          layer.setStyle(base);
+        }
+      } catch(e) {}
+    });
+  }
+
+  function clearAllMap() {
+    if (alertsLayer) { alertsLayer.remove(); alertsLayer = null; }
+    if (rotateLayer) { rotateLayer.remove(); rotateLayer = null; }
+    labelsLayer.clearLayers();
+    alertById = new Map();
+  }
+
+  function shouldShowLabelFor(a, z) {
+    const override = getMergedOverride(a?.id || "");
+    const autoTags = detectTags(a);
+    const tags = override ? override.tags : autoTags;
+    if (tags.length > 0 || autoTags.length > 0) return true;
+    const ev = String(a?.event||"").toLowerCase();
+    if (ev === "tornado warning") return true;
+    if (z < LABEL_HIDE_ALL_BELOW_Z)      return false;
+    if (z >= LABEL_SHOW_ALL_AT_OR_ABOVE_Z) return true;
+    return severityRank(a?.severity) >= 3;
+  }
+
+  function setMarkerInteractive(m, on) {
+    try {
+      m.options.interactive = !!on;
+      const el = m.getElement?.();
+      if (el) el.style.pointerEvents = on ? "auto" : "none";
+    } catch(e) {}
+  }
+
+  function updateLabelVisibility() {
+    const z = map.getZoom();
+    labelsLayer.eachLayer(m => {
+      const show = m._alertRef ? shouldShowLabelFor(m._alertRef, z) : z >= LABEL_HIDE_ALL_BELOW_Z;
+      try { m.setOpacity(show ? 1 : 0); } catch(e) {}
+      setMarkerInteractive(m, show);
+    });
+  }
+
+  map.on("zoomend", () => {
+    restyleAllPolygons();
+    applyPolygonFlash();
+    if (settings.rotateEnabled && lastTickerAlert && !isRotationPaused())
+      setRotateVisibilityForAlert(lastTickerAlert);
+  });
+
+  // ── Focused Weather overlay ────────────────────────────────────────────────
+  const wxMeta = document.getElementById("wxMeta");
+  const wxBody = document.getElementById("wxBody");
+  const WX_CACHE_MS = 8 * 60 * 1000;
+  const wxCache = new Map();
+  let wxDebounceTimer = null, lastWxKey = "";
+
+  const roundCoord = (x, p=2) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  const wxKeyFromCenter = (lat,lon) => `${roundCoord(lat,2)},${roundCoord(lon,2)}`;
+  const setWxLoading = () => { if (wxBody) wxBody.innerHTML = `<span class="muted">Loading…</span>`; };
+  const setWxError   = msg => { if (wxBody) wxBody.innerHTML = `<span class="muted">${msg||"Unavailable."}</span>`; };
+  const setWxZoomHint = () => {
+    if (wxMeta) wxMeta.textContent = "Zoom in for weather";
+    if (wxBody) wxBody.innerHTML = `<span class="muted">Zoom to ${FOCUSED_WEATHER_MIN_ZOOM}+ to load weather.</span>`;
+  };
+  const wxRow = (k,v) => `<div class="wxRow"><div class="wxKey">${k}</div><div class="wxVal">${v||"—"}</div></div>`;
+
+  function prettyObsTime(iso) {
+    if (!iso) return "—";
+    try { return new Date(iso).toLocaleString([], {weekday:"short",hour:"2-digit",minute:"2-digit"}); }
+    catch(e) { return "—"; }
+  }
+
+  async function fetchJson(url) {
+    const r = await fetch(url, { cache:"no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+
+  async function fetchJsonProxy(url) {
+      const r = await fetch(`/dataproxy?url=${encodeURIComponent(url)}`, { cache: "no-store" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+  }
+
+  async function buildFocusedWeather(lat, lon) {
+    const pts = await fetchJsonProxy(`https://api.weather.gov/points/${lat},${lon}`);
+    const p = pts?.properties || pts;
+    if (!p?.forecast) throw new Error("No points data");
+
+    const rel = p.relativeLocation?.properties || p.relativeLocation;
+    const locName = rel ? `${rel.city || ""}${rel.city && rel.state ? ", " : ""}${rel.state || ""}`.trim() : "";
+    const forecastUrl  = p.forecast||"";
+    const stationsUrl  = p.observationStations||"";
+    let   forecastLine = "—";
+
+    try {
+      if (forecastUrl) {
+        const fc  = await fetchJsonProxy(forecastUrl);
+        const per = fc?.properties?.periods?.[0] || fc?.periods?.[0];
+        if (per?.shortForecast) forecastLine = per.shortForecast;
+      }
+    } catch(e) {}
+
+    let tempF="—", wind="—", humidity="—", obsTime="—";
+    try {
+      if (stationsUrl) {
+        const st = await fetchJsonProxy(stationsUrl);
+        const first = st?.features?.[0]?.properties?.stationIdentifier
+          || (st?.observationStations?.[0]?.split("/").pop());
+        if (first) {
+          const obs = await fetchJsonProxy(`https://api.weather.gov/stations/${first}/observations/latest`);
+          const o = obs?.properties || obs;
+          if (o) {
+            if (typeof o.temperature?.value === "number")
+              tempF = `${Math.round(o.temperature.value * 9 / 5 + 32)}°F`;
+            const spd = o.windSpeed?.value, dir = o.windDirection?.value;
+            if (spd != null) wind = (dir != null ? `${Math.round(dir)}° ` : "") + `${Math.round(spd * 2.23694)} mph`;
+            if (typeof o.relativeHumidity?.value === "number") humidity = `${Math.round(o.relativeHumidity.value)}%`;
+            obsTime = prettyObsTime(o.timestamp || "");
+          }
+        }
+      }
+    } catch(e) {}
+
+    return {
+      meta: locName || `${roundCoord(lat,2)}, ${roundCoord(lon,2)}`,
+      html: wxRow("Temp",tempF)+wxRow("Wind",wind)+wxRow("Humidity",humidity)+wxRow("Forecast",forecastLine)+wxRow("Updated",obsTime)
+    };
+  }
+
+  async function refreshFocusedWeather(force=false) {
+    try {
+      const z = map.getZoom();
+      if (z < FOCUSED_WEATHER_MIN_ZOOM) { setWxZoomHint(); lastWxKey=""; return; }
+      const c   = map.getCenter();
+      const key = wxKeyFromCenter(c.lat, c.lng);
+      if (!force && key === lastWxKey) return;
+      lastWxKey = key;
+      if (wxMeta) wxMeta.textContent = "Center of map";
+      const cached = wxCache.get(key);
+      if (cached && (Date.now()-cached.ts) < WX_CACHE_MS) {
+        if (wxBody) wxBody.innerHTML = cached.html;
+        if (wxMeta) wxMeta.textContent = cached.meta||"Center of map";
+        return;
+      }
+      setWxLoading();
+      const out = await buildFocusedWeather(c.lat, c.lng);
+      wxCache.set(key, { ts:Date.now(), html:out.html, meta:out.meta });
+      if (wxBody) wxBody.innerHTML = out.html;
+      if (wxMeta) wxMeta.textContent = out.meta||"Center of map";
+    } catch(e) { setWxError("Weather unavailable."); }
+  }
+
+  function scheduleWxRefresh() {
+    if (wxDebounceTimer) clearTimeout(wxDebounceTimer);
+    wxDebounceTimer = setTimeout(() => {
+      const c = map.getCenter();
+      if (wxKeyFromCenter(c.lat, c.lng) !== lastWxKey) refreshFocusedWeather(false);
+    }, 450);
+  }
+
+  map.on("moveend", scheduleWxRefresh);
+  map.on("zoomend", scheduleWxRefresh);
+  setTimeout(() => refreshFocusedWeather(true), 600);
+
+  // ── Rotation / flash state ─────────────────────────────────────────────────
+  let rotationPausedUntilMs = 0;
+  const pauseRotation = ms => { rotationPausedUntilMs = Math.max(rotationPausedUntilMs, Date.now() + Math.max(0,ms||0)); };
+  const isRotationPaused = () => Date.now() < rotationPausedUntilMs;
+
+  const flashing         = new Map();  // id -> expiry ms (timed flashes)
+  const continuousFlash  = new Set();  // ids that flash for entire alert lifetime
+  const expiringTriggered       = new Set();
+  const expiringScrollTriggered = new Set();
+  let flashOn = true;
+
+  const startFlash = (id, ms) => {
+    if (!id) return;
+    flashing.set(id, Math.max(flashing.get(id)||0, Date.now()+Math.max(0,ms)));
+  };
+  const startContinuousFlash = id => { if (id) continuousFlash.add(id); };
+  const stopContinuousFlash  = id => { if (id) continuousFlash.delete(id); };
+  const isFlashing = id => continuousFlash.has(id) || Date.now() < (flashing.get(id)||0);
+  function pruneFlashing() {
+    const now = Date.now();
+    for (const [id,u] of flashing) if (now>=u) flashing.delete(id);
+    // Remove continuous flash for alerts no longer active
+    for (const id of continuousFlash) {
+      if (!activeAlertsCache.some(a => a.id === id)) continuousFlash.delete(id);
+    }
+  }
+
+  let savedView = null;
+  const saveCurrentView    = () => { try { const c=map.getCenter(); savedView={center:[c.lat,c.lng],zoom:map.getZoom()}; } catch(e){savedView=null;} };
+  const restoreSavedView   = () => { if (!savedView) return; try { map.setView(savedView.center,savedView.zoom); } catch(e){} savedView=null; };
+
+  // ── Audio ──────────────────────────────────────────────────────────────────
+  let audioCtx = null;
+  const ensureAudio = () => { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; };
+  function beep(freq, ms, t0, gain=0.08, type="sine") {
+    const ctx=ensureAudio(); const osc=ctx.createOscillator(); const g=ctx.createGain();
+    osc.type=type; osc.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(gain,t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t0+ms/1000);
+    osc.connect(g); g.connect(ctx.destination); osc.start(t0); osc.stop(t0+ms/1000);
+  }
+  function playNewTone()     { if (!settings.soundEnabled) return; const ctx=ensureAudio(),t=ctx.currentTime+0.02; beep(880,140,t,0.085,"square"); beep(1175,140,t+0.18,0.085,"square"); beep(1568,190,t+0.36,0.085,"square"); }
+  function playExpiredTone() { if (!settings.soundEnabled) return; const ctx=ensureAudio(),t=ctx.currentTime+0.02; beep(740,180,t,0.075,"sine"); beep(494,240,t+0.24,0.075,"sine"); }
+
+  // ── Voice ──────────────────────────────────────────────────────────────────
+  let availableVoices = [];
+  function loadVoices() {
+    try { availableVoices = window.speechSynthesis?.getVoices() || []; } catch(e) { availableVoices=[]; }
+    const sel = document.getElementById("voiceSelect");
+    if (!sel) return;
+    const current = settings.voiceName || "";
+    sel.innerHTML = `<option value="">System Default Voice</option>` +
+      availableVoices.map(v => `<option value="${(v.name||"").replace(/"/g,"&quot;")}" ${v.name===current?"selected":""}>${v.name} (${v.lang})</option>`).join("");
+  }
+  const getSelectedVoice = () => availableVoices.find(x=>x?.name===settings.voiceName) || null;
+  function speak(text) {
+    if (!settings.voiceEnabled || !window.speechSynthesis) return;
+    try {
+      if (!availableVoices.length) loadVoices();
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(String(text||"")); u.rate=1.05; u.pitch=1.0; u.volume=1.0;
+      const v = getSelectedVoice(); if (v) u.voice=v;
+      speechSynthesis.speak(u);
+    } catch(e) {}
+  }
+  if (window.speechSynthesis) speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices(); setTimeout(loadVoices,250); setTimeout(loadVoices,1000);
+
+  // ── Settings UI wiring ─────────────────────────────────────────────────────
+  function setPills() {
+    document.getElementById("selCount").textContent   = String((settings.selectedKeys||[]).length);
+  }
+
+  function applyBrand() {} // placeholder (no dynamic brand in this version)
+
+  const overlay      = document.getElementById("overlay");
+  const modal        = document.getElementById("settingsModal");
+  const openSettings  = () => { overlay.classList.add("show"); modal.classList.add("show"); syncSettingsUI(); };
+  const closeSettings = () => { overlay.classList.remove("show"); modal.classList.remove("show"); };
+  document.getElementById("btnSettings").addEventListener("click", openSettings);
+  document.getElementById("closeSettings").addEventListener("click", closeSettings);
+  overlay.addEventListener("click", closeSettings);
+
+  const detailsOverlay = document.getElementById("detailsOverlay");
+  const detailsModal   = document.getElementById("detailsModal");
+  let currentDetailAlert = null;
+
+  function openDetails(a, source="unknown") {
+    if (!a) return;
+    currentDetailAlert = a;
+    document.getElementById("dEvent").textContent    = safeText(a.event);
+    document.getElementById("dSeverity").textContent = `Severity: ${safeText(a.severity)}`;
+    document.getElementById("dUrgency").textContent  = `Urgency: ${safeText(a.urgency)}`;
+    document.getElementById("dCertainty").textContent= `Certainty: ${safeText(a.certainty)}`;
+    document.getElementById("dArea").textContent     = formatArea(a.area);
+    const issued = a.sent||a.effective||a.onset||"";
+    document.getElementById("dTiming").textContent   =
+      `Issued: ${safeText(issued?prettyTimeISO(issued):"")}` +
+      (a.updated ? `\nUpdated: ${prettyTimeISO(a.updated)}` : "") +
+      `\nExpires: ${safeText(a.expires?prettyTimeISO(a.expires):"")}`;
+    document.getElementById("dHeadline").textContent    = safeText(a.headline);
+    document.getElementById("dDescription").textContent = safeText(a.description);
+    document.getElementById("dInstruction").textContent = safeText(a.instruction);
+    document.getElementById("dSender").textContent = `Sender: ${safeText(a.sender)}`;
+    document.getElementById("dId").textContent = `ID: ${safeText(a.id)}`;
+    document.getElementById("dTagOverrideUI").style.display = "none";
+    document.getElementById("dTagOverrideToggle").style.display = "block";
+    renderDetailTags(a);
+    detailsOverlay.classList.add("show");
+    detailsModal.classList.add("show");
+    if (!settings.rotateEnabled && (source==="map"||source==="label"||source==="polygon"))
+      scrollSidebarToAlert(a, true);
+  }
+  const closeDetails = () => {
+    detailsOverlay.classList.remove("show"); detailsModal.classList.remove("show");
+    currentDetailAlert = null;
+  };
+  document.getElementById("btnCloseDetails").addEventListener("click", closeDetails);
+  detailsOverlay.addEventListener("click", closeDetails);
+  document.getElementById("btnZoomAlert").addEventListener("click", () => {
+    if (!currentDetailAlert) return;
+    zoomToAlert(currentDetailAlert);
+    if (!settings.rotateEnabled) scrollSidebarToAlert(currentDetailAlert, true);
+  });
+  // ── Tag override UI ────────────────────────────────────────────────────────
+    function renderDetailTags(a) {
+      if (!a) return;
+      const aid = a.id || "";
+      const override = _tagOverrides[aid];
+      const autoTags = detectTags(a);
+      const activeTags = override ? override.tags : autoTags;
+
+      // Current tags display
+      const tagsEl = document.getElementById("dCurrentTags");
+      if (tagsEl) {
+        let html = activeTags.map(key => {
+          const def = TAG_DEFS.find(d => d.key === key);
+          return def ? `<span class="badge ${def.cls}">${def.txt}</span>` : "";
+        }).join("");
+        if (override) {
+          const cls = override.by === "admin" ? "badge-override-admin" : "badge-override-user";
+          html += `<span class="badge ${cls}">✎ tagged by ${override.by}</span>`;
+        }
+        if (!html) html = `<span style="color:var(--muted);font-size:11px;font-family:var(--font-mono);">No tags detected</span>`;
+        tagsEl.innerHTML = html;
+      }
+
+      // Show/hide edit button based on userOverrideEnabled
+      const editBtn = document.getElementById("btnEditTags");
+      if (editBtn) editBtn.style.display = _userOverrideEnabled ? "inline-flex" : "none";
+    }
+
+    function openTagOverrideUI(a) {
+      if (!a) return;
+      const aid = a.id || "";
+      const override = _tagOverrides[aid];
+      const activeTags = new Set(override ? override.tags : detectTags(a));
+
+      const container = document.getElementById("dTagCheckboxes");
+      if (container) {
+        container.innerHTML = TAG_DEFS.map(def => `
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid rgba(55,75,130,0.5);background:${activeTags.has(def.key) ? "rgba(41,198,255,0.08)" : "rgba(0,0,0,0.2)"};">
+          <input type="checkbox" data-tagkey="${def.key}" ${activeTags.has(def.key) ? "checked" : ""} style="cursor:pointer;">
+          <span class="badge ${def.cls}" style="pointer-events:none;">${def.txt}</span>
+        </label>`).join("");
+      }
+
+      document.getElementById("dTagOverrideUI").style.display = "flex";
+      document.getElementById("dTagOverrideToggle").style.display = "none";
+    }
+
+    document.getElementById("btnEditTags").addEventListener("click", () => {
+      if (currentDetailAlert) openTagOverrideUI(currentDetailAlert);
+    });
+
+    document.getElementById("btnSaveTagOverride").addEventListener("click", () => {
+      if (!currentDetailAlert) return;
+      const aid = currentDetailAlert.id || "";
+      const selected = [...document.querySelectorAll("#dTagCheckboxes input[data-tagkey]:checked")]
+        .map(inp => inp.getAttribute("data-tagkey"));
+      const naid = normalizeAlertId(aid);
+      if (selected.length > 0) {
+        _userTagOverrides[naid] = { tags: selected, by: "user" };
+      } else {
+        delete _userTagOverrides[naid];
+      }
+      saveTagOverrides();
+      document.getElementById("dTagOverrideUI").style.display = "none";
+      document.getElementById("dTagOverrideToggle").style.display = "block";
+      renderDetailTags(currentDetailAlert);
+      renderList(currentShownAlerts);
+      rebuildMap(currentShownAlerts);
+    });
+
+    document.getElementById("btnClearTagOverride").addEventListener("click", () => {
+      if (!currentDetailAlert) return;
+      const aid = currentDetailAlert.id || "";
+      delete _userTagOverrides[normalizeAlertId(aid)];
+      saveTagOverrides();
+      document.getElementById("dTagOverrideUI").style.display = "none";
+      document.getElementById("dTagOverrideToggle").style.display = "block";
+      renderDetailTags(currentDetailAlert);
+      renderList(currentShownAlerts);
+      rebuildMap(currentShownAlerts);
+    });
+
+    document.getElementById("btnCancelTagOverride").addEventListener("click", () => {
+      document.getElementById("dTagOverrideUI").style.display = "none";
+      document.getElementById("dTagOverrideToggle").style.display = "block";
+    });
+
+  document.getElementById("btnFullscreen").addEventListener("click", async () => {
+    try { !document.fullscreenElement ? await document.documentElement.requestFullscreen() : await document.exitFullscreen(); }
+    catch(e) {}
+  });
+
+  // Settings toggles
+  document.getElementById("toggleSound").addEventListener("change", async e => {
+    settings.soundEnabled = !!e.target.checked;
+    if (settings.soundEnabled) { try { const ctx=ensureAudio(); if (ctx.state==="suspended") await ctx.resume(); playNewTone(); } catch(e2){} }
+    saveSettings(); syncSettingsUI();
+  });
+  document.getElementById("toggleVoice").addEventListener("change", e => {
+    settings.voiceEnabled = !!e.target.checked; saveSettings(); syncSettingsUI();
+    if (settings.voiceEnabled) { loadVoices(); speak("Voice announcements enabled."); }
+    else { try { speechSynthesis?.cancel(); } catch(e2){} }
+  });
+  document.getElementById("voiceSelect").addEventListener("change", e => { settings.voiceName=e.target.value||""; saveSettings(); });
+  document.getElementById("btnTestVoice").addEventListener("click", () => { loadVoices(); speak("NWS alerts voice test. Announcements are working."); });
+  document.getElementById("toggleAutoZoom").addEventListener("change", e => { settings.autoZoomNew=!!e.target.checked; saveSettings(); syncSettingsUI(); });
+  document.getElementById("autoZoomModeSelect").addEventListener("change", e => {
+    settings.autoZoomMode=e.target.value||"all";
+    if (!["all","severe_plus","tornado_extreme","selected_only"].includes(settings.autoZoomMode)) settings.autoZoomMode="all";
+    saveSettings();
+  });
+  document.getElementById("toggleRotate").addEventListener("change", e => {
+    settings.rotateEnabled = !!e.target.checked; saveSettings(); syncSettingsUI();
+    if (!settings.rotateEnabled) { setRotateVisibilityForAlert(null); document.getElementById("rotStatus").textContent="—"; clearSidebarFocus(); }
+    else if (lastTickerAlert && !isRotationPaused()) { rotateToTopBarAlert(lastTickerAlert); focusSidebarOnAlert(lastTickerAlert); }
+  });
+  document.getElementById("toggleNoAlaska").addEventListener("change", e => { settings.noAlaska=!!e.target.checked; saveSettings(); syncSettingsUI(); tickerIdx=0; refresh(); });
+  document.getElementById("toggleDebug").addEventListener("change", e => { settings.debugEnabled=!!e.target.checked; saveSettings(); syncSettingsUI(); applyDebugUI(); });
+  // ── State filter ───────────────────────────────────────────────────────────
+    const US_STATES = [
+      "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA",
+      "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+      "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT",
+      "VA", "WA", "WV", "WI", "WY", "DC"
+    ];
+    const STATE_NAMES = {
+      "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California",
+      "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "FL": "Florida", "GA": "Georgia",
+      "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa",
+      "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland",
+      "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi",
+      "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire",
+      "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina",
+      "ND": "North Dakota", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania",
+      "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee",
+      "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VA": "Virginia", "WA": "Washington",
+      "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming", "DC": "District of Columbia"
+    };
+
+    function buildStateFilterList(searchTerm) {
+      const container = document.getElementById("stateFilterList");
+      if (!container) return;
+      const selected = new Set(settings.stateFilter || []);
+      const term = (searchTerm || "").toLowerCase();
+      const filtered = US_STATES.filter(s =>
+        !term || s.toLowerCase().includes(term) || STATE_NAMES[s].toLowerCase().includes(term)
+      );
+      container.innerHTML = filtered.map(s => `
+      <label style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text);background:${selected.has(s) ? "rgba(41,198,255,0.1)" : "transparent"};border:1px solid ${selected.has(s) ? "rgba(41,198,255,0.4)" : "transparent"};">
+        <input type="checkbox" data-state="${s}" ${selected.has(s) ? "checked" : ""} style="cursor:pointer;">
+        <span>${s}</span><span style="color:var(--muted);font-size:10px;"> ${STATE_NAMES[s]}</span>
+      </label>`).join("");
+      container.querySelectorAll("input[data-state]").forEach(inp => {
+        inp.addEventListener("change", () => {
+          const set = new Set(settings.stateFilter || []);
+          inp.checked ? set.add(inp.getAttribute("data-state")) : set.delete(inp.getAttribute("data-state"));
+          settings.stateFilter = [...set];
+          saveSettings(); buildStateFilterList(document.getElementById("stateFilterSearch")?.value); refresh();
+        });
+      });
+    }
+    
+    document.getElementById("toggleStateFilter").addEventListener("change", e => {
+        settings.stateFilterEnabled = !!e.target.checked;
+        document.getElementById("stateFilterText").textContent = settings.stateFilterEnabled ? "ON" : "OFF";
+        document.getElementById("stateFilterPanel").style.display = settings.stateFilterEnabled ? "flex" : "none";
+        saveSettings(); refresh();
+      });
+    document.getElementById("stateFilterSearch").addEventListener("input", e => {
+      buildStateFilterList(e.target.value);
+    });
+    document.getElementById("btnStateAll").addEventListener("click", () => {
+      settings.stateFilter = []; saveSettings(); buildStateFilterList(); refresh();
+    });
+    document.getElementById("btnStateNone").addEventListener("click", () => {
+      settings.stateFilter = []; saveSettings(); buildStateFilterList(); refresh();
+    });
+  document.getElementById("cycleModeSelect").addEventListener("change", e => { settings.cycleMode=e.target.value||"all"; saveSettings(); tickerIdx=0; refresh(); });
+  document.getElementById("tickerSpeedSelect").addEventListener("change", e => {
+      settings.tickerSpeed = e.target.value || "medium";
+      saveSettings(); applyTickerSpeed();
+    });
+  document.getElementById("flashSpeedSelect").addEventListener("change", e => {
+      settings.flashSpeed = e.target.value || "medium";
+      saveSettings(); applyFlashSpeed();
+    });
+  document.getElementById("sortMode").addEventListener("change", e => { settings.sortMode=e.target.value; saveSettings(); refresh(); });
+
+  document.getElementById("btnSelectAll").addEventListener("click", () => {
+    const all = [...document.querySelectorAll('#eventList input[data-event]')].map(x=>norm(x.getAttribute("data-event"))).filter(Boolean);
+    settings.selectedKeys = [...new Set(all)]; saveSettings(); syncSettingsUI(); refresh();
+  });
+  document.getElementById("btnSelectNone").addEventListener("click", () => { settings.selectedKeys=[]; saveSettings(); syncSettingsUI(); refresh(); });
+  document.getElementById("btnResetDefaults").addEventListener("click", () => {
+    Object.assign(settings, {
+      selectedKeys: DEFAULT_SELECTED.map(norm),
+      soundEnabled:true, voiceEnabled:true, voiceName:"",
+      autoZoomNew:true, autoZoomMode:"all", rotateEnabled:false,
+      noAlaska: false, cycleMode: "all", sortMode: "severity_desc", debugEnabled: true,
+      stateFilter: [], stateFilterEnabled: false, flashSpeed: "medium", tickerSpeed: "medium", mapDark: false,
+    });
+    saveSettings(); syncSettingsUI(); refresh();
+  });
+
+  function syncSettingsUI() {
+    const el = id => document.getElementById(id);
+    el("toggleSound").checked    = settings.soundEnabled;    el("soundText").textContent    = settings.soundEnabled?"ON":"OFF";
+    el("toggleVoice").checked    = settings.voiceEnabled;    el("voiceText").textContent    = settings.voiceEnabled?"ON":"OFF";
+    el("toggleAutoZoom").checked = settings.autoZoomNew;     el("autoZoomText").textContent = settings.autoZoomNew?"ON":"OFF";
+    el("toggleRotate").checked   = settings.rotateEnabled;   el("rotateText").textContent   = settings.rotateEnabled?"ON":"OFF";
+    el("toggleNoAlaska").checked = settings.noAlaska;        el("noAlaskaText").textContent = settings.noAlaska?"ON":"OFF";
+    el("toggleDebug").checked    = settings.debugEnabled;    el("debugText").textContent    = settings.debugEnabled?"ON":"OFF";
+    el("autoZoomModeSelect").value = settings.autoZoomMode||"all";
+    el("cycleModeSelect").value    = settings.cycleMode||"all";
+    el("sortMode").value           = settings.sortMode||"severity_desc";
+    if (el("voiceSelect")) el("voiceSelect").value = settings.voiceName||"";
+
+    const selectedSet = new Set(settings.selectedKeys||[]);
+    document.querySelectorAll('#eventList input[data-event]').forEach(inp => {
+      inp.checked = selectedSet.has(norm(inp.getAttribute("data-event")));
+    });
+
+    const fs = document.getElementById("flashSpeedSelect");
+    if (fs) fs.value = settings.flashSpeed || "medium";
+    const ts = document.getElementById("tickerSpeedSelect");
+    if (ts) ts.value = settings.tickerSpeed || "medium";
+    const el2 = document.getElementById("toggleStateFilter");
+    if (el2) el2.checked = !!settings.stateFilterEnabled;
+    const st = document.getElementById("stateFilterText");
+    if (st) st.textContent = settings.stateFilterEnabled ? "ON" : "OFF";
+    const sp = document.getElementById("stateFilterPanel");
+    if (sp) sp.style.display = settings.stateFilterEnabled ? "flex" : "none";
+    buildStateFilterList(document.getElementById("stateFilterSearch")?.value || "");
+
+    applyDebugUI();
+    setPills();
+  }
+
+  // ── Event type list ────────────────────────────────────────────────────────
+  let allTypes = [], eventSearchTerm = "";
+
+  function buildEventList() {
+    const container   = document.getElementById("eventList");
+    const selectedSet = new Set(settings.selectedKeys||[]);
+    const filtered    = allTypes.filter(ev => !eventSearchTerm || String(ev).toLowerCase().includes(eventSearchTerm));
+
+    if (!filtered.length) {
+      container.innerHTML = `<div style="color:var(--muted);font-weight:600;">No matches.</div>`;
+      return;
+    }
+    container.innerHTML = filtered.map(ev => `
+      <label class="eventItem" title="${ev}">
+        <input type="checkbox" data-event="${ev}" ${selectedSet.has(norm(ev))?"checked":""}>
+        <span>${ev}</span>
+      </label>`).join("");
+
+    container.querySelectorAll('input[type="checkbox"][data-event]').forEach(inp => {
+      inp.addEventListener("change", () => {
+        const key = norm(inp.getAttribute("data-event"));
+        const set = new Set(settings.selectedKeys||[]);
+        inp.checked ? set.add(key) : set.delete(key);
+        settings.selectedKeys = [...set];
+        saveSettings(); refresh();
+      });
+    });
+    syncSettingsUI();
+  }
+
+  document.getElementById("eventSearch").addEventListener("input", e => {
+    eventSearchTerm = (e.target.value||"").trim().toLowerCase();
+    buildEventList();
+  });
+
+  async function loadAllTypes() {
+    const res  = await fetch("/alert_types_all", { cache:"no-store" });
+    const data = await res.json();
+    allTypes = data.events || [];
+    buildEventList();
+  }
+
+  // ── Filter / scope ─────────────────────────────────────────────────────────
+  function filterSelected(allAlerts) {
+      const selected = new Set(settings.selectedKeys || []);
+      let arr = [...(allAlerts || [])];
+      if (settings.noAlaska) arr = arr.filter(a => !isAlaskaAlert(a));
+      arr = arr.filter(a => selected.has(norm(a.event)));
+      if (settings.stateFilterEnabled && settings.stateFilter && settings.stateFilter.length > 0) {
+        const stateSet = new Set(settings.stateFilter);
+        arr = arr.filter(a => {
+          const zones = (a.zone_ids || []).map(z => String(z).slice(0, 2).toUpperCase());
+          return zones.some(z => stateSet.has(z));
+        });
+      }
+      return arr;
+    }
+
+  // Returns true if this alert should flash for its entire active lifetime
+  function shouldFlashContinuously(a) {
+    const ev = String(a?.event||"").toLowerCase();
+    if (ev.includes("tornado warning")) return true;
+    if (ev.includes("severe thunderstorm warning") && isPossibleTornadoSevere(a)) return true;
+    const tags = detectTags(a);
+    if (tags.includes("emergency")) return true;
+    if (tags.includes("flash-flood-emergency")) return true;
+    if (tags.includes("catastrophic")) return true;
+    return false;
+  }
+
+  // Returns the correct flash color for an alert (matches polygon/card color)
+  function flashColorFor(a) {
+    return stableColorFor(a.event, a);
+  }
+
+  function shouldAutoZoomAlert(a) {
+    if (!settings.autoZoomNew) return false;
+    const mode = settings.autoZoomMode||"all";
+    const sev  = severityRank(a?.severity);
+    const ev   = String(a?.event||"").toLowerCase();
+    if (mode==="all")               return true;
+    if (mode==="severe_plus")       return sev>=3;
+    if (mode==="tornado_extreme")   return ev.includes("tornado")||sev>=4;
+    if (mode==="selected_only")     return (settings.selectedKeys||[]).includes(norm(a?.event));
+    return true;
+  }
+
+  // ── Render alert list ──────────────────────────────────────────────────────
+  function renderList(alerts) {
+    const list    = document.getElementById("alertList");
+    const now     = Date.now();
+    const visible = alertSearchTerm ? (alerts||[]).filter(a=>matchesSearch(a,alertSearchTerm)) : (alerts||[]);
+
+    if (!visible.length) {
+      const msg = alertSearchTerm ? `No alerts matching "${alertSearchTerm}"` : "NO SELECTED ALERTS ACTIVE";
+      const hint = alertSearchTerm ? "Try a different search term." : "Use Settings to adjust types and scope.";
+      list.innerHTML = `<div class="alertCard" style="border-left-color:#2fd3ff;cursor:default;">
+        <div class="alertEventName">${msg}</div>
+        <div class="alertCardArea">${hint}</div>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = visible.map((a, idx) => {
+      const c       = stableColorFor(a.event, a);
+      const expMs   = expiresTimeMs(a);
+      const expIso  = a.expires ? prettyTimeISO(a.expires) : "";
+      const issRaw  = a.sent||a.effective||a.onset||"";
+      const issIso  = issRaw ? prettyTimeISO(issRaw) : "";
+      const updRaw  = (a.updated||"").trim();
+      const updIso  = (updRaw && updRaw!==issRaw) ? prettyTimeISO(updRaw) : "";
+
+      let metaLines = "";
+      if (issIso)  metaLines += `Issued: ${issIso}`;
+      if (updIso)  metaLines += `\nUpdated: ${updIso}`;
+      if (expIso)  metaLines += `\nExpires: ${expIso}`;
+
+      let timerHtml = "";
+      if (expMs && (expMs-now)>0 && (expMs-now)<=EXP_TIMER_SHOW_MS) {
+        timerHtml = `<div class="expTimer" data-expms="${expMs}"><span class="muted">T-</span><span data-exptext>--:--</span></div>`;
+      }
+
+      const headline = (a.headline||"").trim();
+      const idAttr   = (a.id||"").replace(/"/g,"&quot;");
+      const isContinuous = a.id && continuousFlash.has(a.id);
+      const isTimedFlash = a.id && !isContinuous && isFlashing(a.id) && flashOn;
+      const flashCls = isContinuous ? "flashCardContinuous" : (isTimedFlash ? "flashCard" : "");
+      const flashColor = isContinuous ? flashColorFor(a) : "";
+
+      return `
+        <div class="alertCard ${flashCls}" data-idx="${idx}" data-aid="${idAttr}" style="border-left-color:${c};${flashColor?`--flash-color:${flashColor}33;`:''}">
+          <div class="alertCardTop">
+            <div class="alertEventName" style="color:${c}">${a.event}</div>
+            <div class="badges">
+              ${alertTagBadges(a, true)}
+              ${a.severity ? `<span class="badge">${a.severity}</span>` : ""}
+              ${a.urgency   ? `<span class="badge">${a.urgency}</span>`  : ""}
+            </div>
+          </div>
+          <div class="alertCardArea">${formatArea(a.area)}</div>
+          ${headline ? `<div class="alertCardHeadline">${headline}</div>` : ""}
+          ${metaLines ? `<div class="alertCardMeta">${metaLines}</div>` : ""}
+          ${timerHtml}
+        </div>`;
+    }).join("");
+
+    list.querySelectorAll(".alertCard[data-idx]").forEach(card => {
+      card.addEventListener("click", () => {
+        const a = visible[+card.getAttribute("data-idx")];
+        zoomToAlert(a);
+        openDetails(a, "sidebar");
+        if (!settings.rotateEnabled) scrollSidebarToAlert(a, true);
+      });
+
+      card.addEventListener("mouseenter", () => {
+        const a = visible[+card.getAttribute("data-idx")];
+        if (!a) return;
+        if (hoveredAlertId) unhighlightAlertOnMap(hoveredAlertId);
+        hoveredAlertId = a.id;
+        highlightAlertOnMap(a.id);
+      });
+
+      card.addEventListener("mouseleave", () => {
+        if (hoveredAlertId) {
+          stopHoverPulse();
+          unhighlightAlertOnMap(hoveredAlertId);
+          hoveredAlertId = null;
+        }
+      });
+    });
+
+    updateExpiryTimers();
+  }
+
+  function updateCardFlashClasses() {
+    document.querySelectorAll(".alertCard[data-aid]").forEach(card => {
+      const id = card.getAttribute("data-aid")||"";
+      const isCont  = !!(id && continuousFlash.has(id));
+      const isTimed = !!(id && !isCont && isFlashing(id) && flashOn);
+      card.classList.toggle("flashCardContinuous", isCont);
+      card.classList.toggle("flashCard", isTimed);
+    });
+  }
+
+  const fmtCountdown = ms => {
+    const s = Math.max(0,Math.floor(ms/1000)), m=Math.floor(s/60);
+    return `${String(m).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  };
+
+  function updateExpiryTimers() {
+    const now = Date.now();
+    document.querySelectorAll(".expTimer[data-expms]").forEach(t => {
+      const expMs = +t.getAttribute("data-expms")||0;
+      const el    = t.querySelector("[data-exptext]");
+      if (!el || !expMs) { t.style.display="none"; return; }
+      const remain = expMs-now;
+      if (remain<=0)            { el.textContent="00:00"; return; }
+      if (remain>EXP_TIMER_SHOW_MS) { t.style.display="none"; return; }
+      t.style.display="inline-flex";
+      el.textContent = fmtCountdown(remain);
+    });
+  }
+  setInterval(updateExpiryTimers, 1000);
+
+  // ── Sidebar focus / scroll ─────────────────────────────────────────────────
+  let lastSidebarFocusId = "";
+  let sidebarReturnTimer = null, sidebarSavedScrollTop = null;
+  let sidebarNewAlertActive = false, sidebarNewAlertSinceMs = 0;
+
+  const clearSidebarFocus = () => document.querySelectorAll(".alertCard.focusCard").forEach(el=>el.classList.remove("focusCard"));
+  const saveSidebarScrollPosition    = () => { const l=document.getElementById("alertList"); if (l) sidebarSavedScrollTop=l.scrollTop; };
+  const restoreSidebarScrollPosition = () => {
+    const l = document.getElementById("alertList"); if (!l) return;
+    if (sidebarSavedScrollTop!=null && sidebarNewAlertActive) {
+      try { l.scrollTo({top:sidebarSavedScrollTop,behavior:"smooth"}); } catch(e) { l.scrollTop=sidebarSavedScrollTop; }
+      sidebarSavedScrollTop=null; sidebarNewAlertActive=false; sidebarNewAlertSinceMs=0;
+    }
+  };
+  function scheduleSidebarReturnAfterNewAlert(ms) {
+    if (sidebarReturnTimer) clearTimeout(sidebarReturnTimer);
+    sidebarReturnTimer = setTimeout(() => { restoreSidebarScrollPosition(); sidebarReturnTimer=null; }, Math.max(0,ms));
+  }
+  function focusSidebarOnNewAlertTemporary(a) {
+    if (!a || settings.rotateEnabled) return;
+    const now = Date.now();
+    if (!sidebarNewAlertActive) { saveSidebarScrollPosition(); sidebarNewAlertActive=true; sidebarNewAlertSinceMs=now; scrollSidebarToAlert(a,true); scheduleSidebarReturnAfterNewAlert(10000); return; }
+    scrollSidebarToAlert(a,true); sidebarNewAlertSinceMs=now; scheduleSidebarReturnAfterNewAlert(5000);
+  }
+
+  function scrollSidebarToAlert(a, highlight=true) {
+    if (!a?.id) return;
+    const listEl = document.getElementById("alertList");
+    if (!listEl) return;
+    const card = [...listEl.querySelectorAll(".alertCard[data-aid]")].find(el=>el.getAttribute("data-aid")===String(a.id));
+    if (!card) return;
+    lastSidebarFocusId = String(a.id);
+    requestAnimationFrame(() => {
+      if (highlight) {
+        clearSidebarFocus(); card.classList.add("focusCard");
+        if (!settings.rotateEnabled) setTimeout(()=>{ try{card.classList.remove("focusCard");}catch(e){} },2500);
+      }
+      try { card.scrollIntoView({ behavior:"smooth", block:"center" }); } catch(e) {}
+    });
+  }
+  const focusSidebarOnAlert = a => { if (settings.rotateEnabled) scrollSidebarToAlert(a, true); };
+
+  // ── Ticker ────────────────────────────────────────────────────────────────
+  function applyTickerMarquee() {
+    const el = document.getElementById("tickerText");
+    if (!el) return;
+    el.classList.remove("scroll");
+    el.style.setProperty("--marqueeDur", "10s");
+    el.style.setProperty("--marqueeEnd", "-200px");
+    requestAnimationFrame(() => {
+      try {
+        const vp = el.parentElement; if (!vp) return;
+        const delta = el.scrollWidth - (vp.clientWidth||0);
+        if (delta > 8) {
+          const dur = Math.max(6, Math.round(delta/MARQUEE_PX_PER_SEC*10)/10);
+          el.style.setProperty("--marqueeEnd", `-${delta}px`);
+          el.style.setProperty("--marqueeDur", `${dur}s`);
+          el.classList.add("scroll");
+        }
+      } catch(e) {}
+    });
+  }
+  const setTicker = (html, muted=false) => {
+    const el = document.getElementById("tickerText");
+    el.innerHTML = muted ? `<span class="muted">${html}</span>` : html;
+    applyTickerMarquee();
+  };
+  window.addEventListener("resize", applyTickerMarquee);
+
+  let tickerAlerts = [], tickerIdx = 0, lastTickerAlert = null;
+  let tickerOverrideUntilMs=0, tickerOverrideHtml="", tickerResumeIdx=0;
+  let tickerTimer = null;
+  const TICKER_MIN_MS=7500, TICKER_EXTRA_PAD_MS=1800;
+
+  function computeTickerDwellMs() {
+    try {
+      const el=document.getElementById("tickerText"); if (!el) return TICKER_MIN_MS;
+      const vp=el.parentElement; if (!vp) return TICKER_MIN_MS;
+      const delta = el.scrollWidth - (vp.clientWidth||0);
+      if (delta<=8) return TICKER_MIN_MS;
+      return Math.max(TICKER_MIN_MS, Math.round(delta/MARQUEE_PX_PER_SEC*1000+TICKER_EXTRA_PAD_MS));
+    } catch(e) { return TICKER_MIN_MS; }
+  }
+  function scheduleNextTickerTick() {
+    if (tickerTimer) clearTimeout(tickerTimer);
+    tickerTimer = setTimeout(() => { updateTicker(); scheduleNextTickerTick(); }, computeTickerDwellMs());
+  }
+  function startTickerOverride(html, ms) {
+    const now=Date.now();
+    if (!(tickerOverrideUntilMs && now<tickerOverrideUntilMs)) tickerResumeIdx=tickerIdx;
+    tickerOverrideHtml=html||""; tickerOverrideUntilMs=now+Math.max(0,ms||0);
+  }
+
+  function updateTicker() {
+    const now = Date.now();
+    if (tickerOverrideUntilMs && now<tickerOverrideUntilMs && tickerOverrideHtml) { setTicker(tickerOverrideHtml); return; }
+    if (tickerOverrideUntilMs && now>=tickerOverrideUntilMs) { tickerOverrideUntilMs=0; tickerOverrideHtml=""; tickerIdx=tickerResumeIdx; }
+
+    if (!tickerAlerts.length) {
+      setTicker("NO SELECTED ALERTS ACTIVE", true);
+      lastTickerAlert=null;
+      if (settings.rotateEnabled && !isRotationPaused()) { map.setView(DEFAULT_VIEW,DEFAULT_ZOOM); document.getElementById("rotStatus").textContent="US View"; setRotateVisibilityForAlert(null); }
+      clearSidebarFocus(); return;
+    }
+    if (tickerIdx>=tickerAlerts.length) tickerIdx=0;
+    const a=tickerAlerts[tickerIdx]; lastTickerAlert=a;
+    const c=stableColorFor(a.event,a), area=formatArea((a.area||"").trim()), exp=a.expires?` • Expires ${prettyTimeISO(a.expires)}`:"";
+    setTicker(`<span style="color:${c};font-weight:700;">${a.event}</span> — ${area} <span class="muted">${exp}</span>`);
+    if (settings.rotateEnabled && !isRotationPaused()) { rotateToTopBarAlert(a); focusSidebarOnAlert(a); }
+    tickerIdx+=1;
+  }
+
+  function rotateToTopBarAlert(a) {
+    if (!a) return;
+    setRotateVisibilityForAlert(a);
+    zoomToAlert(a);
+  }
+
+  function goToLatestSeverePlus() {
+    const latest = mostRecentSeverePlus(sortAlerts(filterSelected(activeAlertsCache)));
+    if (!latest) { alert("No active Severe+ selected alerts."); return; }
+    zoomToAlert(latest); openDetails(latest, "latest_severe");
+    if (!settings.rotateEnabled) scrollSidebarToAlert(latest, true);
+  }
+
+  // ── New/Expired alert handling ────────────────────────────────────────────
+  let previousShownIds = new Set(), lastAllIdsSignature="", prevIdToAlert = new Map();
+
+  function handleNewAlertsExpiringExpired(shown) {
+    const currentIds = new Set((shown||[]).map(a=>a.id).filter(Boolean));
+    const currentIdToAlert = new Map();
+    for (const a of (shown||[])) { if (a?.id) currentIdToAlert.set(a.id,a); }
+
+    let newAlert = null;
+    for (const a of (shown||[])) { if (a.id && !previousShownIds.has(a.id)) { newAlert=a; break; } }
+
+    const removedIds = [...previousShownIds].filter(id=>!currentIds.has(id));
+
+    if (newAlert) {
+      playNewTone();
+      if (severityRank(newAlert.severity)>=3) {
+        const area=formatAreaForVoice((newAlert.area||"").trim());
+        let msg = `New ${newAlert.event||"alert"}.`;
+        if (newAlert.severity) msg+=` Severity ${newAlert.severity}.`;
+        if (area) msg+=` For ${area}.`;
+        speak(msg);
+      }
+      if (newAlert.id) {
+        if (shouldFlashContinuously(newAlert)) {
+          startContinuousFlash(newAlert.id);
+        } else {
+          startFlash(newAlert.id, NEW_ALERT_FLASH_MS);
+        }
+      }
+      const c=stableColorFor(newAlert.event,newAlert), area=formatArea((newAlert.area||"").trim()), exp=(newAlert.expires||"").trim();
+      startTickerOverride(`<span style="color:${c};font-weight:700;">NEW ${newAlert.event}</span> — ${area||"—"} <span class="muted">${exp?`• Expires ${prettyTimeISO(exp)}`:""}</span>`, NEW_ALERT_FLASH_MS);
+      pauseRotation(NEW_ALERT_FLASH_MS+ROTATION_PAUSE_PAD_MS);
+      setTimeout(() => {
+        settings.rotateEnabled ? scrollSidebarToAlert(newAlert,true) : focusSidebarOnNewAlertTemporary(newAlert);
+      }, 0);
+      if (shouldAutoZoomAlert(newAlert)) {
+        if (!settings.rotateEnabled) saveCurrentView();
+        zoomToAlert(newAlert);
+        setTimeout(() => { if (!settings.rotateEnabled) restoreSavedView(); }, NEW_ALERT_FLASH_MS+50);
+      } else if (settings.rotateEnabled) { rotateToTopBarAlert(newAlert); focusSidebarOnAlert(newAlert); }
+    }
+
+    const now = Date.now();
+    let bestExpiring = null;
+    for (const a of (shown||[])) {
+      if (!a?.id) continue;
+      const expMs = expiresTimeMs(a), dt = expMs-now;
+      if (dt > 0 && dt <= EXPIRING_SOON_MS && !expiringTriggered.has(a.id)) { expiringTriggered.add(a.id); playExpiredTone(); }
+      if (dt > 0 && dt <= EXPIRING_FLASH_MS) { startFlash(a.id, dt + 250); }
+      if (dt>0 && dt<=EXPIRING_SCROLL_MS && !expiringScrollTriggered.has(a.id)) {
+        if (!bestExpiring||dt<bestExpiring.dt) bestExpiring={a,dt};
+      }
+    }
+    if (!newAlert && bestExpiring?.a) { expiringScrollTriggered.add(bestExpiring.a.id); scrollSidebarToAlert(bestExpiring.a,true); }
+
+    if (!newAlert && removedIds.length) {
+      const expired = removedIds.map(id=>prevIdToAlert.get(id)).find(Boolean);
+      if (expired) {
+        const c=stableColorFor(expired.event,expired), area=formatArea((expired.area||"").trim());
+        startTickerOverride(`<span style="color:${c};font-weight:700;">EXPIRED ${expired.event}</span> — ${area} <span class="muted">• removed</span>`, EXPIRED_TICKER_MS);
+      }
+      if (lastSidebarFocusId && removedIds.includes(lastSidebarFocusId)) {
+        lastSidebarFocusId=""; clearSidebarFocus();
+        if (shown?.length) setTimeout(()=>scrollSidebarToAlert(shown[0],true),0);
+      }
+    }
+
+    previousShownIds = currentIds;
+    prevIdToAlert    = currentIdToAlert;
+  }
+
+  // ── Clock ──────────────────────────────────────────────────────────────────
+  function updateClock() {
+    const now = new Date();
+    document.getElementById("pillClock").textContent =
+      `${now.toLocaleDateString([],{weekday:"short",month:"short",day:"2-digit"})} • ${now.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"})}`;
+  }
+  updateClock(); setInterval(updateClock, 1000);
+
+  const DEBUG_TIMEZONES = [
+    {label:"EST",tz:"America/New_York"},{label:"CST",tz:"America/Chicago"},
+    {label:"MST",tz:"America/Denver"},{label:"PST",tz:"America/Los_Angeles"},
+    {label:"AKT",tz:"America/Anchorage"},{label:"HST",tz:"Pacific/Honolulu"},{label:"UTC",tz:"UTC"}
+  ];
+  const fmtTZ = tz => { try { return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:tz}); } catch(e){return"—";} };
+  function renderDebugClocks() {
+    const el = document.getElementById("debugClocks"); if (!el) return;
+    el.innerHTML = DEBUG_TIMEZONES.map(x=>`<div class="clockItem"><span class="tz">${x.label}</span>${fmtTZ(x.tz)}</div>`).join("");
+  }
+  function applyDebugUI() {
+    const sl=document.getElementById("statusLeft"), dc=document.getElementById("debugClocks");
+    if (!sl||!dc) return;
+    const on=!!settings.debugEnabled;
+    sl.querySelectorAll(".statusItem").forEach(el=>el.classList.toggle("debugHide",on));
+    // Always show the connection status item
+    document.getElementById("statusConn")?.classList.remove("debugHide");
+    dc.style.display = on ? "flex" : "none";
+    if (on) renderDebugClocks();
+  }
+  setInterval(()=>{ if (settings.debugEnabled) renderDebugClocks(); }, 1000);
+  let flashInterval = setInterval(() => { flashOn = !flashOn; pruneFlashing(); applyPolygonFlash(); updateCardFlashClasses(); }, FLASH_TICK_MS);
+
+  // ── Mobile panel switching ─────────────────────────────────────────────────
+  const panels      = document.querySelectorAll(".main .panel");
+  const alertsPanel = panels[0], mapPanel = panels[1];
+  const isMobile    = () => window.matchMedia("(max-width:820px)").matches;
+
+  function showMobile(which) {
+    if (!alertsPanel||!mapPanel) return;
+    if (!isMobile()) { alertsPanel.classList.remove("mobileHide"); mapPanel.classList.remove("mobileHide"); return; }
+    const w = (which==="alerts")?"alerts":"map";
+    settings.mobileView=w; saveSettings();
+    alertsPanel.classList.toggle("mobileHide", w!=="alerts");
+    mapPanel.classList.toggle("mobileHide", w!=="map");
+    if (w==="map") setTimeout(()=>{ try{map.invalidateSize();}catch(e){} },150);
+  }
+  
+  // ── Expand map ────────────────────────────────────────────────────────────
+  let mapExpanded = false;
+  document.getElementById("btnExpandMap").addEventListener("click", () => {
+    mapExpanded = !mapExpanded;
+    const main = document.querySelector(".main");
+    const btn = document.getElementById("btnExpandMap");
+    const strip = document.getElementById("sidebarStrip");
+    main.classList.toggle("mapExpanded", mapExpanded);
+    btn.textContent = mapExpanded ? "⤡ Collapse" : "⤢ Expand";
+    if (mapExpanded) {
+      // Build severity strip
+      const counts = { Extreme: 0, Severe: 0, Moderate: 0, Minor: 0 };
+      for (const a of currentShownAlerts) {
+        const s = String(a.severity || "").trim();
+        if (s in counts) counts[s]++;
+      }
+      const colors = { Extreme: "#8b0000", Severe: "#ff4500", Moderate: "#ffb300", Minor: "#4477cc" };
+      strip.innerHTML = `<div class="stripCount">${currentShownAlerts.length} ALERTS</div>` +
+        Object.entries(counts).filter(([, v]) => v > 0).map(([k, v]) =>
+          `<div class="stripDot" style="background:${colors[k]}" title="${v} ${k}"></div>`
+        ).join("");
+    }
+    setTimeout(() => { try { map.invalidateSize(); } catch (e) { } }, 150);
+  });
+
+  document.getElementById("btnShowAlerts").addEventListener("click", ()=>showMobile("alerts"));
+  document.getElementById("btnShowMap").addEventListener("click", ()=>showMobile("map"));
+  document.getElementById("btnLatestSevere").addEventListener("click", goToLatestSeverePlus);
+  showMobile(settings.mobileView||"map");
+  window.addEventListener("resize", ()=>showMobile(settings.mobileView||"map"));
+
+  // ── Status bar connection indicator ───────────────────────────────────────
+  function updateConnectionStatus(ok, errorMsg) {
+    const dot  = document.getElementById("statusDot");
+    const text = document.getElementById("statusConnText");
+    if (!dot||!text) return;
+    if (ok) {
+      dot.className  = "statusDot ok";
+      text.textContent = "Live";
+    } else {
+      dot.className  = "statusDot err";
+      text.textContent = errorMsg ? `Error: ${String(errorMsg).slice(0,30)}` : "Disconnected";
+    }
+  }
+
+  // ── Main refresh ──────────────────────────────────────────────────────────
+  let activeAlertsCache = [];
+
+  let _announcementDismissed = false;
+    let _currentAnnouncementId = null;
+
+    window.dismissAnnouncement = function () {
+    _announcementDismissed = true;
+    document.getElementById('announcementBanner').style.display = 'none';
+    document.getElementById('announcementModal').classList.remove('show');
+    if (_currentAnnouncementId) {
+      const dismissed = JSON.parse(localStorage.getItem('nwsalerts_dismissed_announcements') || '[]');
+      if (!dismissed.includes(_currentAnnouncementId)) {
+        dismissed.push(_currentAnnouncementId);
+        localStorage.setItem('nwsalerts_dismissed_announcements', JSON.stringify(dismissed));
+      }
+    }
+  }
+
+  function showAnnouncements(announcements) {
+      if (_announcementDismissed) return;
+      const now = new Date().toISOString().split('T')[0];
+      const dismissed = JSON.parse(localStorage.getItem('nwsalerts_dismissed_announcements') || '[]');
+      for (const a of announcements) {
+        if (!a.enabled) continue;
+        if (a.start_date && now < a.start_date) continue;
+        if (a.end_date && now > a.end_date) continue;
+        if (a.frequency === 'once' && dismissed.includes(a.id)) continue;
+        _currentAnnouncementId = a.id;
+        if (a.type === 'banner') {
+          const banner = document.getElementById('announcementBanner');
+          document.getElementById('announcementBannerMsg').innerHTML = a.message;
+          banner.style.display = 'block';
+        } else {
+          document.getElementById('announcementModalMsg').innerHTML = a.message;
+          document.getElementById('announcementModal').classList.add('show');
+        }
+        break;
+      }
+    }
+
+  // Hide download links if running inside Electron
+    if (navigator.userAgent.includes("Electron")) {
+      const aboutLink = document.getElementById("aboutDownloadLink");
+      const footerLink = document.getElementById("footerDownloadLink");
+      if (aboutLink) aboutLink.style.display = "none";
+      if (footerLink) footerLink.style.display = "none";
+    }
+
+  async function refresh() {
+    try {
+      const [dataRes, stRes] = await Promise.all([
+        fetch("/data_shown", { cache: "no-store" }),
+        fetch("/status", { cache: "no-store" }),
+      ]);
+      if (!dataRes.ok) throw new Error(`HTTP ${dataRes.status}`);
+      const dataJson = await dataRes.json();
+      const all = dataJson.alerts || [];
+      const st = await stRes.json();
+      _adminTagOverrides = dataJson.tag_overrides || {};
+      if (typeof dataJson.user_override_enabled === "boolean") _userOverrideEnabled = dataJson.user_override_enabled;
+      if (dataJson.announcements) showAnnouncements(dataJson.announcements);
+      // Prune stale user overrides for expired alerts
+      const liveNids = new Set((all || []).map(a => normalizeAlertId(a.id)));
+      let pruned = false;
+      for (const k of Object.keys(_userTagOverrides)) {
+        if (!liveNids.has(k)) { delete _userTagOverrides[k]; pruned = true; }
+      }
+      if (pruned) saveTagOverrides();
+
+      activeAlertsCache = [...all];
+
+      // Prune bounds cache for alerts that are no longer active.
+      const liveIds = new Set(all.map(a=>String(a?.id||"")).filter(Boolean));
+      for (const key of alertBoundsCache.keys()) { if (!liveIds.has(key)) alertBoundsCache.delete(key); }
+
+      const allIds = all.map(a=>a?.id).filter(Boolean).sort();
+      const sig    = allIds.join("|");
+      const dataChanged = (sig !== lastAllIdsSignature);
+      lastAllIdsSignature = sig;
+
+      const shownAll = sortAlerts(filterSelected(all));
+      currentShownAlerts = [...shownAll];
+
+      renderList(shownAll);
+      renderSeverityBar(shownAll);
+
+      if (!shownAll.length && sidebarReturnTimer) {
+        clearTimeout(sidebarReturnTimer); sidebarReturnTimer=null;
+        sidebarSavedScrollTop=null; sidebarNewAlertActive=false; sidebarNewAlertSinceMs=0;
+      }
+
+      const nextSig = buildMapRenderSignature(shownAll);
+      if (nextSig !== lastMapRenderSignature) {
+        rebuildMap(shownAll);
+        lastMapRenderSignature = nextSig;
+        if (settings.rotateEnabled && lastTickerAlert && !isRotationPaused())
+          setRotateVisibilityForAlert(lastTickerAlert);
+      } else {
+        updateLabelVisibility();
+        applyPolygonFlash();
+      }
+
+      if (dataChanged) handleNewAlertsExpiringExpired(shownAll);
+
+      // Ensure continuous flash is active for all qualifying alerts
+      for (const a of shownAll) {
+        if (a.id && shouldFlashContinuously(a) && !continuousFlash.has(a.id)) {
+          startContinuousFlash(a.id);
+        }
+      }
+
+      tickerAlerts = buildCycleList(shownAll, settings.cycleMode);
+
+      // Update status bar
+      document.getElementById("totalCount").textContent = String(all.length);
+      document.getElementById("nwsTotal").textContent   = String(st.nws_total_features??0);
+      document.getElementById("actualCount").textContent= String(st.nws_actual_count??0);
+      document.getElementById("matchCount").textContent = String(shownAll.length);
+      document.getElementById("httpCode").textContent   = String(st.last_http_status??"—");
+      document.getElementById("pillCount").textContent  = `Shown: ${shownAll.length}`;
+      document.title = shownAll.length > 0 ? `(${shownAll.length}) NWS ALERTS` : "NWS ALERTS";
+      document.getElementById("hintText" ) && (document.getElementById("hintText").textContent =
+        `NWS ${st.nws_total_features??0} • Actual ${st.nws_actual_count??0} • Filter ${all.length} • Selected ${shownAll.length}${st.last_error?` • ${st.last_error}`:""}`);
+
+      updateConnectionStatus(st.ok, st.last_error);
+      setPills();
+      sortModeSel.value = settings.sortMode||"severity_desc";
+      applyTickerMarquee();
+      updateExpiryTimers();
+
+    } catch(err) {
+      updateConnectionStatus(false, err.message);
+      console.error("Refresh error:", err);
+    }
+  }
+
+  const sortModeSel = document.getElementById("sortMode");
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  (async function init() {
+    applyTickerSpeed();
+    applyFlashSpeed();
+    setPills();
+    syncSettingsUI();
+    await loadAllTypes();
+    setPills();
+    syncSettingsUI();
+    await loadAllTypes();
+    await refresh();
+    updateTicker();
+    scheduleNextTickerTick();
+    setInterval(refresh, REFRESH_MS);
+  })();
+
+});
+</script>
+</body>
+</html>

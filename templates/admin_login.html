@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Login — NWS Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Barlow',system-ui,sans-serif;
+  background:#04060d;
+  color:#dde4ff;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;
+  position:relative;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(38,50,90,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(38,50,90,0.07) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;
+}
+.card{
+  position:relative;z-index:1;
+  width:100%;max-width:400px;
+  background:rgba(8,11,22,0.95);
+  border:1px solid rgba(55,75,130,0.9);
+  border-radius:14px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);
+  overflow:hidden;
+  padding:36px 32px;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(41,198,255,0.5),transparent);
+}
+.logo{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;color:#5568a0;
+  margin-bottom:8px;
+}
+h1{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:28px;font-weight:900;letter-spacing:2px;
+  text-transform:uppercase;color:#fff;
+  margin-bottom:28px;
+}
+.field{margin-bottom:16px;}
+label{
+  display:block;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:800;letter-spacing:1.5px;
+  text-transform:uppercase;color:#5568a0;
+  margin-bottom:6px;
+}
+input{
+  width:100%;
+  border:1px solid rgba(55,75,130,0.7);
+  background:rgba(0,0,0,0.35);
+  color:#dde4ff;
+  padding:10px 14px;
+  border-radius:8px;
+  font-size:14px;
+  font-family:'Barlow',sans-serif;
+  outline:none;
+  transition:border-color 150ms;
+}
+input:focus{border-color:rgba(41,198,255,0.6);}
+.error{
+  background:rgba(255,41,41,0.1);
+  border:1px solid rgba(255,41,41,0.4);
+  border-radius:8px;
+  padding:10px 14px;
+  font-size:13px;
+  color:#ff8080;
+  margin-bottom:16px;
+}
+.btn{
+  width:100%;
+  border:1px solid rgba(55,75,130,0.9);
+  background:linear-gradient(180deg,rgba(41,198,255,0.15),rgba(41,198,255,0.08));
+  color:#29c6ff;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:800;font-size:14px;letter-spacing:1.5px;
+  text-transform:uppercase;
+  padding:12px;border-radius:8px;cursor:pointer;
+  transition:background 150ms,border-color 150ms;
+  margin-top:8px;
+}
+.btn:hover{background:rgba(41,198,255,0.2);border-color:rgba(41,198,255,0.6);}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">NWS Alerts</div>
+  <h1>Admin Login</h1>
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+  <form method="POST">
+    <div class="field">
+      <label>Username</label>
+      <input type="text" name="username" autocomplete="username" autofocus>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" name="password" autocomplete="current-password">
+    </div>
+    <button class="btn" type="submit">Sign In</button>
+  </form>
+</div>
+</body>
+</html>

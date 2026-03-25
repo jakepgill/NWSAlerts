@@ -1,0 +1,2347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NWSALERTS — Severe Weather Command Center</title>
+  <link rel="icon" href="/static/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+
+    :root {
+      --bg:#04060d; --panel:rgba(8,11,22,0.85); --border:rgba(38,50,90,0.7); --border-bright:rgba(55,75,130,0.9);
+      --text:#dde4ff; --text-dim:#8898cc; --text-muted:#5568a0;
+      --tor:#ff2929; --tor-glow:rgba(255,41,41,0.3);
+      --sev:#ff8c00; --sev-glow:rgba(255,140,0,0.3);
+      --fld:#00b8ff; --fld-glow:rgba(0,184,255,0.3);
+      --pds:#e040fb; --pds-glow:rgba(224,64,251,0.3);
+      --emg:#ff1744; --good:#00e676; --accent:#29c6ff; --accent2:#7c6fff;
+      --shadow-sm:0 4px 16px rgba(0,0,0,0.4); --shadow:0 8px 32px rgba(0,0,0,0.55); --shadow-lg:0 16px 48px rgba(0,0,0,0.7);
+      --font-display:'Barlow Condensed',sans-serif; --font-body:'Barlow',sans-serif; --font-mono:'Share Tech Mono',monospace;
+      --radius:12px; --radius-sm:8px;
+    }
+    *,*::before,*::after{box-sizing:border-box;} html,body{height:100%;}
+    body{margin:0;background-color:var(--bg);background-image:radial-gradient(ellipse 1400px 700px at 75% 0%,rgba(15,25,65,0.9) 0%,transparent 65%),radial-gradient(ellipse 800px 600px at 10% 80%,rgba(5,12,35,0.7) 0%,transparent 60%);color:var(--text);font-family:var(--font-body);padding-bottom:64px;background-attachment:fixed;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(38,50,90,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(38,50,90,0.07) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+    .page{position:relative;z-index:1;min-height:100%;display:flex;flex-direction:column;}
+
+    /* TOPBAR */
+    .topbar{display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid var(--border-bright);background:linear-gradient(135deg,rgba(12,6,24,0.98) 0%,rgba(8,10,26,0.98) 40%,rgba(5,12,30,0.98) 100%);min-height:72px;box-shadow:0 2px 24px rgba(0,0,0,0.6);}
+    .topbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(41,198,255,0.5) 30%,rgba(124,111,255,0.5) 60%,transparent 100%);}
+    .headerLeft{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+    .headerLogo{height:44px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(41,198,255,0.4));}
+    .titleWrap{flex:1;display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;min-width:0;}
+    .title{font-family:var(--font-display);font-size:22px;font-weight:900;letter-spacing:3px;line-height:1;text-transform:uppercase;background:linear-gradient(90deg,#a0cfff 0%,#dde4ff 50%,#a0cfff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .subtitle{color:var(--text-dim);font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex-shrink:0;}
+    .btn{border:1px solid var(--border-bright);background:rgba(38,50,90,0.25);color:var(--text);font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;user-select:none;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background 150ms,border-color 150ms,box-shadow 150ms;}
+    .btn:hover{background:rgba(41,198,255,0.12);border-color:rgba(41,198,255,0.5);box-shadow:0 0 12px rgba(41,198,255,0.15);}
+    .toggleBox{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border-bright);background:rgba(38,50,90,0.25);color:var(--text);font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;transition:background 150ms;}
+    .toggleBox:hover{background:rgba(41,198,255,0.08);}
+    .toggleBox input[type="checkbox"]{transform:scale(1.2);cursor:pointer;accent-color:var(--accent);}
+    .proxyStatus{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);}
+    .proxyStatus.ok{color:#80ffcc;border-color:rgba(0,230,118,0.35);background:rgba(0,230,118,0.08);}
+    .proxyStatus.fail{color:var(--sev);border-color:rgba(255,140,0,0.35);background:rgba(255,140,0,0.06);}
+    .proxyDot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+    .proxyDot.blink{animation:blink 1.4s ease-in-out infinite;}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+    .banner{display:none;padding:9px 16px;background:linear-gradient(90deg,rgba(255,140,0,0.15),rgba(255,140,0,0.08));border-bottom:1px solid rgba(255,140,0,0.35);color:var(--sev);font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;}
+
+    /* LAYOUT */
+    .container{width:100%;max-width:1680px;margin:0 auto;padding:16px;display:grid;gap:16px;}
+    .grid10{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;}
+    .grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;}
+    .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+    .grid3{display:grid;grid-template-columns:1.2fr 1.2fr 1fr;gap:14px;}
+    .grid3even{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .gridForecast{display:grid;grid-template-columns:1.2fr 1.1fr 0.9fr;gap:14px;}
+    .gridCurrent{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;}
+
+    /* STAT CARD COLORS */
+    .grid10 .panel:nth-child(1){--ca:var(--tor);--cg:var(--tor-glow);}
+    .grid10 .panel:nth-child(2){--ca:var(--sev);--cg:var(--sev-glow);}
+    .grid10 .panel:nth-child(3){--ca:var(--fld);--cg:var(--fld-glow);}
+    .grid10 .panel:nth-child(4){--ca:var(--tor);--cg:var(--tor-glow);}
+    .grid10 .panel:nth-child(5){--ca:var(--sev);--cg:var(--sev-glow);}
+    .grid10 .panel:nth-child(6){--ca:var(--fld);--cg:var(--fld-glow);}
+    .grid10 .panel:nth-child(7){--ca:var(--pds);--cg:var(--pds-glow);}
+    .grid10 .panel:nth-child(8){--ca:var(--tor);--cg:var(--tor-glow);}
+    .grid10 .panel:nth-child(9){--ca:var(--emg);--cg:rgba(255,23,68,0.4);}
+    .grid10 .panel:nth-child(10){--ca:var(--accent);--cg:rgba(41,198,255,0.25);}
+    .grid10 .panel{border-top:2px solid var(--ca,var(--border-bright));box-shadow:0 0 0 0 var(--cg,transparent),var(--shadow);transition:box-shadow 200ms;}
+    .grid10 .panel:hover{box-shadow:0 0 20px var(--cg,transparent),var(--shadow-lg);}
+    .grid10 .statValue{color:var(--ca,var(--text));}
+
+    /* PANEL */
+    .panel{border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow-sm);overflow:hidden;backdrop-filter:blur(8px);}
+    .panelHeader{padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(5,8,20,0.6);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;position:relative;}
+    .panelHeader::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:0 2px 2px 0;}
+    .panelTitle{font-family:var(--font-display);font-size:12px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--text);padding-left:8px;}
+    .panelHint{font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);}
+    .panelRight{display:flex;align-items:center;gap:8px;}
+    .panelBody{padding:14px;}
+
+    /* STAT CARD */
+    .statCard{padding:14px 12px;min-height:90px;display:flex;flex-direction:column;justify-content:center;gap:6px;}
+    .statLabel{color:var(--text-dim);font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;}
+    .statValue{font-family:var(--font-mono);font-size:36px;font-weight:400;line-height:1;letter-spacing:-1px;color:var(--text);}
+    .statSub{color:var(--text-dim);font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;}
+
+    /* CARDS & LISTS */
+    .list{display:grid;gap:8px;}
+    .card{border:1px solid var(--border);border-left:3px solid var(--border-bright);border-radius:var(--radius-sm);background:rgba(10,14,30,0.5);padding:11px 12px;cursor:pointer;transition:background 120ms,border-color 120ms,transform 120ms,box-shadow 120ms;}
+    .card:hover{background:rgba(20,28,60,0.7);border-left-color:var(--accent);transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,0.35);}
+    .card.staticCard{cursor:default;border-left-color:var(--border-bright);}
+    .card.staticCard:hover{transform:none;box-shadow:none;border-left-color:var(--border-bright);}
+    .cardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+    .cardRank{font-family:var(--font-display);color:var(--text-muted);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+    .cardTitle{font-family:var(--font-display);font-size:15px;font-weight:800;color:#fff;line-height:1.2;}
+    .cardMeta{margin-top:6px;color:var(--text-dim);font-size:12px;line-height:1.4;}
+    .cardHeadline{margin-top:7px;color:var(--text);font-size:12px;font-weight:600;line-height:1.4;}
+
+    /* BADGES */
+    .badges{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+    .badge{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);padding:2px 7px;border-radius:4px;font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text);white-space:nowrap;}
+    .badgeHot{background:rgba(255,41,41,0.12);border-color:rgba(255,41,41,0.45);color:#ff8080;}
+    .badgeCool{background:rgba(41,198,255,0.10);border-color:rgba(41,198,255,0.4);color:#80dfff;}
+    .badgeGood{background:rgba(0,230,118,0.10);border-color:rgba(0,230,118,0.35);color:#80ffbf;}
+    .badgeWarn{background:rgba(255,140,0,0.12);border-color:rgba(255,140,0,0.45);color:#ffb84d;}
+    .badgePurple{background:rgba(224,64,251,0.12);border-color:rgba(224,64,251,0.45);color:#e680ff;}
+    .sevExtreme{color:#ff80a0!important;border-color:rgba(255,23,68,0.4)!important;background:rgba(255,23,68,0.1)!important;}
+    .sevSevere{color:#ffb080!important;border-color:rgba(255,140,0,0.4)!important;background:rgba(255,140,0,0.1)!important;}
+    .sevModerate{color:#ffe080!important;border-color:rgba(255,220,0,0.35)!important;background:rgba(255,220,0,0.08)!important;}
+    .sevMinor{color:#80e8ff!important;border-color:rgba(41,198,255,0.35)!important;background:rgba(41,198,255,0.08)!important;}
+    .sevUnknown{color:var(--text-dim);}
+
+    /* MINI GROUP */
+    .splitCol{display:grid;gap:10px;}
+    .miniGroup{border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(5,8,20,0.4);overflow:hidden;}
+    .miniHead{padding:8px 12px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--text-dim);background:rgba(10,14,28,0.6);}
+    .miniBody{padding:10px 12px;display:grid;gap:7px;}
+    .miniItem{border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.025);padding:8px 10px;font-size:12px;color:var(--text);line-height:1.45;}
+    .miniItem strong{font-family:var(--font-display);font-weight:700;font-size:12px;}
+
+    /* BAR CHART */
+    .bars{display:grid;gap:9px;}
+    .barRow{display:grid;grid-template-columns:52px 1fr 36px;align-items:center;gap:8px;}
+    .barLabel{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .barTrack{position:relative;height:10px;border-radius:999px;background:rgba(255,255,255,0.05);overflow:hidden;border:1px solid var(--border);}
+    .barFill{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:999px;background:linear-gradient(90deg,var(--accent) 0%,var(--accent2) 100%);}
+    .barValue{text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text);}
+
+    /* FORECAST CARDS */
+    .forecastCard,.currentCard{border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);padding:12px;}
+    .forecastTitle,.currentTitle{font-family:var(--font-display);font-size:13px;font-weight:800;color:#fff;margin-bottom:6px;}
+    .forecastText,.currentText{font-size:13px;color:var(--text);line-height:1.5;}
+    .forecastMeta,.currentMeta{margin-top:8px;color:var(--text-dim);font-size:11px;line-height:1.4;}
+
+    /* DAY CARD */
+    .dayCard{border:1px solid var(--border);border-radius:var(--radius);background:rgba(8,11,24,0.55);padding:14px;min-height:300px;}
+    .dayTitle{font-family:var(--font-display);font-size:16px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#fff;margin-bottom:10px;}
+    .daySummary{color:var(--text);font-size:12px;line-height:1.45;margin-bottom:10px;}
+    .dayMeta{color:var(--text-dim);font-size:12px;line-height:1.4;display:grid;gap:5px;}
+    .dayMeta strong{font-family:var(--font-display);font-weight:700;font-size:11px;letter-spacing:0.8px;text-transform:uppercase;color:var(--text);}
+
+    /* MISC */
+    .loadingBox{border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);padding:12px;font-family:var(--font-display);color:var(--text-muted);font-size:12px;font-weight:600;letter-spacing:0.5px;}
+    .explainText{margin-top:8px;color:var(--text-dim);font-size:12px;line-height:1.5;}
+    .empty{color:var(--text-muted);font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:0.5px;padding:6px 0;}
+
+    /* DETAILS MODAL */
+    .detailsOverlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;z-index:10000;backdrop-filter:blur(4px);}
+    .detailsOverlay.show{display:block;}
+    .detailsModal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:980px;max-width:calc(100% - 24px);max-height:calc(100% - 24px);background:rgba(5,8,18,0.98);border:1px solid var(--border-bright);border-radius:16px;box-shadow:0 32px 100px rgba(0,0,0,0.9);display:none;z-index:10001;overflow:hidden;}
+    .detailsModal.show{display:flex;flex-direction:column;}
+    .detailsHeader{padding:14px 16px;border-bottom:1px solid var(--border-bright);display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(41,198,255,0.05),rgba(124,111,255,0.05));}
+    .detailsHeader .title{font-family:var(--font-display);font-weight:900;font-size:17px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .detailsBody{padding:14px 16px;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .detailsBlock{border:1px solid var(--border);background:rgba(10,14,28,0.5);border-radius:var(--radius-sm);padding:12px;}
+    .detailsBlock h3{margin:0 0 8px 0;font-family:var(--font-display);font-size:10px;letter-spacing:1.5px;font-weight:800;text-transform:uppercase;color:var(--text-dim);}
+    .detailsText{white-space:pre-wrap;word-break:break-word;line-height:1.5;color:var(--text);font-size:13px;}
+    .detailsFooter{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;background:rgba(5,8,18,0.6);}
+
+    /* ACCORDION */
+    .accordionSection{display:grid;gap:6px;}
+    .accordionToggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border:1px solid var(--border-bright);border-radius:var(--radius);background:rgba(8,12,28,0.9);color:var(--text);font-family:var(--font-display);font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left;transition:background 150ms,border-color 150ms,box-shadow 150ms;}
+    .accordionToggle:hover{background:rgba(41,198,255,0.07);border-color:rgba(41,198,255,0.4);box-shadow:0 0 16px rgba(41,198,255,0.1);}
+    .accordionSub{color:var(--text-muted);font-size:12px;font-weight:400;padding:0 4px 2px;}
+    .accordionContent{display:grid;gap:14px;overflow:hidden;transition:max-height 250ms ease,opacity 250ms ease;opacity:1;max-height:99999px;}
+    .accordionContent.collapsed{max-height:0;opacity:0;gap:0;pointer-events:none;}
+    .accIcon{min-width:24px;text-align:center;font-family:var(--font-mono);font-size:18px;line-height:1;color:var(--accent);}
+
+    /* NOTICE BAR */
+    .swccNoticeBar{position:fixed;left:0;right:0;bottom:0;z-index:12000;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:rgba(6,8,18,0.96);color:var(--text-dim);border-top:1px solid var(--border-bright);box-shadow:0 -8px 32px rgba(0,0,0,0.6);font-size:12px;backdrop-filter:blur(12px);}
+    .swccNoticeBar.hidden{display:none;}
+    .swccNoticeText{flex:1;line-height:1.4;text-align:center;font-family:var(--font-display);font-size:12px;letter-spacing:0.5px;}
+    .swccNoticeText span{font-weight:800;color:var(--sev);}
+    .swccNoticeClose{border:1px solid var(--border-bright);background:rgba(255,255,255,0.05);color:var(--text);font-family:var(--font-display);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:7px 14px;border-radius:var(--radius-sm);cursor:pointer;flex:0 0 auto;}
+    .swccNoticeClose:hover{background:rgba(255,255,255,0.1);}
+
+    /* MAP IMAGE CARD */
+    .mapCard{border:1px solid var(--border);border-radius:var(--radius);background:rgba(6,9,20,0.7);overflow:hidden;display:flex;flex-direction:column;}
+    .mapCardHead{padding:8px 12px;border-bottom:1px solid var(--border);background:rgba(5,8,18,0.7);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;}
+    .mapCardTitle{font-family:var(--font-display);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);}
+    .mapSrcLink{font-family:var(--font-display);font-size:10px;font-weight:600;color:var(--text-muted);text-decoration:none;}
+    .mapSrcLink:hover{color:var(--accent);}
+    .mapImgWrap{position:relative;background:#060910;flex:1;min-height:100px;}
+    .mapImg{width:100%;height:auto;display:block;cursor:zoom-in;transition:opacity 300ms;min-height:80px;object-fit:contain;}
+    .mapImgWrap.loading .mapImg{opacity:0.2;}
+    .mapImgWrap.loading::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(41,198,255,0.08) 50%,transparent 100%);animation:shimmer 1.5s ease infinite;background-size:200% 100%;}
+    @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+    .mapImgWrap.err .mapImg{opacity:0.08;pointer-events:none;}
+    .mapErrOverlay{display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:12px;text-align:center;}
+    .mapImgWrap.err .mapErrOverlay{display:flex;}
+    .mapErrTitle{font-family:var(--font-display);font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--sev);}
+    .mapErrSub{font-family:var(--font-display);font-size:10px;font-weight:600;color:var(--text-muted);line-height:1.4;}
+    .mapErrRetry{border:1px solid var(--border-bright);background:rgba(255,255,255,0.06);color:var(--text);font-family:var(--font-display);font-weight:700;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;border-radius:var(--radius-sm);cursor:pointer;}
+    .mapCardFoot{padding:5px 10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .mapTs{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
+    .mapBadge{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:2px 6px;border-radius:3px;border:1px solid var(--border);}
+    .mapBadge.live{color:#80ffcc;border-color:rgba(0,230,118,0.4);background:rgba(0,230,118,0.08);}
+    .mapBadge.stale{color:var(--sev);border-color:rgba(255,140,0,0.35);}
+
+    /* MAP GRIDS */
+    .mapGrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+    .mapGrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+    .mapGrid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .mapGrid5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+
+    /* NATIONAL SITUATION */
+    .nationRow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px;}
+    .nationStat{border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);padding:12px 10px;display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;}
+    .nationStat.d{border-color:rgba(255,41,41,0.4);background:rgba(255,41,41,0.07);}
+    .nationStat.w{border-color:rgba(255,140,0,0.4);background:rgba(255,140,0,0.07);}
+    .nationStat.i{border-color:rgba(41,198,255,0.35);background:rgba(41,198,255,0.06);}
+    .nationStat.p{border-color:rgba(224,64,251,0.35);background:rgba(224,64,251,0.06);}
+    .nationVal{font-family:var(--font-mono);font-size:28px;line-height:1;}
+    .nationVal.d{color:var(--tor);} .nationVal.w{color:var(--sev);} .nationVal.i{color:var(--fld);} .nationVal.p{color:var(--pds);}
+    .nationLabel{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-dim);}
+    .nationNarr{border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);padding:14px;font-size:13px;color:var(--text);line-height:1.6;}
+    .nationNarr strong{font-family:var(--font-display);font-weight:800;color:#fff;}
+    .nationMeta{margin-top:8px;font-size:11px;color:var(--text-dim);font-family:var(--font-display);letter-spacing:0.5px;}
+
+    /* STORM REPORT CARDS */
+    .stormReportRow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+    .stormReportCard{border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);padding:12px;display:flex;flex-direction:column;gap:6px;}
+    .stormReportCard.tor{border-color:rgba(255,41,41,0.4);background:rgba(255,41,41,0.07);}
+    .stormReportCard.wind{border-color:rgba(255,140,0,0.35);background:rgba(255,140,0,0.06);}
+    .stormReportCard.hail{border-color:rgba(160,230,100,0.35);background:rgba(160,230,100,0.06);}
+    .stormReportCount{font-family:var(--font-mono);font-size:32px;line-height:1;}
+    .stormReportCount.tor{color:var(--tor);} .stormReportCount.wind{color:var(--sev);} .stormReportCount.hail{color:#a0e664;}
+    .stormReportLabel{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);}
+    .stormReportSub{font-size:11px;color:var(--text-dim);line-height:1.35;}
+
+    /* SPC MD CARDS */
+    .mdCard{border:1px solid rgba(255,140,0,0.35);border-radius:var(--radius-sm);background:rgba(255,140,0,0.06);padding:10px 12px;}
+    .mdCardHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+    .mdCardTitle{font-family:var(--font-display);font-size:12px;font-weight:800;color:var(--sev);letter-spacing:0.5px;}
+    .mdCardTs{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
+    .mdCardText{font-size:11px;color:var(--text-dim);line-height:1.4;}
+
+    /* THREAT MATRIX */
+    .threatMatrixWrap{overflow-x:auto;}
+    .threatMatrix{width:100%;border-collapse:collapse;font-size:12px;}
+    .threatMatrix th{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);padding:10px 14px;border-bottom:1px solid var(--border-bright);text-align:left;background:rgba(5,8,18,0.5);}
+    .threatMatrix td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    .threatMatrix tr:last-child td{border-bottom:none;}
+    .threatMatrix tr:hover td{background:rgba(255,255,255,0.02);}
+    .matrixRegion{font-family:var(--font-display);font-size:13px;font-weight:800;color:#fff;}
+    .matrixStates{font-family:var(--font-display);font-size:10px;font-weight:600;color:var(--text-muted);margin-top:2px;}
+    .mci{display:flex;align-items:center;gap:8px;}
+    .mbt{flex:1;height:8px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;min-width:50px;}
+    .mbf{height:100%;border-radius:999px;}
+    .mbf.tor{background:linear-gradient(90deg,#ff2929,#ff6060);}
+    .mbf.sev{background:linear-gradient(90deg,#ff6600,#ffaa33);}
+    .mbf.fld{background:linear-gradient(90deg,#0088cc,#00b8ff);}
+    .mbf.win{background:linear-gradient(90deg,#8899dd,#aabbff);}
+    .mbf.wnd{background:linear-gradient(90deg,#44cc88,#88ffcc);}
+    .mbf.vis{background:linear-gradient(90deg,#aa88cc,#cc99ff);}
+    .msc{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);min-width:24px;text-align:right;}
+    .msig{font-family:var(--font-display);font-size:10px;font-weight:700;color:var(--text-muted);}
+    .msig.on{color:#80ffcc;}
+
+    /* REGIONAL DEEP DIVE */
+    .regionDeepCard{border:1px solid var(--border);border-radius:var(--radius);background:rgba(8,11,24,0.55);overflow:hidden;}
+    .regionDeepHead{padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(5,8,18,0.6);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .regionDeepName{font-family:var(--font-display);font-size:14px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:#fff;}
+    .regionDeepBody{padding:10px 12px;}
+    .regionAggRow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;}
+    .regionAggItem{text-align:center;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.03);padding:6px 4px;}
+    .regionAggVal{font-family:var(--font-mono);font-size:13px;color:var(--text);line-height:1;margin-bottom:2px;}
+    .regionAggLabel{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);}
+    .cityTable{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;}
+    .cityTable th{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);padding:4px 5px;border-bottom:1px solid var(--border);text-align:left;}
+    .cityTable td{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);padding:4px 5px;border-bottom:1px solid rgba(38,50,90,0.3);white-space:nowrap;}
+    .cityTable tr:last-child td{border-bottom:none;}
+    .cityName{font-family:var(--font-display)!important;font-size:11px!important;font-weight:700!important;color:var(--text)!important;max-width:100px;overflow:hidden;text-overflow:ellipsis;}
+    .regionFcst{font-size:11px;color:var(--text-dim);line-height:1.4;border-top:1px solid var(--border);padding-top:8px;}
+    .regionFcst strong{font-family:var(--font-display);font-weight:700;color:var(--text);font-size:11px;}
+
+    /* FORECAST TIMELINE */
+    .fcstTimelineWrap{overflow-x:auto;}
+    .fcstTimeline{display:grid;grid-template-columns:repeat(8,minmax(140px,1fr));gap:8px;min-width:900px;}
+    .fcstPeriodCard{border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);padding:10px 12px;}
+    .fcstPeriodName{font-family:var(--font-display);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;}
+    .fcstPeriodShort{font-family:var(--font-display);font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;line-height:1.2;}
+    .fcstPeriodTemp{font-family:var(--font-mono);font-size:20px;color:var(--text);margin-bottom:4px;}
+    .fcstPeriodPop{font-size:11px;color:var(--text-dim);font-family:var(--font-display);font-weight:600;}
+
+    /* LIGHTBOX */
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.93);display:none;z-index:20000;align-items:center;justify-content:center;cursor:zoom-out;flex-direction:column;gap:12px;}
+    .lightbox.show{display:flex;}
+    .lightboxImg{max-width:min(1200px,90vw);max-height:80vh;object-fit:contain;border:1px solid var(--border-bright);border-radius:8px;box-shadow:0 24px 80px rgba(0,0,0,0.9);}
+    .lightboxCaption{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);text-align:center;}
+    .lightboxClose{position:fixed;top:20px;right:24px;background:rgba(255,255,255,0.1);border:1px solid var(--border-bright);color:var(--text);font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px 16px;border-radius:var(--radius-sm);cursor:pointer;}
+
+    /* RESPONSIVE */
+    @media(max-width:1500px){.grid10{grid-template-columns:repeat(4,minmax(0,1fr));}.grid5{grid-template-columns:repeat(3,minmax(0,1fr));}.gridCurrent{grid-template-columns:repeat(3,minmax(0,1fr));}.nationRow{grid-template-columns:repeat(3,1fr);}.mapGrid4{grid-template-columns:repeat(2,1fr);}.mapGrid5{grid-template-columns:repeat(3,1fr);}.stormReportRow{grid-template-columns:repeat(3,1fr);}}
+    @media(max-width:1200px){.grid3,.gridForecast,.grid3even{grid-template-columns:1fr;}.grid10{grid-template-columns:repeat(3,minmax(0,1fr));}.grid5,.grid4{grid-template-columns:repeat(2,minmax(0,1fr));}.gridCurrent{grid-template-columns:repeat(2,minmax(0,1fr));}.mapGrid3,.mapGrid4{grid-template-columns:repeat(2,1fr);}.mapGrid5{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:820px){body{padding-bottom:90px;}.topbar{min-height:auto;flex-wrap:wrap;justify-content:center;padding:12px 16px;}.titleWrap{order:2;width:100%;}.headerLeft{order:1;width:100%;justify-content:center;}.actions{order:3;width:100%;justify-content:center;}.headerLogo{height:40px;}.title{font-size:18px;letter-spacing:2px;}.container{padding:10px;}.grid10{grid-template-columns:repeat(2,minmax(0,1fr));}.grid5,.grid4,.gridCurrent{grid-template-columns:1fr;}.detailsBody{grid-template-columns:1fr;}.cardTop{flex-direction:column;align-items:flex-start;}.barRow{grid-template-columns:1fr;}.barValue{text-align:left;}.nationRow,.stormReportRow{grid-template-columns:repeat(2,1fr);}.mapGrid2,.mapGrid3,.mapGrid4,.mapGrid5{grid-template-columns:1fr;}.swccNoticeBar{flex-direction:column;align-items:stretch;gap:8px;}.swccNoticeText{font-size:12px;}.swccNoticeClose{width:100%;text-align:center;}}
+  
+
+    /* TIMESTAMPS */
+    .sectionTs{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+    .sectionTs::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);flex-shrink:0;}
+    .sectionTs.stale::before{background:var(--sev);}
+    .sectionTs.loading::before{background:var(--text-muted);animation:blink 1.4s ease-in-out infinite;}
+
+    /* DATA CARDS */
+    .dataCardGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .dataCard{border:1px solid var(--border);border-radius:var(--radius);background:rgba(8,11,24,0.55);overflow:hidden;display:flex;flex-direction:column;}
+    .dataCard.accent-flood{border-left:3px solid var(--fld);}
+    .dataCard.accent-winter{border-left:3px solid #8899dd;}
+    .dataCard.accent-fire{border-left:3px solid #ff6600;}
+    .dataCard.accent-tropical{border-left:3px solid var(--pds);}
+    .dataCard.accent-severe{border-left:3px solid var(--sev);}
+    .dataCardHead{padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(5,8,18,0.5);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+    .dataCardTitle{font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:1px;color:#fff;}
+    .dataCardBadge{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;padding:3px 8px;border-radius:4px;border:1px solid var(--border);}
+    .dataCardBody{padding:12px 14px;flex:1;font-size:12px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+    .dataCardMeta{padding:8px 14px;border-top:1px solid var(--border);font-family:var(--font-display);font-size:10px;color:var(--text-muted);letter-spacing:0.5px;}
+    .dataCardStat{display:flex;flex-direction:column;gap:4px;padding:10px 14px;border-right:1px solid var(--border);}
+    .dataCardStatVal{font-family:var(--font-mono);font-size:28px;line-height:1;}
+    .dataCardStatLabel{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);}
+    .dataCardStatsRow{display:flex;border-bottom:1px solid var(--border);}
+    .dataCardStatsRow .dataCardStat:last-child{border-right:none;}
+    /* TICKER */
+    .alertTicker{background:rgba(255,41,41,0.08);border:1px solid rgba(255,41,41,0.3);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:12px;overflow:hidden;}
+    .tickerLabel{font-family:var(--font-display);font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--tor);white-space:nowrap;flex-shrink:0;}
+    .tickerText{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    @media(max-width:900px){.dataCardGrid{grid-template-columns:1fr;}}
+
+  </style>
+</head>
+<body>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="imgLightbox">
+  <button class="lightboxClose" id="lightboxClose">✕ Close</button>
+  <img class="lightboxImg" id="lightboxImg" src="" alt="" />
+  <div class="lightboxCaption" id="lightboxCaption"></div>
+</div>
+
+<!-- ALERT DETAILS MODAL -->
+<div class="detailsOverlay" id="detailsOverlay"></div>
+<div class="detailsModal" id="detailsModal">
+  <div class="detailsHeader">
+    <div class="title"><span id="dEvent">—</span><span class="badge sevExtreme" id="dSeverity">—</span><span class="badge" id="dUrgency">—</span><span class="badge" id="dCertainty">—</span></div>
+    <button class="btn" id="btnCloseDetails" type="button">✕ Close</button>
+  </div>
+  <div class="detailsBody">
+    <div class="detailsBlock"><h3>Affected Area</h3><div class="detailsText" id="dArea">—</div></div>
+    <div class="detailsBlock"><h3>Timing</h3><div class="detailsText" id="dTiming">—</div></div>
+    <div class="detailsBlock" style="grid-column:span 2"><h3>Headline</h3><div class="detailsText" id="dHeadline">—</div></div>
+    <div class="detailsBlock" style="grid-column:span 2"><h3>Description</h3><div class="detailsText" id="dDescription">—</div></div>
+    <div class="detailsBlock" style="grid-column:span 2"><h3>Instruction</h3><div class="detailsText" id="dInstruction">—</div></div>
+  </div>
+  <div class="detailsFooter"><div class="badge" id="dSender">—</div><div class="badge" id="dId">—</div></div>
+</div>
+
+<div class="page">
+  <div id="swccLoadingBanner" class="banner">⬡ Loading command-center data…</div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="headerLeft"><img src="/static/logo.png" alt="Logo" class="headerLogo" /></div>
+    <div class="titleWrap">
+      <div class="title">Severe Weather Command Center</div>
+      <div class="subtitle">Live Operations · National Outlook · Regional Intelligence</div>
+    </div>
+    <div class="actions">
+      <div class="proxyStatus fail" id="proxyStatusEl"><div class="proxyDot"></div><span id="proxyStatusText">Proxy: Checking…</span></div>
+      <a class="btn" href="/">← Dashboard</a>
+      <label class="toggleBox" for="toggleNoAlaska"><input type="checkbox" id="toggleNoAlaska" /><span id="noAlaskaText">Hide Alaska: OFF</span></label>
+      <button class="btn" id="btnRefresh" type="button">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ══════════════════════════════════════════
+         STAT COUNTERS
+    ══════════════════════════════════════════ -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:rgba(41,198,255,0.06);border:1px solid rgba(41,198,255,0.2);border-radius:var(--radius-sm);">
+      <div style="font-family:var(--font-display);font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);">⬡ Live Active Alerts</div>
+      <div style="font-family:var(--font-display);font-size:11px;color:var(--text-dim);">Counters reflect warnings &amp; watches <strong style="color:#fff;">active right now</strong> — updated every 2 min from NWS · <span style="color:var(--text-muted);">SPC Outlooks below show <strong style="color:#fff;">forecast risk</strong> for upcoming hours/days — separate from active alerts</span></div>
+    </div>
+    <div class="grid10">
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Tornado Warnings</div><div class="statValue" id="countTorWarn">—</div><div class="statSub">Active</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Severe T-Storm Warnings</div><div class="statValue" id="countStWarn">—</div><div class="statSub">Active</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Flash Flood Warnings</div><div class="statValue" id="countFfWarn">—</div><div class="statSub">Active</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Tornado Watches</div><div class="statValue" id="countTorWatch">—</div><div class="statSub">Active</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Severe T-Storm Watches</div><div class="statValue" id="countStWatch">—</div><div class="statSub">Active</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Flash Flood Watches</div><div class="statValue" id="countFfWatch">—</div><div class="statSub">Active</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">PDS Alerts</div><div class="statValue" id="countPds">—</div><div class="statSub">Tagged</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Confirmed Tornado</div><div class="statValue" id="countConfirmed">—</div><div class="statSub">Tagged</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Tornado Emergencies</div><div class="statValue" id="countEmergency">—</div><div class="statSub">Tagged</div></div></div></div>
+      <div class="panel"><div class="panelBody"><div class="statCard"><div class="statLabel">Tornado Possible</div><div class="statValue" id="countPossibleTor">—</div><div class="statSub" id="swccUpdated">Loading…</div></div></div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         LIVE OPERATIONS
+    ══════════════════════════════════════════ -->
+    <div class="accordionSection">
+      <button class="accordionToggle" type="button" data-acc-target="opsSection"><span>Live Operations</span><span class="sectionTs loading" id="tsLiveOps" style="font-size:10px;margin-left:8px;">loading…</span><span class="accIcon" style="margin-left:auto;">+</span></button>
+      <div class="accordionSub">Active alert desks · priority feeds · state-level breakdowns · command log</div>
+      <div class="accordionContent collapsed" id="opsSection">
+        <div class="grid4">
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Issuance Rate</div><div class="panelHint">Recent alert issuance</div></div><div class="panelBody"><div class="list" id="issuanceRateList"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Tornado by State</div></div><div class="panelBody"><div class="bars" id="tornadoStateBars"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Severe by State</div></div><div class="panelBody"><div class="bars" id="severeStateBars"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Flood by State</div></div><div class="panelBody"><div class="bars" id="floodStateBars"></div></div></div>
+        </div>
+        <div class="grid3">
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Highest Priority</div><div class="panelHint">Top 15 by priority score</div></div><div class="panelBody"><div class="list" id="priorityList"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Newest Severe</div><div class="panelHint">Top 15 by issued time</div></div><div class="panelBody"><div class="list" id="newestList"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Updated / Expiring</div></div><div class="panelBody"><div class="splitCol"><div class="miniGroup"><div class="miniHead">Most Recently Updated</div><div class="miniBody" id="updatedList"></div></div><div class="miniGroup"><div class="miniHead">Expiring Soonest</div><div class="miniBody" id="expiringList"></div></div></div></div></div>
+        </div>
+        <div class="grid3">
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Tornado Desk</div></div><div class="panelBody"><div class="list" id="tornadoDesk"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Severe T-Storm Desk</div></div><div class="panelBody"><div class="list" id="severeDesk"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Flood Desk</div></div><div class="panelBody"><div class="list" id="floodDesk"></div></div></div>
+        </div>
+        <div class="grid3even">
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Plains Desk</div><div class="panelHint">TX · OK · KS · NE · SD · ND</div></div><div class="panelBody"><div class="list" id="plainsDesk"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">South Desk</div><div class="panelHint">AR · LA · MS · AL · GA · FL · TN · KY · SC · NC</div></div><div class="panelBody"><div class="list" id="southDesk"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Midwest Desk</div><div class="panelHint">MN · IA · MO · WI · IL · IN · MI · OH</div></div><div class="panelBody"><div class="list" id="midwestDesk"></div></div></div>
+        </div>
+        <div class="grid4">
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Northeast Desk</div><div class="panelHint">PA · NY · NJ · DE · MD · CT · MA · VT · NH · ME · WV · VA</div></div><div class="panelBody"><div class="list" id="northeastDesk"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">West Desk</div><div class="panelHint">CA · NV · OR · WA · ID · UT · AZ · NM · CO · WY · MT</div></div><div class="panelBody"><div class="list" id="westDesk"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Tagged Alerts</div><div class="panelHint">Emergency · PDS · Confirmed · Tornado Possible</div></div><div class="panelBody"><div class="list" id="taggedList"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Top Affected States</div></div><div class="panelBody"><div class="bars" id="stateBars"></div></div></div>
+        </div>
+        <div class="panel"><div class="panelHeader"><div class="panelTitle">Command Log</div><div class="panelHint">High-priority · updated · expiring alerts</div></div><div class="panelBody"><div class="list" id="commandLog"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         NATIONAL OVERVIEW
+    ══════════════════════════════════════════ -->
+    <div class="accordionSection">
+      <button class="accordionToggle" type="button" data-acc-target="nationSection"><span>National Overview</span><span class="sectionTs loading" id="tsNational" style="font-size:10px;margin-left:8px;">loading…</span><span class="accIcon" style="margin-left:auto;">+</span></button>
+      <div class="accordionSub">National situation · SPC storm reports today · active mesoscale discussions · 2 confirmed map images</div>
+      <div class="accordionContent collapsed" id="nationSection">
+
+        <!-- National Situation Data Card -->
+        <div class="panel">
+          <div class="panelHeader"><div class="panelTitle">National Situation</div><div class="panelRight"><span class="mapTs" id="situationTs">—</span></div></div>
+          <div class="panelBody" id="nationSitBody"><div class="loadingBox">Loading…</div></div>
+        </div>
+
+        <!-- SPC Storm Reports (CSV) -->
+        <div class="panel">
+          <div class="panelHeader">
+            <div class="panelTitle">SPC Today's Storm Reports</div>
+            <div class="panelHint">Observed tornado · wind · hail reports for today</div>
+            <div class="panelRight"><span class="mapTs" id="stormReportTs">—</span><a class="mapSrcLink" href="https://www.spc.noaa.gov/climo/reports/today.html" target="_blank" rel="noopener">spc.noaa.gov ↗</a></div>
+          </div>
+          <div class="panelBody" id="stormReportBody"><div class="loadingBox">Loading…</div></div>
+        </div>
+
+        <!-- SPC Mesoscale Discussions (RSS) -->
+        <div class="panel">
+          <div class="panelHeader">
+            <div class="panelTitle">SPC Mesoscale Discussions</div>
+            <div class="panelHint">Active MDs — issued when severe weather is imminent or ongoing</div>
+            <div class="panelRight"><span class="mapTs" id="mdTs">—</span><a class="mapSrcLink" href="https://www.spc.noaa.gov/products/md/" target="_blank" rel="noopener">spc.noaa.gov ↗</a></div>
+          </div>
+          <div class="panelBody"><div class="list" id="mdList"><div class="loadingBox">Loading…</div></div></div>
+        </div>
+
+        <!-- 2 Confirmed Images -->
+        <div class="panel">
+          <div class="panelHeader">
+            <div class="panelTitle">National Maps</div>
+            <div class="panelHint">NWS active warnings · WPC current surface analysis — the only 2 map images used (both confirmed stable)</div>
+          </div>
+          <div class="panelBody">
+            <div class="mapGrid2">
+              <div class="mapCard">
+                <div class="mapCardHead"><div class="mapCardTitle">NWS Active Warnings</div><a class="mapSrcLink" href="https://forecast.weather.gov/wwamap/wwatxtget.php?cwa=US&wwa=all" target="_blank" rel="noopener">forecast.weather.gov ↗</a></div>
+                <div class="mapImgWrap loading" id="wrap_mapWwa">
+                  <img class="mapImg" id="mapWwa" alt="NWS Active Warnings Map" data-caption="NWS National Active Warnings, Watches and Advisories" data-src="https://forecast.weather.gov/wwamap/png/US.png" />
+                  <div class="mapErrOverlay"><div class="mapErrTitle">Unavailable</div><div class="mapErrSub">Image temporarily unavailable</div><button class="mapErrRetry" data-imgid="mapWwa">↻ Retry</button></div>
+                </div>
+                <div class="mapCardFoot"><span class="mapTs" id="ts_mapWwa">NWS · Updates continuously</span></div>
+              </div>
+              <div class="mapCard">
+                <div class="mapCardHead"><div class="mapCardTitle">WPC Surface Analysis</div><a class="mapSrcLink" href="https://www.wpc.ncep.noaa.gov/html/sfc2.shtml" target="_blank" rel="noopener">wpc.ncep.noaa.gov ↗</a></div>
+                <div class="mapImgWrap loading" id="wrap_mapSfc">
+                  <img class="mapImg" id="mapSfc" alt="WPC Current Surface Analysis" data-caption="WPC Current Surface Analysis — fronts, pressure, precipitation" data-src="https://www.wpc.ncep.noaa.gov/noaa/noaad1.gif" />
+                  <div class="mapErrOverlay"><div class="mapErrTitle">Unavailable</div><div class="mapErrSub">Image temporarily unavailable</div><button class="mapErrRetry" data-imgid="mapSfc">↻ Retry</button></div>
+                </div>
+                <div class="mapCardFoot"><span class="mapTs" id="ts_mapSfc">WPC · Updated every 3 hours</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SPC CONVECTIVE OUTLOOKS — DATA CARDS
+    ══════════════════════════════════════════ -->
+    <div class="accordionSection">
+      <button class="accordionToggle" type="button" data-acc-target="spcSection"><span>SPC Convective Outlooks</span><span class="sectionTs loading" id="tsSpc" style="font-size:10px;margin-left:8px;">loading…</span><span class="accIcon" style="margin-left:auto;">+</span></button>
+      <div class="accordionSub">FORECAST — not active alerts · Day 1 · Day 2 · Day 3 categorical risk + tornado / wind / hail probabilities from SPC · separate from the live warning counters above</div>
+      <div class="accordionContent collapsed" id="spcSection">
+        <div class="panel">
+          <div class="panelHeader">
+            <div class="panelTitle">Day 1 Convective Outlook</div>
+            <div class="panelRight"><span class="mapBadge" id="spcD1Badge">Loading…</span><a class="mapSrcLink" href="https://www.spc.noaa.gov/products/outlook/day1otlk.html" target="_blank" rel="noopener">spc.noaa.gov ↗</a></div>
+          </div>
+          <div class="panelBody"><div id="spcD1Card"><div class="loadingBox">Loading Day 1 outlook…</div></div></div>
+        </div>
+        <div class="panel">
+          <div class="panelHeader">
+            <div class="panelTitle">Day 2 Convective Outlook</div>
+            <div class="panelRight"><span class="mapBadge" id="spcD2Badge">Loading…</span><a class="mapSrcLink" href="https://www.spc.noaa.gov/products/outlook/day2otlk.html" target="_blank" rel="noopener">spc.noaa.gov ↗</a></div>
+          </div>
+          <div class="panelBody"><div id="spcD2Card"><div class="loadingBox">Loading Day 2 outlook…</div></div></div>
+        </div>
+        <div class="panel">
+          <div class="panelHeader">
+            <div class="panelTitle">Day 3 Convective Outlook</div>
+            <div class="panelRight"><span class="mapBadge" id="spcD3Badge">Loading…</span><a class="mapSrcLink" href="https://www.spc.noaa.gov/products/outlook/day3otlk.html" target="_blank" rel="noopener">spc.noaa.gov ↗</a></div>
+          </div>
+          <div class="panelBody"><div id="spcD3Card"><div class="loadingBox">Loading Day 3 outlook…</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SPC FIRE WEATHER — DATA CARDS
+    ══════════════════════════════════════════ -->
+    <div class="accordionSection">
+      <button class="accordionToggle" type="button" data-acc-target="fireSection"><span>SPC Fire Weather Outlooks</span><span class="sectionTs loading" id="tsFire" style="font-size:10px;margin-left:8px;">loading…</span><span class="accIcon" style="margin-left:auto;">+</span></button>
+      <div class="accordionSub">Day 1 · Day 2 fire weather outlooks — critical / extreme risk areas, forecaster text from NWS Products API</div>
+      <div class="accordionContent collapsed" id="fireSection">
+        <div class="panel">
+          <div class="panelHeader">
+            <div class="panelTitle">Fire Weather Outlook</div>
+            <div class="panelHint">Risk level + area description + discussion text — from SPC FWD products via NWS API</div>
+            <div class="panelRight"><a class="mapSrcLink" href="https://www.spc.noaa.gov/products/fire_wx/" target="_blank" rel="noopener">spc.noaa.gov ↗</a></div>
+          </div>
+          <div class="panelBody">
+            <div id="fireDataCards"><div class="loadingBox">Loading fire weather outlooks…</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         WPC RAINFALL & HAZARD OUTLOOKS — DATA CARDS
+    ══════════════════════════════════════════ -->
+    <div class="accordionSection">
+      <button class="accordionToggle" type="button" data-acc-target="wpcSection"><span>WPC Rainfall &amp; Hazard Outlooks</span><span class="sectionTs loading" id="tsWpc" style="font-size:10px;margin-left:8px;">loading…</span><span class="accIcon" style="margin-left:auto;">+</span></button>
+      <div class="accordionSub">Excessive Rainfall Outlook · Winter Weather Outlook · Tropical status — all from stable NWS APIs and NHC JSON</div>
+      <div class="accordionContent collapsed" id="wpcSection">
+        <div class="panel">
+          <div class="panelHeader">
+            <div class="panelTitle">WPC Outlooks</div>
+            <div class="panelHint">ERO risk level + winter weather text — from NWS QPFERD and WWO products</div>
+            <div class="panelRight"><a class="mapSrcLink" href="https://www.wpc.ncep.noaa.gov/" target="_blank" rel="noopener">wpc.ncep.noaa.gov ↗</a></div>
+          </div>
+          <div class="panelBody">
+            <div id="wpcDataCards"><div class="loadingBox">Loading WPC outlooks…</div></div>
+          </div>
+        </div>
+        <div class="grid3even">
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Winter / Visibility Signals</div></div><div class="panelBody"><div class="list" id="winterOutlookList"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Tropical Status</div><div class="panelHint">NHC active storms — Atlantic + East Pacific</div></div><div class="panelBody"><div id="tropicalBody"><div class="loadingBox">Loading…</div></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">National Hazard Signals</div></div><div class="panelBody"><div class="list" id="nationalSignalList"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         REGIONAL INTELLIGENCE
+    ══════════════════════════════════════════ -->
+    <div class="accordionSection">
+      <button class="accordionToggle" type="button" data-acc-target="regionalSection"><span>Regional Intelligence</span><span class="sectionTs loading" id="tsRegional" style="font-size:10px;margin-left:8px;">loading…</span><span class="accIcon" style="margin-left:auto;">+</span></button>
+      <div class="accordionSub">National threat matrix · per-region deep dive · city observations · forecast timeline</div>
+      <div class="accordionContent collapsed" id="regionalSection">
+        <div class="panel"><div class="panelHeader"><div class="panelTitle">National Threat Matrix</div></div><div class="panelBody"><div class="threatMatrixWrap"><div id="threatMatrixContainer"><div class="loadingBox">Loading…</div></div></div></div></div>
+        <div class="panel"><div class="panelHeader"><div class="panelTitle">Regional Deep Dive</div><div class="panelHint">City-level observations · aggregate conditions · active alerts · forecast — all 5 regions</div></div><div class="panelBody"><div class="grid5" id="regionDeepGrid"><div class="loadingBox">Loading…</div></div></div></div>
+        <div class="panel"><div class="panelHeader"><div class="panelTitle">Current Conditions Snapshot</div></div><div class="panelBody"><div class="gridCurrent" id="currentRegionGrid"></div></div></div>
+        <div class="panel"><div class="panelHeader"><div class="panelTitle">Forecast Timeline</div><div class="panelHint" id="fcstTimelineHint">Next 8 periods — highest-concern region</div></div><div class="panelBody"><div class="fcstTimelineWrap"><div class="fcstTimeline" id="fcstTimelineGrid"><div class="loadingBox">Loading…</div></div></div></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         FORECAST NARRATIVES
+    ══════════════════════════════════════════ -->
+    <div class="accordionSection">
+      <button class="accordionToggle" type="button" data-acc-target="forecastSection"><span>Forecast Narratives &amp; Extended Outlook</span><span class="sectionTs loading" id="tsForecast" style="font-size:10px;margin-left:8px;">loading…</span><span class="accIcon" style="margin-left:auto;">+</span></button>
+      <div class="accordionSub">Threat narratives · near-term outlook · hotspots · 5-day national concern board · intensifying / improving areas</div>
+      <div class="accordionContent collapsed" id="forecastSection">
+        <div class="gridForecast">
+          <div class="panel">
+            <div class="panelHeader"><div class="panelTitle">Severe / Flood / Winter / Tropical</div></div>
+            <div class="panelBody">
+              <div class="forecastCard"><div class="forecastTitle">Greatest Tornado Concern</div><div class="forecastText" id="outlookTornado">Loading…</div><div class="forecastMeta" id="outlookTornadoMeta">—</div></div>
+              <div style="height:10px"></div>
+              <div class="forecastCard"><div class="forecastTitle">Greatest Severe T-Storm Concern</div><div class="forecastText" id="outlookSevere">Loading…</div><div class="forecastMeta" id="outlookSevereMeta">—</div></div>
+              <div style="height:10px"></div>
+              <div class="forecastCard"><div class="forecastTitle">Greatest Flood Concern</div><div class="forecastText" id="outlookFlood">Loading…</div><div class="forecastMeta" id="outlookFloodMeta">—</div></div>
+              <div style="height:10px"></div>
+              <div class="forecastCard"><div class="forecastTitle">Winter / Visibility Concern</div><div class="forecastText" id="outlookWinter">Loading…</div><div class="forecastMeta" id="outlookWinterMeta">—</div></div>
+              <div style="height:10px"></div>
+              <div class="forecastCard"><div class="forecastTitle">Tropical Concern</div><div class="forecastText" id="outlookTropical">Loading…</div><div class="forecastMeta" id="outlookTropicalMeta">—</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panelHeader"><div class="panelTitle">Near-Term Outlook</div></div>
+            <div class="panelBody">
+              <div class="forecastCard"><div class="forecastTitle">Next 1–6 Hours</div><div class="forecastText" id="near1">Loading…</div><div class="forecastMeta" id="near1Meta">—</div></div>
+              <div style="height:10px"></div>
+              <div class="forecastCard"><div class="forecastTitle">Next 6–24 Hours</div><div class="forecastText" id="near2">Loading…</div><div class="forecastMeta" id="near2Meta">—</div></div>
+              <div style="height:10px"></div>
+              <div class="forecastCard"><div class="forecastTitle">Day / Night Regional Pattern</div><div class="forecastText" id="near3">Loading…</div><div class="forecastMeta" id="near3Meta">—</div></div>
+            </div>
+          </div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Forecast Hotspots</div><div class="panelHint">Top 5 regions by combined threat score</div></div><div class="panelBody"><div class="list" id="hotspotList"></div></div></div>
+        </div>
+        <div class="panel"><div class="panelHeader"><div class="panelTitle">5-Day National Concern Board</div><div class="panelHint" id="forecastBoardHint">Multi-point NWS data + alert density — Days 1–5</div></div><div class="panelBody"><div class="grid5" id="fiveDayBoard"></div></div></div>
+        <div class="grid3even">
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Intensifying Areas</div></div><div class="panelBody"><div class="list" id="intensifyingList"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Steady Areas</div></div><div class="panelBody"><div class="list" id="steadyList"></div></div></div>
+          <div class="panel"><div class="panelHeader"><div class="panelTitle">Improving Areas</div></div><div class="panelBody"><div class="list" id="improvingList"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</div><!-- /page -->
+
+<!-- NOTICE BAR -->
+<div class="swccNoticeBar" id="swccNoticeBar">
+  <div class="swccNoticeText">SWCC is <span>EXPERIMENTAL</span>. All data sourced from NWS/SPC/NHC APIs — no static images except NWS warnings map and WPC surface analysis.</div>
+  <button class="swccNoticeClose" id="btnCloseSwccNotice" type="button">Dismiss</button>
+</div>
+
+<script>
+
+/* ═══════════════════════════════════════════════════
+   ONLY 2 IMAGES — NWS WWA + WPC SURFACE
+   Everything else is data cards from stable APIs.
+═══════════════════════════════════════════════════ */
+
+const MAP_IMGS = [
+  {id:"mapWwa", src:"https://forecast.weather.gov/wwamap/png/US.png",      group:"wwa",     label:"NWS Active Warnings Map"},
+  {id:"mapSfc", src:"https://www.wpc.ncep.noaa.gov/noaa/noaad1.gif",       group:"surface", label:"WPC Surface Analysis"},
+];
+
+/* ═══════════════════════════════════════════════════
+   WPC OUTLOOK DATA — from api.weather.gov text products
+═══════════════════════════════════════════════════ */
+async function fetchWpcProduct(type) {
+  const key = `wpc:${type}`;
+  const cached = cacheGet(key, 30*60*1000);
+  if (cached) return cached;
+  // Map type codes to actual WPC discussion URLs
+  const urlMap = {
+    'QPFERD': 'https://www.wpc.ncep.noaa.gov/discussions/hpcdiscussions.php?disc=qpferd',
+    'WWO':    'https://www.wpc.ncep.noaa.gov/discussions/hpcdiscussions.php?disc=pmdspd',
+  };
+  const url = urlMap[type];
+  if (!url) return {text:'', issuanceTime:''};
+  try {
+    const rawHtml = await fetchText(url, 30*60*1000);
+    // Strip style/script blocks first, then tags, then entities
+    const text = extractForecastText(rawHtml);
+    return cacheSet(key, {text, issuanceTime: new Date().toISOString()});
+  } catch(e) {
+    return {text:'', issuanceTime:''};
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   SPC FIRE WEATHER — from NWS Products API
+═══════════════════════════════════════════════════ */
+async function fetchFireWeatherOutlook(day) {
+  const key = `spc:fire:${day}`;
+  const cached = cacheGet(key, 30*60*1000);
+  if (cached) return cached;
+  try {
+    const url = `https://www.spc.noaa.gov/products/fire_wx/fwdy${day}.html`;
+    const rawHtml = await fetchTextSafe(url, 30*60*1000);
+    const text = extractForecastText(rawHtml);
+
+    // ── Risk level ────────────────────────────────────────────────────
+    const upper = text.toUpperCase();
+    let risk = 'No Critical Areas';
+    if (/EXTREMELY CRITICAL/.test(upper))              risk = 'Extreme Critical';
+    else if (/CRITICAL FIRE WEATHER|CRITICAL AREA|CRITICAL RISK/.test(upper)) risk = 'Critical';
+    else if (/ELEVATED RISK|ELEVATED AREA/.test(upper)) risk = 'Elevated';
+
+    // ── Primary fire weather threats ─────────────────────────────────
+    const threats = [];
+    if (/LOW RELATIVE HUMIDITY|LOW RH|CRITICAL RH/.test(upper))   threats.push({icon:'💧', label:'Low RH'});
+    if (/STRONG WIND|WIND GUST|GUSTY WIND|HIGH WIND/.test(upper)) threats.push({icon:'💨', label:'Strong Winds'});
+    if (/DRY FUEL|DRY VEGETATION|CRITICALLY DRY|DEAD FUEL/.test(upper)) threats.push({icon:'🌾', label:'Dry Fuels'});
+    if (/DRY THUNDERSTORM|DRY TSTM|LIGHTNING/.test(upper))        threats.push({icon:'⚡', label:'Dry Lightning'});
+    if (/FIRE SPREAD|RAPID SPREAD|EXPLOSIVE FIRE/.test(upper))    threats.push({icon:'🔥', label:'Rapid Fire Spread'});
+    if (/DUST DEVIL|ERRATIC WIND|OUTFLOW|DOWNBURST/.test(upper))  threats.push({icon:'🌀', label:'Erratic Winds'});
+
+    // ── Affected areas (states/regions) ──────────────────────────────
+    const fireAreaRx = /\b(SOUTHERN PLAINS|CENTRAL PLAINS|HIGH PLAINS|GREAT BASIN|SOUTHWEST|SOUTHERN CALIFORNIA|NORTHERN CALIFORNIA|PACIFIC NORTHWEST|INTERMOUNTAIN|ROCKIES|FOUR CORNERS|TEXAS|OKLAHOMA|KANSAS|NEW MEXICO|ARIZONA|CALIFORNIA|NEVADA|UTAH|COLORADO|WYOMING|MONTANA|IDAHO|OREGON|WASHINGTON|NORTH DAKOTA|SOUTH DAKOTA|NEBRASKA|MINNESOTA|FLORIDA)\b/gi;
+    const areaSet = new Set([...(text.matchAll(fireAreaRx)||[])].map(m => m[0].trim()));
+    const areas = [...areaSet].slice(0, 6).map(a => a.charAt(0).toUpperCase() + a.slice(1).toLowerCase());
+
+    // ── Key parameters (RH%, wind speed, timing) ─────────────────────
+    const rhMatch   = text.match(/\b(\d+)\s*(?:TO\s*\d+\s*)?%?\s*(?:RH|RELATIVE HUMIDITY)/i);
+    const windMatch = text.match(/\b(\d+)\s*(?:TO\s*(\d+)\s*)?(?:MPH|KTS|KNOTS)\b/i);
+    const rhVal     = rhMatch  ? rhMatch[1]  + (rhMatch[0].includes('TO') ? '–'+(rhMatch[0].match(/TO\s*(\d+)/i)||['','?'])[1] : '') + '% RH' : null;
+    const windVal   = windMatch ? windMatch[1] + (windMatch[2] ? '–'+windMatch[2] : '') + ' mph' : null;
+
+    // ── Timing ───────────────────────────────────────────────────────
+    const timingWords = ['THIS MORNING','THIS AFTERNOON','THIS EVENING','TONIGHT',
+      'TOMORROW MORNING','TOMORROW AFTERNOON','LATE TODAY','EARLY TONIGHT','OVERNIGHT',
+      'SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+    const rawUp = text.toUpperCase();
+    const timing = timingWords.filter(w => rawUp.includes(w)).slice(0, 2).join(' / ');
+
+    // ── Key discussion text — skip header boilerplate ─────────────────
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 30);
+    const skipLine = l => /^(SPC|SFUS|WWUS|ZCZC|VALID|FORECASTER|DAY\s+\d|FIRE WEATHER OUTLOOK|ISSUED BY|NWS|NOAA|\.{3}[A-Z])/i.test(l);
+    const keyText = lines.filter(l => !skipLine(l)).slice(0, 4).join(' ').replace(/\s{2,}/g, ' ').trim().slice(0, 500);
+
+    return cacheSet(key, {
+      day, risk, threats, areas, rhVal, windVal, timing, keyText,
+      issuanceTime: new Date().toISOString(),
+    });
+  } catch(e) {
+    return {day, risk:'No Data', threats:[], areas:[], rhVal:null, windVal:null, timing:'', keyText:'', issuanceTime:''};
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER: WPC HAZARDS DATA CARD
+═══════════════════════════════════════════════════ */
+async function loadAndRenderWpcSection() {
+  const el = document.getElementById('wpcDataCards');
+  if (!el) return;
+
+  // Fetch WPC products in parallel
+  const [wwo, pfr, qpferd] = await Promise.all([
+    fetchWpcProduct('WWO'),   // Winter Weather Outlook
+    Promise.resolve({text:'', issuanceTime:''}),  // unused slot
+    fetchWpcProduct('QPFERD'),// Excessive Rainfall Discussion
+  ]);
+
+  const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+  // Parse ERO risk from discussion text
+  let eroRisk = 'No Excessive Rainfall Risk';
+  if (qpferd.text) {
+    const t = qpferd.text.toUpperCase();
+    if (/HIGH RISK/.test(t)) eroRisk = 'High Risk';
+    else if (/MODERATE RISK/.test(t)) eroRisk = 'Moderate Risk';
+    else if (/SLIGHT RISK/.test(t)) eroRisk = 'Slight Risk';
+    else if (/MARGINAL RISK/.test(t)) eroRisk = 'Marginal Risk';
+    else eroRisk = 'Below 5% — No ERO Risk';
+  }
+
+  // Parse WWO highlights
+  let wwoSummary = 'No active winter weather outlook.';
+  if (wwo.text) {
+    const lines = wwo.text.split('\n').filter(l => l.trim().length > 30 && !/^\d{6}Z|^NWS |^FXUS|^\.\.\./.test(l.trim()));
+    wwoSummary = lines.slice(0,3).join(' ').slice(0,400) || wwoSummary;
+  }
+
+  const eroColor = eroRisk.includes('High')?'#cc0000':eroRisk.includes('Moderate')?'#ff4400':eroRisk.includes('Slight')?'#ffcc00':eroRisk.includes('Marginal')?'#66cc44':'#5568a0';
+  const eroIssued = qpferd.issuanceTime ? new Date(qpferd.issuanceTime).toLocaleString([],{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  const wwoIssued = wwo.issuanceTime ? new Date(wwo.issuanceTime).toLocaleString([],{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+  el.innerHTML = `
+    <div class="dataCardGrid">
+      <div class="dataCard accent-flood">
+        <div class="dataCardHead">
+          <div class="dataCardTitle">WPC Excessive Rainfall Outlook</div>
+          <div class="dataCardBadge" style="background:${eroColor}22;border-color:${eroColor}66;color:${eroColor};">${escHtml(eroRisk)}</div>
+        </div>
+        <div class="dataCardBody">${escHtml(qpferd.text ? qpferd.text.replace(/^.*\n/,'').slice(0,500)+'…' : 'No ERO discussion available.')}</div>
+        <div class="dataCardMeta">Source: NWS QPFERD product · Issued: ${escHtml(eroIssued)} · <a href="https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php" target="_blank" rel="noopener" style="color:var(--accent);">Full ERO ↗</a></div>
+      </div>
+      <div class="dataCard accent-winter">
+        <div class="dataCardHead">
+          <div class="dataCardTitle">WPC Winter Weather Outlook</div>
+        </div>
+        <div class="dataCardBody">${escHtml(wwoSummary)}</div>
+        <div class="dataCardMeta">Source: NWS WWO product · Issued: ${escHtml(wwoIssued)} · <a href="https://www.wpc.ncep.noaa.gov/wwd/winter_wx.shtml" target="_blank" rel="noopener" style="color:var(--accent);">Full outlook ↗</a></div>
+      </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER: FIRE WEATHER DATA CARDS
+═══════════════════════════════════════════════════ */
+async function loadAndRenderFireSection() {
+  const el = document.getElementById('fireDataCards');
+  if (!el) return;
+  el.innerHTML = '<div class="loadingBox">Loading fire weather outlooks…</div>';
+  try {
+    const [d1, d2] = await Promise.all([fetchFireWeatherOutlook(1), fetchFireWeatherOutlook(2)]);
+
+    const riskColor = r => {
+      if (r.includes('Extreme'))  return '#cc0000';
+      if (r.includes('Critical')) return '#ff4400';
+      if (r.includes('Elevated')) return '#ff8c00';
+      return '#5568a0';
+    };
+
+    const renderFireCard = d => {
+      const col    = riskColor(d.risk);
+      const issued = d.issuanceTime ? new Date(d.issuanceTime).toLocaleString([],{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+      // Threat badges
+      const threatBadges = (d.threats||[]).map(t =>
+        `<span style="background:rgba(255,100,0,0.12);border:1px solid rgba(255,100,0,0.35);color:#ff8844;font-family:var(--font-display);font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;">${t.icon} ${escHtml(t.label)}</span>`
+      ).join('');
+
+      // Key parameters row
+      const params = [];
+      if (d.rhVal)   params.push(`<span style="color:#80ccff;"><strong style="color:#fff;">RH:</strong> ${escHtml(d.rhVal)}</span>`);
+      if (d.windVal) params.push(`<span style="color:#80ccff;"><strong style="color:#fff;">Wind:</strong> ${escHtml(d.windVal)}</span>`);
+      const paramsHtml = params.length ? `<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-family:var(--font-display);font-size:12px;">${params.join('')}</div>` : '';
+
+      // Affected areas
+      const areasHtml = (d.areas||[]).length
+        ? `<div style="margin-bottom:10px;">
+            <div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Affected Areas</div>
+            <div style="font-family:var(--font-display);font-size:12px;color:var(--text);">${d.areas.map(a=>escHtml(a)).join(' · ')}</div>
+           </div>`
+        : '';
+
+      // Timing
+      const timingHtml = d.timing
+        ? `<div style="margin-bottom:10px;">
+            <div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Timing</div>
+            <div style="font-family:var(--font-display);font-size:12px;color:#ff9944;">${escHtml(d.timing)}</div>
+           </div>`
+        : '';
+
+      // Discussion text
+      const textHtml = d.keyText
+        ? `<div style="font-size:12px;color:var(--text-dim);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">${escHtml(d.keyText)}</div>`
+        : '';
+
+      return `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);overflow:hidden;height:100%;">
+        <div style="padding:12px 14px;border-bottom:1px solid var(--border);background:rgba(5,8,18,0.6);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:var(--font-display);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">FORECAST · DAY ${d.day}</span>
+            <span style="background:${col}22;border:1px solid ${col}66;color:${col};font-family:var(--font-display);font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:4px;">${escHtml(d.risk)}</span>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Issued ${escHtml(issued)}</div>
+        </div>
+        <div style="padding:12px 14px;">
+          ${threatBadges ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${threatBadges}</div>` : ''}
+          ${paramsHtml}
+          ${areasHtml}
+          ${timingHtml}
+          ${textHtml}
+          <div style="margin-top:10px;font-family:var(--font-display);font-size:10px;color:var(--text-muted);">
+            Source: SPC Fire Weather Outlook ·
+            <a href="https://www.spc.noaa.gov/products/fire_wx/fwdy${d.day}.html" target="_blank" rel="noopener" style="color:var(--accent);">Full outlook ↗</a>
+          </div>
+        </div>
+      </div>`;
+    };
+
+    el.innerHTML = `<div class="mapGrid2" style="align-items:stretch;">${renderFireCard(d1)}${renderFireCard(d2)}</div>`;
+    setTs('tsFire', 'Issued');
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Fire weather data unavailable.</div>';
+  }
+}
+
+
+
+
+/* ═══════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════ */
+const LS_KEY    = "swcc_settings_v4";
+const NOTICE_KEY = "swcc_notice_v2";
+
+// Refresh intervals in ms per image group
+const REFRESH = {
+  radar:    3  * 60 * 1000,   // 3 min — radar updates very frequently
+  wwa:      5  * 60 * 1000,   // 5 min
+  surface:  30 * 60 * 1000,   // 30 min
+  spc:      15 * 60 * 1000,   // 15 min — issued a few times per day
+  ero:      30 * 60 * 1000,   // 30 min
+  threats:  30 * 60 * 1000,   // 30 min
+};
+
+// All map images with metadata
+
+
+/* ═══════════════════════════════════════════════════
+   PROXY DETECTION + IMAGE LOADING
+═══════════════════════════════════════════════════ */
+let PROXY_OK = false;
+let imgLoadTs = {};  // id → last successful load time
+
+/* ═══════════════════════════════════════════════════
+   SPC OUTLOOK DATA CARDS — NWS TEXT PRODUCT API
+   Always loaded regardless of image status.
+   Provides authoritative text + parsed risk levels.
+═══════════════════════════════════════════════════ */
+
+// Risk level config for styling
+const SPC_RISK = {
+  'HIGH':     {label:'High Risk',      cls:'riskHigh',     color:'#cc0000'},
+  'MDT':      {label:'Moderate Risk',  cls:'riskModerate', color:'#ff4400'},
+  'ENH':      {label:'Enhanced Risk',  cls:'riskEnhanced', color:'#ff8c00'},
+  'SLGT':     {label:'Slight Risk',    cls:'riskSlight',   color:'#ffcc00'},
+  'MRGL':     {label:'Marginal Risk',  cls:'riskMarginal', color:'#66cc44'},
+  'TSTM':     {label:'General Thunder',cls:'riskGeneral',  color:'#80aa80'},
+  'NONTD':    {label:'No Thunderstorm Area', cls:'riskNone', color:'#5568a0'},
+};
+
+function parseSpcRisk(text) {
+  if (!text) return null;
+  const upper = text.toUpperCase();
+  // Check highest risk first
+  if (/HIGH RISK|HIGH\.{0,3}\.{0,3}HIGH/i.test(upper))   return SPC_RISK['HIGH'];
+  if (/MODERATE RISK|MDT/i.test(upper))                    return SPC_RISK['MDT'];
+  if (/ENHANCED RISK|ENH/i.test(upper))                    return SPC_RISK['ENH'];
+  if (/SLIGHT RISK|SLGT/i.test(upper))                     return SPC_RISK['SLGT'];
+  if (/MARGINAL RISK|MRGL/i.test(upper))                   return SPC_RISK['MRGL'];
+  if (/GENERAL THUNDER|TSTM/i.test(upper))                 return SPC_RISK['TSTM'];
+  return SPC_RISK['NONTD'];
+}
+
+function parseSpcProbs(text) {
+  if (!text) return {tor:null, wind:null, hail:null, sigTor:false, sigWind:false, sigHail:false};
+  const upper = text.toUpperCase();
+  // Extract percentages near keywords
+  const torMatch  = upper.match(/(\d+)\s*%[^.]*TORN/i) || upper.match(/TORN[^.]*?(\d+)\s*%/i);
+  const windMatch = upper.match(/(\d+)\s*%[^.]*WIND/i) || upper.match(/WIND[^.]*?(\d+)\s*%/i);
+  const hailMatch = upper.match(/(\d+)\s*%[^.]*HAIL/i) || upper.match(/HAIL[^.]*?(\d+)\s*%/i);
+  return {
+    tor:     torMatch  ? parseInt(torMatch[1])  : null,
+    wind:    windMatch ? parseInt(windMatch[1]) : null,
+    hail:    hailMatch ? parseInt(hailMatch[1]) : null,
+    sigTor:  /SIG.*TOR|TOR.*SIG|HATCHING.*TOR|10%/i.test(upper),
+    sigWind: /SIG.*WIND|WIND.*SIG|HATCHING.*WIND/i.test(upper),
+    sigHail: /SIG.*HAIL|HAIL.*SIG|HATCHING.*HAIL/i.test(upper),
+  };
+}
+
+function parseSpcValidTime(text) {
+  if (!text) return '—';
+  const m = text.match(/VALID\s+(\d{6}Z\s+\w+\s+\w+\s+\d{4}\s+-\s+\d{6}Z[^\n]*)/i);
+  if (m) return m[1].trim();
+  const m2 = text.match(/VALID\s+([^\n]{10,60})/i);
+  return m2 ? m2[1].trim() : '—';
+}
+
+function parseSpcForecaster(text) {
+  if (!text) return '—';
+  const m = text.match(/FORECASTER[.:\s]+([A-Z][A-Z /]+)/i);
+  return m ? m[1].trim() : '—';
+}
+
+// Extract first meaningful paragraph (skip header boilerplate)
+function parseSpcSummary(text) {
+  if (!text) return '—';
+  // Skip header lines, find first substantial paragraph
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const skip  = /^(\.{2,}|\d{6}Z|VALID|FORECASTER|SPC|ACUS|MCS|CONVECTIVE OUTLOOK|STORM PREDICTION|ISSUED BY)/i;
+  const paras = [];
+  let current = '';
+  for (const line of lines) {
+    if (skip.test(line)) { if (current.length > 40) { paras.push(current); current = ''; } continue; }
+    current += (current ? ' ' : '') + line;
+    if (line.endsWith('.') && current.length > 80) { paras.push(current); current = ''; }
+  }
+  if (current.length > 40) paras.push(current);
+  // Return first 2 paragraphs
+  return paras.slice(0, 2).join('\n\n').slice(0, 600) || text.slice(0, 400);
+}
+
+
+// Extract meaningful text from NWS/SPC/WPC HTML pages
+// These pages put forecast text in <pre> tags — extract that specifically
+function extractForecastText(rawHtml) {
+  if (!rawHtml) return '';
+  // Try <pre> tags first — this is where SPC/WPC put actual forecast text
+  const preMatches = [...rawHtml.matchAll(/<pre[^>]*>([\s\S]*?)<\/pre>/gi)];
+  if (preMatches.length > 0) {
+    // Find the longest <pre> block — that's the forecast text
+    const texts = preMatches.map(m =>
+      m[1]
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .trim()
+    ).filter(t => t.length > 100);
+    if (texts.length > 0) {
+      // Return the longest one (most likely to be the forecast)
+      return texts.sort((a,b) => b.length - a.length)[0];
+    }
+  }
+  // Fallback: strip style/script/nav blocks, then all tags
+  return rawHtml
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+    .replace(/<header[\s\S]*?<\/header>/gi, '')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+    // Remove common NWS nav patterns
+    .replace(/Site Map News Organization Search for:.*?RSS Feeds/gi, '')
+    .replace(/Home \( Classic \).*?RSS Feeds/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+async function fetchSpcOutlookText(day) {
+  const key = `spc:text:d${day}`;
+  const cached = cacheGet(key, 15 * 60 * 1000);
+  if (cached) return cached;
+  try {
+    // Fetch directly from SPC — the NWS Products API type codes for SPC don't work
+    const url = `https://www.spc.noaa.gov/products/outlook/day${day}otlk.html`;
+    const rawHtml = await fetchText(url, 15 * 60 * 1000);
+    // Strip HTML tags to get plain text
+    // Strip style/script blocks first, then tags, then entities
+    const text = extractForecastText(rawHtml);
+    const out = {
+      day,
+      text,
+      risk:        parseSpcRisk(text),
+      probs:       parseSpcProbs(text),
+      validTime:   parseSpcValidTime(text),
+      forecaster:  parseSpcForecaster(text),
+      summary:     parseSpcSummary(text),
+      issuanceTime: new Date().toISOString(),
+    };
+    return cacheSet(key, out);
+  } catch(e) {
+    console.warn(`[fetchSpcOutlookText] Day ${day} failed:`, e);
+    return {day, text:'', risk:null, probs:{tor:null,wind:null,hail:null}, validTime:'—', forecaster:'—', summary:'Outlook text unavailable. Check spc.noaa.gov for latest information.', issuanceTime:''};
+  }
+}
+
+function renderSpcDataCard(outlook, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const {risk, probs, validTime, forecaster, summary, issuanceTime, day} = outlook;
+
+  const riskColor = risk?.color || '#5568a0';
+  const riskLabel = risk?.label || 'No Thunderstorm Area';
+  const issuedStr = issuanceTime ? new Date(issuanceTime).toLocaleString([],{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+  // Clean up summary text — remove header boilerplate, truncate sensibly
+  // ── Parse SPC text into structured threat areas ─────────────────────
+  // Extract: affected states/regions, primary threats, key timing
+  const parseSpcThreatAreas = (raw) => {
+    if (!raw) return {areas:[], threats:[], timing:'', keyText:''};
+    const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l.length>10);
+    const areas = [], threats = [];
+
+    // State/region mentions
+    const stateRx = /\b(OKLAHOMA|TEXAS|KANSAS|NEBRASKA|IOWA|MISSOURI|ILLINOIS|INDIANA|OHIO|KENTUCKY|TENNESSEE|MISSISSIPPI|ALABAMA|GEORGIA|FLORIDA|SOUTH CAROLINA|NORTH CAROLINA|VIRGINIA|WEST VIRGINIA|ARKANSAS|LOUISIANA|MINNESOTA|WISCONSIN|MICHIGAN|PENNSYLVANIA|NEW YORK|PLAINS|MIDWEST|SOUTH|SOUTHEAST|NORTHEAST|GULF COAST|MID-ATLANTIC|OHIO VALLEY|LOWER MISSISSIPPI|TENNESSEE VALLEY|HIGH PLAINS|CENTRAL PLAINS|SOUTHERN PLAINS|UPPER MIDWEST|GREAT LAKES|OZARKS|APPALACHIAN)S?/g;
+    const stateMatches = new Set([...(raw.toUpperCase().matchAll(stateRx)||[])].map(m=>m[0].replace(/S$/,'')));
+    stateMatches.forEach(s=>areas.push(s.charAt(0)+s.slice(1).toLowerCase()));
+
+    // Primary threats
+    if (/tornado/i.test(raw))        threats.push({icon:'🌪', label:'Tornadoes'});
+    if (/large hail|significant hail/i.test(raw)) threats.push({icon:'🟢', label:'Large Hail'});
+    if (/damaging wind|wind damage|derecho/i.test(raw)) threats.push({icon:'💨', label:'Damaging Winds'});
+    if (/flash flood|heavy rain/i.test(raw)) threats.push({icon:'🌊', label:'Flash Flooding'});
+    if (/isolated.*tornado|tornado.*isolated/i.test(raw)) threats.push({icon:'⚠', label:'Isolated Tornadoes'});
+    if (/supercell/i.test(raw)) threats.push({icon:'⛈', label:'Supercells'});
+    if (/squall line|bow echo|qlcs/i.test(raw)) threats.push({icon:'📡', label:'Squall Line / QLCS'});
+
+    // Timing - simple keyword search
+    const timingWords = ['THIS MORNING','THIS AFTERNOON','THIS EVENING','TONIGHT','TOMORROW MORNING','TOMORROW AFTERNOON','LATE TODAY','EARLY TONIGHT','OVERNIGHT'];
+    const rawUp = raw.toUpperCase();
+    const timing = timingWords.filter(w => rawUp.includes(w)).slice(0,2).join(' / ');
+
+    // Key text: first substantial paragraph that mentions threats or areas
+    const keyLines = lines.filter(l =>
+      l.length > 40 &&
+      !/^(SPC|SWO|ACUS|MCS|ZCZC|WWUS|VALID|FORECASTER|STORM PREDICTION|CONVECTIVE OUTLOOK|ISSUED|THUNDERSTORM\s+AREA|DAY\s+\d)/i.test(l)
+    );
+    const keyText = keyLines.slice(0,3).join(' ').replace(/\s{2,}/g,' ').trim().slice(0,600);
+
+    return {areas: areas.slice(0,6), threats: [...new Map(threats.map(t=>[t.label,t])).values()], timing, keyText};
+  };
+
+  const threatData = parseSpcThreatAreas(outlook.text || summary || '');
+  const cleanSummary = threatData.keyText || (summary||'').replace(/\s{2,}/g,' ').trim().slice(0,500);
+
+  // Risk level color coding
+  // Risk level color coding
+  const riskBg = riskColor + '18';
+  const riskBorder = riskColor + '55';
+
+  // Probability display — only show if we have at least one value
+  const hasProbs = probs && (probs.tor != null || probs.wind != null || probs.hail != null);
+
+  const probHtml = hasProbs ? `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;">
+      <div style="text-align:center;border:1px solid rgba(255,41,41,0.3);border-radius:8px;background:rgba(255,41,41,0.06);padding:10px 6px;">
+        <div style="font-family:var(--font-mono);font-size:24px;color:var(--tor);line-height:1;">${probs.tor != null ? probs.tor+'%' : '—'}</div>
+        <div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-top:4px;">Tornado${probs.sigTor ? '<br><span style="color:#ff6060;font-size:9px;">⚠ SIGNIFICANT</span>' : ''}</div>
+      </div>
+      <div style="text-align:center;border:1px solid rgba(255,140,0,0.3);border-radius:8px;background:rgba(255,140,0,0.06);padding:10px 6px;">
+        <div style="font-family:var(--font-mono);font-size:24px;color:var(--sev);line-height:1;">${probs.wind != null ? probs.wind+'%' : '—'}</div>
+        <div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-top:4px;">Wind${probs.sigWind ? '<br><span style="color:#ffaa44;font-size:9px;">⚠ SIGNIFICANT</span>' : ''}</div>
+      </div>
+      <div style="text-align:center;border:1px solid rgba(160,230,100,0.3);border-radius:8px;background:rgba(160,230,100,0.06);padding:10px 6px;">
+        <div style="font-family:var(--font-mono);font-size:24px;color:#a0e664;line-height:1;">${probs.hail != null ? probs.hail+'%' : '—'}</div>
+        <div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-top:4px;">Hail${probs.sigHail ? '<br><span style="color:#a0e664;font-size:9px;">⚠ SIGNIFICANT</span>' : ''}</div>
+      </div>
+    </div>` : '';
+
+  const summaryHtml = cleanSummary
+    ? `<div style="font-size:12px;color:var(--text);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">${escHtml(cleanSummary)}</div>`
+    : '';
+
+  el.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(8,11,24,0.5);overflow:hidden;">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);background:rgba(5,8,18,0.6);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-family:var(--font-display);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">FORECAST · DAY ${day}</span>
+          <span style="background:${riskBg};border:1px solid ${riskBorder};color:${riskColor};font-family:var(--font-display);font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:4px;">${escHtml(riskLabel)}</span>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">
+          Issued ${escHtml(issuedStr)}${forecaster && forecaster !== '—' ? ' · ' + escHtml(forecaster) : ''}
+        </div>
+      </div>
+      <div style="padding:12px 14px;">
+        <div style="font-family:var(--font-display);font-size:11px;color:var(--text-muted);margin-bottom:6px;">
+          ⚠ This is a <strong style="color:var(--sev);">forecast probability</strong> — not an active warning. Tornadoes are not currently confirmed.
+        </div>
+        ${probHtml}
+        ${threatData && threatData.threats && threatData.threats.length > 0 ? `
+        <div style="margin:8px 0 10px 0;">
+          <div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Primary Threats</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${threatData.threats.map(t=>`<span style="background:rgba(255,140,0,0.12);border:1px solid rgba(255,140,0,0.35);color:var(--sev);font-family:var(--font-display);font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;">${t.icon} ${escHtml(t.label)}</span>`).join("")}
+          </div>
+        </div>` : ""}
+        ${threatData && threatData.areas && threatData.areas.length > 0 ? `
+        <div style="margin-bottom:10px;">
+          <div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Affected Areas</div>
+          <div style="font-family:var(--font-display);font-size:12px;color:var(--text);">${threatData.areas.map(a=>escHtml(a)).join(" &middot; ")}</div>
+        </div>` : ""}
+        ${threatData && threatData.timing ? `
+        <div style="margin-bottom:10px;">
+          <div style="font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Timing</div>
+          <div style="font-family:var(--font-display);font-size:12px;color:var(--accent);">${escHtml(threatData.timing)}</div>
+        </div>` : ""}
+        ${summaryHtml}
+        <div style="margin-top:10px;font-family:var(--font-display);font-size:10px;color:var(--text-muted);">
+          Source: Storm Prediction Center · <a href="https://www.spc.noaa.gov/products/outlook/day${day}otlk.html" target="_blank" rel="noopener" style="color:var(--accent);">Full outlook ↗</a>
+        </div>
+      </div>
+    </div>`;
+
+  // Update panel header badge
+  const badge = document.getElementById(`spcD${day}Badge`);
+  if (badge) {
+    badge.textContent = riskLabel;
+    badge.className = 'mapBadge ' + ({'riskHigh':'live','riskModerate':'live','riskEnhanced':'stale','riskSlight':'stale','riskMarginal':'','riskGeneral':'','riskNone':''}[risk?.cls||''] || '');
+  }
+}
+
+async function loadSpcOutlooks() {
+  try {
+    const [d1, d2, d3] = await Promise.all([
+      fetchSpcOutlookText(1),
+      fetchSpcOutlookText(2),
+      fetchSpcOutlookText(3),
+    ]);
+    renderSpcDataCard(d1, 'spcD1Card');
+    renderSpcDataCard(d2, 'spcD2Card');
+    renderSpcDataCard(d3, 'spcD3Card');
+    setTs('tsSpc', 'Issued');
+  } catch(e) {
+    ['spcD1Card','spcD2Card','spcD3Card'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<div class="empty">Outlook data unavailable. Check spc.noaa.gov.</div>`;
+    });
+  }
+}
+
+// Styles for SPC prob items
+const spcStyle = document.createElement('style');
+spcStyle.textContent = '.spcProbItem{border:1px solid rgba(38,50,90,0.7);border-radius:6px;background:rgba(255,255,255,0.03);padding:8px;text-align:center;} .spcProbVal{line-height:1;margin-bottom:3px;} .spcProbLabel{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#5568a0;}';
+document.head.appendChild(spcStyle);
+
+
+
+/* ═══════════════════════════════════════════════════
+   SECTION TIMESTAMPS
+═══════════════════════════════════════════════════ */
+function setTs(id, label, isStale=false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.className = 'sectionTs' + (isStale ? ' stale' : '');
+  el.textContent = `${label} ${t}`;
+}
+
+async function detectProxy() {
+  const el  = document.getElementById('proxyStatusEl');
+  const txt = document.getElementById('proxyStatusText');
+  const dot = el?.querySelector('.proxyDot');
+  try {
+    // Use a manual timeout via Promise.race — manual timeout via Promise.race
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 3000)
+    );
+    const fetchPromise = fetch('/imgproxy?ping=1', { cache: 'no-store' });
+    const r = await Promise.race([fetchPromise, timeoutPromise]);
+    PROXY_OK = r.ok;
+  } catch {
+    PROXY_OK = false;
+  }
+  if (el)  el.className  = 'proxyStatus ' + (PROXY_OK ? 'ok' : 'fail');
+  if (txt) txt.textContent = PROXY_OK ? 'Proxy: Active' : 'Proxy: Not configured';
+  if (dot) { dot.classList.toggle('blink', PROXY_OK); }
+  return PROXY_OK;
+}
+
+function imgUrl(src) {
+  const ts = Date.now();
+  if (PROXY_OK) return `/imgproxy?url=${encodeURIComponent(src)}&t=${ts}`;
+  return `${src}?t=${ts}`;
+}
+
+function loadSingleImg(imgData, retryDirect = false) {
+  const imgEl  = document.getElementById(imgData.id);
+  const wrapEl = document.getElementById(`wrap_${imgData.id}`);
+  const tsEl   = document.getElementById(`ts_${imgData.id}`);
+  if (!imgEl || !wrapEl) return Promise.resolve();
+
+  wrapEl.classList.add('loading');
+  wrapEl.classList.remove('err');
+
+  return new Promise(resolve => {
+    const ts  = Date.now();
+    const url = (PROXY_OK && !retryDirect)
+      ? `/imgproxy?url=${encodeURIComponent(imgData.src)}&t=${ts}`
+      : `${imgData.src}?t=${ts}`;
+
+    imgEl.onload  = null;
+    imgEl.onerror = null;
+
+    imgEl.onload = () => {
+      wrapEl.classList.remove('loading');
+      imgLoadTs[imgData.id] = Date.now();
+      if (tsEl) tsEl.textContent = `Updated ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+      imgEl.onload = null; imgEl.onerror = null;
+      resolve(true);
+    };
+
+    imgEl.onerror = () => {
+      imgEl.onload = null; imgEl.onerror = null;
+      if (PROXY_OK && !retryDirect) {
+        const directUrl = `${imgData.src}?t=${Date.now()}`;
+        imgEl.onload = () => {
+          wrapEl.classList.remove('loading');
+          imgLoadTs[imgData.id] = Date.now();
+          if (tsEl) tsEl.textContent = `Updated ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+          imgEl.onload = null; imgEl.onerror = null;
+          resolve(true);
+        };
+        imgEl.onerror = () => {
+          wrapEl.classList.remove('loading');
+          wrapEl.classList.add('err');
+          if (tsEl) tsEl.textContent = 'Load failed';
+          imgEl.onload = null; imgEl.onerror = null;
+          resolve(false);
+        };
+        imgEl.src = directUrl;
+      } else {
+        wrapEl.classList.remove('loading');
+        wrapEl.classList.add('err');
+        if (tsEl) tsEl.textContent = 'Load failed';
+        resolve(false);
+      }
+    };
+
+    imgEl.src = url;
+  });
+}
+
+function loadImgGroup(group) {
+  const imgs = MAP_IMGS.filter(m => m.group === group);
+  return Promise.allSettled(imgs.map(m => loadSingleImg(m)));
+}
+
+function loadAllImages() {
+  return Promise.allSettled(MAP_IMGS.map(m => loadSingleImg(m)));
+}
+
+// Staggered auto-refresh — each group on its own timer
+const groupTimers = {};
+function startImgRefreshTimers() {
+  Object.entries(REFRESH).forEach(([group, ms]) => {
+    if (groupTimers[group]) clearInterval(groupTimers[group]);
+    groupTimers[group] = setInterval(() => {
+      loadImgGroup(group);
+      updateGroupTs(group);
+    }, ms);
+  });
+}
+
+function updateGroupTs(group) {
+  const ts = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const badge = document.getElementById('mapGroupNationBadge');
+  const tsel = document.getElementById('mapGroupNationTs');
+  if (group === 'wwa' || group === 'radar' || group === 'surface') {
+    if (tsel) tsel.textContent = `Refreshed ${ts}`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   RETRY BUTTONS
+═══════════════════════════════════════════════════ */
+function initRetryButtons() {
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.mapErrRetry');
+    if (!btn) return;
+    const id = btn.dataset.imgid;
+    const m = MAP_IMGS.find(x => x.id === id);
+    if (m) loadSingleImg(m, true);  // force direct on manual retry
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   LIGHTBOX
+═══════════════════════════════════════════════════ */
+function initLightbox() {
+  const lb = document.getElementById('imgLightbox');
+  const lbImg = document.getElementById('lightboxImg');
+  const lbCap = document.getElementById('lightboxCaption');
+  const lbClose = document.getElementById('lightboxClose');
+
+  document.addEventListener('click', e => {
+    const img = e.target.closest('.mapImg');
+    if (!img || img.classList.contains('error')) return;
+    const wrapOk = !img.closest('.mapImgWrap')?.classList.contains('err');
+    if (!wrapOk) return;
+    lbImg.src = img.src;
+    lbCap.textContent = img.dataset.caption || img.alt || '';
+    lb.classList.add('show');
+  });
+
+  const close = () => lb.classList.remove('show');
+  lb.addEventListener('click', e => { if (e.target === lb || e.target === lbClose) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+}
+
+/* ═══════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════ */
+const CACHE = new Map();
+function cacheGet(k,m){ const v=CACHE.get(k); if(!v) return null; if((Date.now()-v.ts)>m) return null; return v.value; }
+function cacheSet(k,v){ CACHE.set(k,{ts:Date.now(),value:v}); return v; }
+function loadSettings(){ try{ const r=localStorage.getItem(LS_KEY); if(!r) throw 0; const s=JSON.parse(r); if(typeof s.noAlaska!=="boolean") s.noAlaska=false; return s; }catch(e){return{noAlaska:false};} }
+function saveSettings(){ localStorage.setItem(LS_KEY,JSON.stringify(settings)); }
+
+let settings=loadSettings(), swccLoadToken=0, swccPendingTasks=0, alertLookup=new Map();
+
+function beginTask(t){ if(t!==swccLoadToken) return; swccPendingTasks+=1; const b=document.getElementById("swccLoadingBanner"); if(b) b.style.display="block"; }
+function endTask(t){ if(t!==swccLoadToken) return; swccPendingTasks=Math.max(0,swccPendingTasks-1); if(swccPendingTasks===0){const b=document.getElementById("swccLoadingBanner"); if(b) b.style.display="none";} }
+
+function safeText(s){ return(s&&String(s).trim())?String(s):"—"; }
+function escHtml(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function parseTimeMs(iso){ if(!iso) return 0; const t=Date.parse(String(iso)); return Number.isFinite(t)?t:0; }
+function prettyTime(iso){ if(!iso) return "—"; try{ return new Date(iso).toLocaleString([],{month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }catch(e){return"—";} }
+function prettyTempF(v){ return Number.isFinite(v)?`${Math.round(v)}°F`:"—"; }
+function prettyPct(v){ return Number.isFinite(v)?`${Math.round(v)}%`:"—"; }
+function prettyWind(v){ return Number.isFinite(v)?`${Math.round(v)} mph`:"—"; }
+function prettyVis(v){ return Number.isFinite(v)?`${v.toFixed(1)} mi`:"—"; }
+function cToF(c){ return Number.isFinite(c)?((c*9/5)+32):null; }
+function msToMph(ms){ return Number.isFinite(ms)?(ms*2.23694):null; }
+function kmToMiles(km){ return Number.isFinite(km)?(km*0.621371):null; }
+function minVal(a){ const v=a.filter(Number.isFinite); return v.length?Math.min(...v):null; }
+function maxVal(a){ const v=a.filter(Number.isFinite); return v.length?Math.max(...v):null; }
+function avgVal(a){ const v=a.filter(Number.isFinite); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; }
+function minutesUntil(iso){ const t=parseTimeMs(iso); if(!t) return null; return Math.round((t-Date.now())/60000); }
+function agoStr(ms){ const m=Math.round((Date.now()-ms)/60000); if(m<1) return "just now"; if(m<60) return `${m} min ago`; const h=Math.round(m/60); return `${h}h ago`; }
+
+function severityRank(s){ const v=String(s||"").toLowerCase().trim(); if(v==="extreme") return 4; if(v==="severe") return 3; if(v==="moderate") return 2; if(v==="minor") return 1; return 0; }
+function urgencyRank(s){ const v=String(s||"").toLowerCase().trim(); if(v==="immediate") return 4; if(v==="expected") return 3; if(v==="future") return 2; if(v==="past") return 1; return 0; }
+function certaintyRank(s){ const v=String(s||"").toLowerCase().trim(); if(v==="observed") return 4; if(v==="likely") return 3; if(v==="possible") return 2; if(v==="unlikely") return 1; return 0; }
+function severityClass(s){ const v=String(s||"").toLowerCase().trim(); if(v==="extreme") return "sevExtreme"; if(v==="severe") return "sevSevere"; if(v==="moderate") return "sevModerate"; if(v==="minor") return "sevMinor"; return "sevUnknown"; }
+function eventBonus(e){ const n=String(e||"").toLowerCase(); let s=0; if(n.includes("warning")) s+=50; if(n.includes("watch")) s+=25; if(n.includes("emergency")) s+=80; if(n.includes("tornado")) s+=40; if(n.includes("hurricane")) s+=35; if(n.includes("flash flood")) s+=25; if(n.includes("extreme wind")) s+=20; return s; }
+function priorityScore(a){ return severityRank(a&&a.severity)*1000+urgencyRank(a&&a.urgency)*100+certaintyRank(a&&a.certainty)*10+eventBonus(a&&a.event); }
+function makeLoadingBox(t){ return `<div class="loadingBox">${escHtml(t)}</div>`; }
+
+const STATE_ABBR={"Alabama":"AL","Alaska":"AK","Arizona":"AZ","Arkansas":"AR","California":"CA","Colorado":"CO","Connecticut":"CT","Delaware":"DE","Florida":"FL","Georgia":"GA","Hawaii":"HI","Idaho":"ID","Illinois":"IL","Indiana":"IN","Iowa":"IA","Kansas":"KS","Kentucky":"KY","Louisiana":"LA","Maine":"ME","Maryland":"MD","Massachusetts":"MA","Michigan":"MI","Minnesota":"MN","Mississippi":"MS","Missouri":"MO","Montana":"MT","Nebraska":"NE","Nevada":"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND","Ohio":"OH","Oklahoma":"OK","Oregon":"OR","Pennsylvania":"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD","Tennessee":"TN","Texas":"TX","Utah":"UT","Vermont":"VT","Virginia":"VA","Washington":"WA","West Virginia":"WV","Wisconsin":"WI","Wyoming":"WY","District of Columbia":"DC"};
+const REGION_STATES={Plains:["TX","OK","KS","NE","SD","ND"],South:["AR","LA","MS","AL","GA","FL","TN","KY","SC","NC"],Midwest:["MN","IA","MO","WI","IL","IN","MI","OH"],Northeast:["PA","NY","NJ","DE","MD","DC","CT","RI","MA","VT","NH","ME","WV","VA"],West:["CA","NV","OR","WA","ID","UT","AZ","NM","CO","WY","MT"]};
+const REGION_ABBR={Plains:"TX·OK·KS·NE·SD·ND",South:"AR·LA·MS·AL·GA·FL·TN·KY·SC·NC",Midwest:"MN·IA·MO·WI·IL·IN·MI·OH",Northeast:"PA·NY·NJ·DE·MD·DC·CT·MA·VT·NH·ME·WV·VA",West:"CA·NV·OR·WA·ID·UT·AZ·NM·CO·WY·MT"};
+const REGION_POINTS={
+  Plains:    [{name:"Oklahoma City, OK",lat:35.4676,lon:-97.5164},{name:"Wichita, KS",lat:37.6872,lon:-97.3301},{name:"Amarillo, TX",lat:35.2220,lon:-101.8313}],
+  South:     [{name:"Jackson, MS",lat:32.2988,lon:-90.1848},{name:"Birmingham, AL",lat:33.5186,lon:-86.8104},{name:"Memphis, TN",lat:35.1495,lon:-90.0490}],
+  Midwest:   [{name:"Des Moines, IA",lat:41.5868,lon:-93.6250},{name:"St. Louis, MO",lat:38.6270,lon:-90.1994},{name:"Chicago, IL",lat:41.8781,lon:-87.6298}],
+  Northeast: [{name:"Pittsburgh, PA",lat:40.4406,lon:-79.9959},{name:"Philadelphia, PA",lat:39.9526,lon:-75.1652},{name:"Washington, DC",lat:38.9072,lon:-77.0369}],
+  West:      [{name:"Denver, CO",lat:39.7392,lon:-104.9903},{name:"Salt Lake City, UT",lat:40.7608,lon:-111.8910},{name:"Sacramento, CA",lat:38.5816,lon:-121.4944}],
+};
+const REGION_ORDER=["Plains","South","Midwest","Northeast","West"];
+
+function extractStatesFromArea(area){
+  const text=String(area||""), found=new Set();
+  for(const [n,a] of Object.entries(STATE_ABBR)){
+    try{
+      const escaped=n.replace(/[-[\]{}()*+?.,\^$|#\s]/g,"\\$&");
+      if(new RegExp("\\b"+escaped+"\\b","i").test(text)) found.add(a);
+    }catch(e){}
+  }
+  for(const a of Object.values(STATE_ABBR)){
+    if(new RegExp("\\b"+a+"\\b","i").test(text)) found.add(a);
+  }
+  return Array.from(found);
+}
+function isAlaskaAlert(a){ if(extractStatesFromArea(a&&a.area).includes("AK")) return true; return (Array.isArray(a&&a.zone_ids)?a.zone_ids:[]).some(z=>String(z||"").toUpperCase().startsWith("AK")); }
+function applyFilter(alerts){ let arr=(alerts||[]).slice(); if(settings.noAlaska) arr=arr.filter(a=>!isAlaskaAlert(a)); return arr; }
+
+function tornadoTagList(a){
+  const ev=String(a?.event||"").toLowerCase();
+  if(!ev.includes("tornado")&&!ev.includes("severe thunderstorm")) return [];
+  const full=`${String(a?.headline||"")} ${String(a?.description||"")} ${String(a?.instruction||"")}`.toLowerCase();
+  const tags=[];
+  if(ev.includes("tornado")){
+    if(full.includes("tornado emergency")) tags.push("EMERGENCY");
+    else if(full.includes("particularly dangerous situation")||full.includes(" pds ")) tags.push("PDS");
+    if(full.includes("confirmed tornado")||full.includes("radar confirmed tornado")||full.includes("observed tornado")||full.includes("tornado observed")) tags.push("CONFIRMED");
+  }
+  if(ev.includes("severe thunderstorm")&&(full.includes("tornado possible")||full.includes("cannot be ruled out")||full.includes("capable of producing a tornado")||full.includes("radar indicated rotation")||full.includes("tornado indicated"))) tags.push("TORNADO POSSIBLE");
+  return tags;
+}
+function isPossibleTornadoSevere(a){ return tornadoTagList(a).includes("TORNADO POSSIBLE"); }
+function hasTag(a,t){ return tornadoTagList(a).includes(t); }
+function severePlusAlerts(alerts){ return (alerts||[]).filter(a=>severityRank(a?.severity)>=3); }
+function tagBadgesHtml(a){ return tornadoTagList(a).map(t=>`<span class="badge badgeHot">${escHtml(t)}</span>`).join(""); }
+
+function sortByPriority(alerts){ return (alerts||[]).slice().sort((a,b)=>{const p=priorityScore(b)-priorityScore(a);if(p!==0) return p;const s=severityRank(b?.severity)-severityRank(a?.severity);if(s!==0) return s;const u=urgencyRank(b?.urgency)-urgencyRank(a?.urgency);if(u!==0) return u;const c=certaintyRank(b?.certainty)-certaintyRank(a?.certainty);if(c!==0) return c;return parseTimeMs(b?.sent||b?.effective||b?.onset||"")-parseTimeMs(a?.sent||a?.effective||a?.onset||"");}); }
+function makeStateCounts(alerts,matcher){ const m=new Map(); (alerts||[]).filter(matcher).forEach(a=>{ extractStatesFromArea(a.area||"").forEach(st=>{ m.set(st,(m.get(st)||0)+1); }); }); return Array.from(m.entries()).map(([l,v])=>({label:l,value:v})).sort((a,b)=>b.value-a.value).slice(0,10); }
+function issuedWithinMinutes(alerts,mins){ const c=Date.now()-mins*60000; return (alerts||[]).filter(a=>parseTimeMs(a.sent||a.effective||a.onset||"")>=c).length; }
+function inRegion(a,sl){ return extractStatesFromArea(a&&a.area).some(s=>sl.includes(s)); }
+function regionScore(alerts,sl,matcher){ let t=0; (alerts||[]).forEach(a=>{ if(matcher&&!matcher(a)) return; if(extractStatesFromArea(a.area||"").some(s=>sl.includes(s))){ t+=Math.max(1,severityRank(a.severity)); if(tornadoTagList(a).length) t+=1; } }); return t; }
+function rankedRegions(alerts,matcher){ return REGION_ORDER.map(n=>({name:n,score:regionScore(alerts,REGION_STATES[n],matcher)})).sort((a,b)=>b.score-a.score); }
+function topRegionSummary(alerts,matcher,fallback){ const r=rankedRegions(alerts,matcher).filter(x=>x.score>0); if(!r.length) return fallback; return r.slice(0,3).map(x=>`${x.name} (${x.score})`).join(" • "); }
+function regionPrimaryHazard(r){ if(r.tornado>=r.severe&&r.tornado>=r.flood&&r.tornado>0) return "tornado"; if(r.severe>=r.tornado&&r.severe>=r.flood&&r.severe>0) return "severe"; if(r.flood>=r.winter&&r.flood>0) return "flood"; if(r.winter>0) return "winter"; return "mixed"; }
+function rotatePick(arr,s,c){ if(!arr.length) return []; const o=[]; for(let i=0;i<c&&i<arr.length;i++) o.push(arr[(s+i)%arr.length]); return o; }
+
+function countKeywords(text,words){ const l=String(text||"").toLowerCase(); return words.reduce((s,w)=>s+(l.includes(w)?1:0),0); }
+function highestPcp(periods){ const v=periods.map(p=>p?.probabilityOfPrecipitation?.value).filter(Number.isFinite); return v.length?Math.max(...v):null; }
+function extractHourlyHazards(periods){ const j=periods.map(p=>`${p.shortForecast||""} ${p.detailedForecast||""}`).join(" ").toLowerCase(); return {thunder:countKeywords(j,["thunderstorm","storms","tstms","severe"]),heavyRain:countKeywords(j,["heavy rain","downpour","torrential"]),wind:countKeywords(j,["windy","gusty","strong winds","damaging wind","breezy"]),winter:countKeywords(j,["snow","blowing snow","sleet","freezing rain","ice","wintry mix"]),visibility:countKeywords(j,["fog","dense fog","reduced visibility","smoke","haze"])}; }
+
+// All external data fetches go through /dataproxy to avoid CORS blocks
+function proxyUrl(url) {
+  // Route ALL external URLs through Flask dataproxy
+  // This ensures proper User-Agent headers and avoids CORS issues
+  if (url.startsWith('/')) return url;
+  return `/dataproxy?url=${encodeURIComponent(url)}`;
+}
+
+async function fetchJson(url, maxAge=0) {
+  if (maxAge > 0) { const c = cacheGet(url, maxAge); if (c) return c; }
+  const r = await fetch(proxyUrl(url), {cache:"no-store"});
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  if (maxAge > 0) cacheSet(url, d);
+  return d;
+}
+async function fetchText(url, maxAge=0) {
+  if (maxAge > 0) { const c = cacheGet(url, maxAge); if (c) return c; }
+  const r = await fetch(proxyUrl(url), {cache:"no-store"});
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.text();
+  if (maxAge > 0) cacheSet(url, d);
+  return d;
+}
+
+async function fetchTextSafe(url, maxAge=0) {
+  // Like fetchText but returns empty string instead of throwing on error
+  try { return await fetchText(url, maxAge); } catch(e) { return ''; }
+}
+
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function fetchPointPackage(point){
+  const key=`pp:${point.lat},${point.lon}`, cached=cacheGet(key,10*60*1000); if(cached) return cached;
+  // Retry once on failure with 1s delay
+  let pts;
+  try {
+    pts = await fetchJson(`https://api.weather.gov/points/${point.lat},${point.lon}`,10*60*1000);
+  } catch(e) {
+    await sleep(1000);
+    pts = await fetchJson(`https://api.weather.gov/points/${point.lat},${point.lon}`,10*60*1000);
+  }
+  // NWS /points returns either geo+json (.properties nested) or ld+json (flat)
+  // Handle both formats
+  const props = pts?.properties || pts || {};
+  const forecastUrl         = props.forecast;
+  const forecastHourlyUrl   = props.forecastHourly;
+  const observationStnsUrl  = props.observationStations;
+
+  const [fd,hd,sd]=await Promise.all([
+    forecastUrl        ? fetchJson(forecastUrl,       10*60*1000).catch(()=>null) : null,
+    forecastHourlyUrl  ? fetchJson(forecastHourlyUrl, 10*60*1000).catch(()=>null) : null,
+    observationStnsUrl ? fetchJson(observationStnsUrl,15*60*1000).catch(()=>null) : null,
+  ]);
+
+  // Stations list is also either geo+json or ld+json
+  const stationsList = sd?.features?.map(f=>f?.properties?.stationIdentifier ? `https://api.weather.gov/stations/${f.properties.stationIdentifier}` : null).filter(Boolean)
+    || sd?.observationStations || [];
+
+  let obs=null;
+  try {
+    const su = stationsList[0];
+    if (su) obs = await fetchJson(`${su}/observations/latest`, 5*60*1000).catch(()=>null);
+  } catch(e) {}
+
+  // Forecast periods also either nested or flat
+  const getFcstPeriods = (d) => {
+    if (!d) return [];
+    if (Array.isArray(d?.properties?.periods)) return d.properties.periods;
+    if (Array.isArray(d?.periods)) return d.periods;
+    return [];
+  };
+
+  const out = {
+    point,
+    forecastPeriods: getFcstPeriods(fd),
+    hourlyPeriods:   getFcstPeriods(hd),
+    observation:     obs?.properties || obs || null,
+  };
+  return cacheSet(key,out);
+}
+function summarizeObservation(obs){ return {tempF:cToF(obs?.temperature?.value),dewF:cToF(obs?.dewpoint?.value),rh:obs?.relativeHumidity?.value,windMph:msToMph(obs?.windSpeed?.value),gustMph:msToMph(obs?.windGust?.value),visMiles:kmToMiles(obs?.visibility?.value/1000),text:obs?.textDescription||"",timestamp:obs?.timestamp||""}; }
+function summarizeRegionPoints(pkgs){ const obs=pkgs.map(p=>summarizeObservation(p?.observation||{})); const dp=pkgs.flatMap(p=>(p?.forecastPeriods||[]).slice(0,6)); const hp=pkgs.flatMap(p=>(p?.hourlyPeriods||[]).slice(0,24)); return {tempRange:[minVal(obs.map(o=>o.tempF)),maxVal(obs.map(o=>o.tempF))],dewRange:[minVal(obs.map(o=>o.dewF)),maxVal(obs.map(o=>o.dewF))],rhAvg:avgVal(obs.map(o=>o.rh)),windMax:maxVal(obs.map(o=>o.windMph)),gustMax:maxVal(obs.map(o=>o.gustMph)),visMin:minVal(obs.map(o=>o.visMiles)),popMax:highestPcp(hp),joinedForecast:dp.map(p=>`${p.shortForecast||""} ${p.detailedForecast||""}`).join(" "),hourlyHaz:extractHourlyHazards(hp),dailyPeriods:dp,hourlyPeriods:hp,observations:obs}; }
+async function fetchRegionForecast(r){
+  // Stagger requests to avoid NWS rate limiting
+  const results = [];
+  for (const pt of REGION_POINTS[r]) {
+    results.push(await fetchPointPackage(pt).catch(()=>null));
+    await sleep(150);
+  }
+  return summarizeRegionPoints(results.filter(Boolean));
+}
+async function fetchRegionPackages(r){
+  const results = [];
+  for (const pt of REGION_POINTS[r]) {
+    results.push(await fetchPointPackage(pt).catch(()=>null));
+    await sleep(150);
+  }
+  return results;
+}
+function classifyRegionHazards(r){ const t=String(r.joinedForecast||"").toLowerCase(),h=r.hourlyHaz||{}; return {thunder:h.thunder+countKeywords(t,["thunderstorm","storms","severe"])>0,severe:h.thunder>=2||countKeywords(t,["severe","damaging winds","large hail"])>0,flood:h.heavyRain>0||(r.popMax||0)>=70||countKeywords(t,["heavy rain","flooding","flash flooding"])>0,winter:h.winter>0||countKeywords(t,["snow","freezing rain","ice","wintry mix","blowing snow"])>0,visibility:h.visibility>0||countKeywords(t,["fog","reduced visibility","smoke","haze"])>0,wind:h.wind>0||(r.gustMax||0)>=30}; }
+
+/* ═══════════════════════════════════════════════════
+   NEW DATA: SPC STORM REPORTS (CSV)
+═══════════════════════════════════════════════════ */
+async function fetchStormReports() {
+  const key = "spc:reports", cached = cacheGet(key, 10*60*1000); if(cached) return cached;
+  try {
+    const d = new Date();
+    // SPC uses UTC date — build today and yesterday strings
+    const fmt = (dt) => {
+      const yy = String(dt.getUTCFullYear()).slice(2);
+      const mm = String(dt.getUTCMonth()+1).padStart(2,'0');
+      const dd = String(dt.getUTCDate()).padStart(2,'0');
+      return `${yy}${mm}${dd}`;
+    };
+    const today = fmt(d);
+    const yest  = fmt(new Date(d - 86400000));
+
+    const tryDate = async (date) => {
+      const [torR, windR, hailR] = await Promise.allSettled([
+        fetchTextSafe(`https://www.spc.noaa.gov/climo/reports/${date}_rpts_torn.csv`, 10*60*1000),
+        fetchTextSafe(`https://www.spc.noaa.gov/climo/reports/${date}_rpts_wind.csv`, 10*60*1000),
+        fetchTextSafe(`https://www.spc.noaa.gov/climo/reports/${date}_rpts_hail.csv`, 10*60*1000),
+      ]);
+      return {torR, windR, hailR};
+    };
+
+    const parseCSV = (result) => {
+      if (result.status !== 'fulfilled' || !result.value) return [];
+      return result.value.trim().split('\n')
+        .filter(l => l.trim() && !l.startsWith('Time') && !l.startsWith('#'))
+        .map(line => {
+          const p = line.split(',');
+          return {time:p[0]?.trim()||'', magnitude:p[1]?.trim()||'', location:p[2]?.trim()||'', county:p[3]?.trim()||'', state:p[4]?.trim()||'', comments:(p[7]||'').trim()};
+        }).filter(r => r.state);
+    };
+
+    // Try today first; fall back to yesterday if today has no data yet
+    let {torR, windR, hailR} = await tryDate(today);
+    let dateUsed = today;
+    const torReports  = parseCSV(torR);
+    const windReports = parseCSV(windR);
+    const hailReports = parseCSV(hailR);
+
+    // If today has zero reports, use yesterday (early UTC morning)
+    if (!torReports.length && !windReports.length && !hailReports.length) {
+      const prev = await tryDate(yest);
+      const pTor  = parseCSV(prev.torR);
+      const pWind = parseCSV(prev.windR);
+      const pHail = parseCSV(prev.hailR);
+      if (pTor.length || pWind.length || pHail.length) {
+        dateUsed = yest;
+        return cacheSet(key, {torReports:pTor, windReports:pWind, hailReports:pHail, dateStr:yest, note:'Previous day'});
+      }
+    }
+
+    return cacheSet(key, {torReports, windReports, hailReports, dateStr:dateUsed, note:''});
+  } catch(e) {
+    return {torReports:[], windReports:[], hailReports:[], dateStr:'', error:true};
+  }
+}
+function renderStormReports(data) {
+  const el = document.getElementById('stormReportBody');
+  const tsEl = document.getElementById('stormReportTs');
+  if (!el) return;
+
+  const {torReports, windReports, hailReports} = data;
+  const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  if (tsEl) tsEl.textContent = `As of ${now} UTC`;
+
+  // Recent reports list (last 10 total, prioritizing tornadoes)
+  const allReports = [
+    ...torReports.slice(-5).map(r=>({...r,type:'tor'})),
+    ...windReports.slice(-3).map(r=>({...r,type:'wind'})),
+    ...hailReports.slice(-3).map(r=>({...r,type:'hail'})),
+  ].sort((a,b)=>(b.time||'').localeCompare(a.time||'')).slice(0,8);
+
+  const recentHtml = allReports.length ? allReports.map(r => {
+    const typeLabel = r.type==='tor'?'Tornado':r.type==='wind'?'Wind':'Hail';
+    const typeClass = r.type==='tor'?'badgeHot':r.type==='wind'?'badgeWarn':'badgeGood';
+    return `<div class="miniItem"><span class="badge ${typeClass}" style="margin-right:6px;">${typeLabel}</span><strong>${escHtml(r.location||'—')}, ${escHtml(r.state)}</strong>${r.magnitude?` <span style="color:var(--text-dim);">F${escHtml(r.magnitude)}</span>`:""}${r.comments?`<br><span style="color:var(--text-dim);font-size:11px;">${escHtml(r.comments.slice(0,120))}</span>`:""}</div>`;
+  }).join('') : `<div class="empty">No storm reports yet today, or reports unavailable.</div>`;
+
+  el.innerHTML = `
+    <div class="stormReportRow">
+      <div class="stormReportCard tor">
+        <div class="stormReportCount tor">${torReports.length}</div>
+        <div class="stormReportLabel">Tornado Reports</div>
+        <div class="stormReportSub">Today — storm report database</div>
+      </div>
+      <div class="stormReportCard wind">
+        <div class="stormReportCount wind">${windReports.length}</div>
+        <div class="stormReportLabel">Wind Reports</div>
+        <div class="stormReportSub">Today — 58+ mph or structural damage</div>
+      </div>
+      <div class="stormReportCard hail">
+        <div class="stormReportCount hail">${hailReports.length}</div>
+        <div class="stormReportLabel">Hail Reports</div>
+        <div class="stormReportSub">Today — 1.00"+ diameter</div>
+      </div>
+    </div>
+    <div class="miniGroup">
+      <div class="miniHead">Most Recent Reports</div>
+      <div class="miniBody">${recentHtml}</div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   NEW DATA: SPC MESOSCALE DISCUSSIONS (RSS)
+═══════════════════════════════════════════════════ */
+async function fetchSpcMDs() {
+  const key = "spc:md", cached = cacheGet(key, 10*60*1000); if(cached) return cached;
+  try {
+    // SPC MD list page — RSS feed no longer available at the old URL
+    const rawHtml = await fetchTextSafe('https://www.spc.noaa.gov/products/md/', 10*60*1000);
+    // Parse MD links from the page — they follow pattern like /products/md/md1234.html
+    const mdMatches = [...rawHtml.matchAll(/href="([^"]*\/md\/md(\d+)\.html)"/gi)];
+    const seen = new Set();
+    const mds = [];
+    for (const m of mdMatches.slice(0, 8)) {
+      const num = m[2];
+      if (seen.has(num)) continue;
+      seen.add(num);
+      const url = m[1].startsWith('http') ? m[1] : `https://www.spc.noaa.gov${m[1].startsWith('/') ? '' : '/products/md/'}${m[1].startsWith('/') ? m[1] : ''}`;
+      mds.push({
+        title:   `SPC Mesoscale Discussion ${num}`,
+        link:    m[1].startsWith('http') ? m[1] : `https://www.spc.noaa.gov${m[1]}`,
+        pubDate: '',
+        desc:    ''
+      });
+    }
+    return cacheSet(key, mds);
+  } catch(e) { return []; }
+}
+
+function renderSpcMDs(mds, el) {
+  const tsEl = document.getElementById('mdTs');
+  if (!el) return;
+  if (tsEl) tsEl.textContent = `${mds.length} active`;
+  if (!mds.length) { el.innerHTML = `<div class="empty">No active SPC Mesoscale Discussions.</div>`; return; }
+  el.innerHTML = mds.map(md => `
+    <div class="mdCard">
+      <div class="mdCardHead">
+        <div class="mdCardTitle"><a href="${escHtml(md.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">🔶 ${escHtml(md.title)}</a></div>
+        <div class="mdCardTs">${md.pubDate ? new Date(md.pubDate).toLocaleString([],{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
+      </div>
+      <div class="mdCardText">${escHtml(md.desc)}${md.desc.length>=200?'…':''}</div>
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   NEW DATA: NHC ACTIVE STORMS (proper JSON)
+═══════════════════════════════════════════════════ */
+async function fetchNhcStorms() {
+  const key = "nhc:storms", cached = cacheGet(key, 15*60*1000); if(cached) return cached;
+  try {
+    const data = await fetchJson('https://www.nhc.noaa.gov/CurrentStorms.json', 15*60*1000);
+    const storms = (data?.activeStorms || []).map(s => ({
+      name:    s.name || '—',
+      type:    s.type || '—',
+      basin:   s.basin || '—',
+      lat:     s.latitudeNumeric,
+      lon:     s.longitudeNumeric,
+      maxWind: s.maxSustainedWind,
+      movement:s.movementDir ? `${s.movementDir}° at ${s.movementSpd||'—'} mph` : '—',
+      status:  s.status || '—',
+      link:    s.advisoryUrl || ''
+    }));
+    return cacheSet(key, {storms, active: storms.length > 0});
+  } catch(e) { return {storms:[], active:false, error:true}; }
+}
+
+function renderTropical(nhc) {
+  const el = document.getElementById('tropicalBody');
+  if (!el) return;
+  if (!nhc.storms.length) {
+    el.innerHTML = `<div class="forecastCard"><div class="forecastTitle">No Active Tropical Storms</div><div class="forecastText">No active NHC tropical cyclone advisories detected in Atlantic or East Pacific basins.</div><div class="forecastMeta">Source: NHC CurrentStorms.json · Checked ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;
+    return;
+  }
+  el.innerHTML = nhc.storms.map(s => `
+    <div class="forecastCard" style="margin-bottom:8px;">
+      <div class="forecastTitle">🌀 ${escHtml(s.name)} — ${escHtml(s.type)}</div>
+      <div class="forecastText">
+        Basin: ${escHtml(s.basin)}<br>
+        Status: ${escHtml(s.status)}<br>
+        Max winds: ${s.maxWind!=null?s.maxWind+' mph':'—'}<br>
+        Movement: ${escHtml(s.movement)}<br>
+        Location: ${s.lat!=null?s.lat.toFixed(1)+'°N':'—'}, ${s.lon!=null?Math.abs(s.lon).toFixed(1)+'°W':'—'}
+      </div>
+      ${s.link?`<div class="forecastMeta"><a href="${escHtml(s.link)}" target="_blank" rel="noopener" style="color:var(--accent);">View NHC advisory ↗</a></div>`:''}
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   WPC ERO — minimal text fetch for risk labels only
+═══════════════════════════════════════════════════ */
+async function fetchEroLabels() {
+  const key = "wpc:erolabels", cached = cacheGet(key, 30*60*1000); if(cached) return cached;
+  const results = await Promise.all([1,2,3].map(async day => {
+    try {
+      const html = await fetchText(`https://www.wpc.ncep.noaa.gov/qpf/ero.php?day=${day}&opt=curr`, 30*60*1000);
+      const plain = html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+      let category = "No listed risk";
+      if(/high risk/i.test(plain)) category="High";
+      else if(/moderate risk/i.test(plain)) category="Moderate";
+      else if(/slight risk/i.test(plain)) category="Slight";
+      else if(/marginal risk/i.test(plain)) category="Marginal";
+      return {day, category};
+    } catch(e) { return {day, category:"—"}; }
+  }));
+  return cacheSet(key, results);
+}
+
+function renderEroBadges(eroDays) {
+  eroDays.forEach((d,i) => {
+    const el = document.getElementById(`eroBadge${i+1}`);
+    if (!el) return;
+    const cls = d.category==="High"?"badgeHot":d.category==="Moderate"?"badgeWarn":d.category==="Slight"?"badgeCool":d.category==="Marginal"?"badgeGood":"";
+    el.className = `mapBadge ${cls}`;
+    el.textContent = d.category;
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   BUILD REGION RANKING
+═══════════════════════════════════════════════════ */
+function buildRegionRanking(alerts, regionForecasts) {
+  return REGION_ORDER.map(region => {
+    const s = REGION_STATES[region];
+    const tornado = regionScore(alerts,s,a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("tornado")||isPossibleTornadoSevere(a);});
+    const severe  = regionScore(alerts,s,a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("severe thunderstorm")||ev.includes("extreme wind");});
+    const flood   = regionScore(alerts,s,a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("flash flood")||ev.includes("flood");});
+    const winter  = regionForecasts?.[region]?(classifyRegionHazards(regionForecasts[region]).winter?2:0):0;
+    return {name:region, tornado, severe, flood, winter, total:tornado+severe+flood+winter, forecast:regionForecasts?.[region]||null};
+  }).sort((a,b)=>b.total-a.total);
+}
+
+/* ═══════════════════════════════════════════════════
+   FIRE WEATHER INTELLIGENCE
+═══════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════
+   RENDER FUNCTIONS
+═══════════════════════════════════════════════════ */
+function renderNationalSituation(alerts, regionRankings, nhcData) {
+  const el = document.getElementById('nationSitBody'); if(!el) return;
+  const tsEl = document.getElementById('situationTs');
+  if (tsEl) tsEl.textContent = `As of ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+
+  const torWarn = alerts.filter(a=>String(a.event||"").toLowerCase()==="tornado warning").length;
+  const sevWarn = alerts.filter(a=>String(a.event||"").toLowerCase()==="severe thunderstorm warning").length;
+  const ffWarn  = alerts.filter(a=>String(a.event||"").toLowerCase()==="flash flood warning").length;
+  const torWch  = alerts.filter(a=>String(a.event||"").toLowerCase()==="tornado watch").length;
+  const emg     = alerts.filter(a=>hasTag(a,"EMERGENCY")).length;
+  const pds     = alerts.filter(a=>hasTag(a,"PDS")).length;
+  const top1    = regionRankings[0];
+
+  let narr = "";
+  if (emg > 0)      narr = `<strong>⚠ TORNADO EMERGENCY IN EFFECT.</strong> ${emg} tornado emergency alert${emg>1?"s":""} active. This is the highest NWS tornado threat designation — catastrophic destruction possible. `;
+  else if (torWarn > 0) narr = `<strong>Active tornado warnings in effect.</strong> ${torWarn} tornado warning${torWarn>1?"s":""} currently active across the country. `;
+  else if (sevWarn > 0) narr = `<strong>Severe thunderstorm activity ongoing.</strong> ${sevWarn} severe thunderstorm warning${sevWarn>1?"s":""} in effect. `;
+  else if (ffWarn > 0)  narr = `<strong>Flash flood threat elevated.</strong> ${ffWarn} flash flood warning${ffWarn>1?"s":""} active. `;
+  else narr = "<strong>No active tornado, severe thunderstorm, or flash flood warnings.</strong> National severe weather posture is relatively quiet. ";
+
+  if (top1 && top1.total > 0) narr += `Highest-concern region: <strong>${top1.name}</strong> (score: ${top1.total}). `;
+  if (nhcData?.active) narr += `<strong>Active tropical cyclone(s)</strong> in NHC advisory. `;
+
+  el.innerHTML = `
+    <div class="nationRow">
+      <div class="nationStat d"><div class="nationVal d">${torWarn}</div><div class="nationLabel">Tor. Warnings</div></div>
+      <div class="nationStat w"><div class="nationVal w">${sevWarn}</div><div class="nationLabel">Sev. Warnings</div></div>
+      <div class="nationStat i"><div class="nationVal i">${ffWarn}</div><div class="nationLabel">FF Warnings</div></div>
+      <div class="nationStat d"><div class="nationVal d">${torWch}</div><div class="nationLabel">Tor. Watches</div></div>
+      <div class="nationStat ${emg>0?"d":""}"><div class="nationVal ${emg>0?"d":""}">${emg}</div><div class="nationLabel">Emergencies</div></div>
+      <div class="nationStat ${pds>0?"p":""}"><div class="nationVal ${pds>0?"p":""}">${pds}</div><div class="nationLabel">PDS Alerts</div></div>
+    </div>
+    <div class="nationNarr">${narr}
+      <div class="nationMeta">Total alerts: ${alerts.length} &nbsp;·&nbsp; Severe+: ${severePlusAlerts(alerts).length} &nbsp;·&nbsp; Active threat regions: ${regionRankings.filter(r=>r.total>0).map(r=>r.name).join(", ")||"None"}</div>
+    </div>`;
+}
+
+function renderThreatMatrix(regionRankings, regionForecasts) {
+  const el = document.getElementById('threatMatrixContainer'); if(!el) return;
+  const maxTor=Math.max(...regionRankings.map(r=>r.tornado),1);
+  const maxSev=Math.max(...regionRankings.map(r=>r.severe),1);
+  const maxFld=Math.max(...regionRankings.map(r=>r.flood),1);
+  const rows = REGION_ORDER.map(name => {
+    const r  = regionRankings.find(x=>x.name===name)||{tornado:0,severe:0,flood:0,winter:0};
+    const rf = regionForecasts[name];
+    const hz = rf?classifyRegionHazards(rf):{};
+    const mc = (s,m,cls) => { const p=m>0?Math.round((s/m)*100):0; return `<td><div class="mci"><div class="mbt"><div class="mbf ${cls}" style="width:${p}%"></div></div><span class="msc">${s}</span></div></td>`; };
+    const mb = (on,cls) => `<td><div class="mci"><div class="mbt"><div class="mbf ${cls}" style="width:${on?100:0}%"></div></div><span class="msig ${on?"on":""}">${on?"YES":"—"}</span></div></td>`;
+    return `<tr><td><div class="matrixRegion">${escHtml(name)}</div><div class="matrixStates">${escHtml(REGION_ABBR[name]||"")}</div></td>${mc(r.tornado,maxTor,"tor")}${mc(r.severe,maxSev,"sev")}${mc(r.flood,maxFld,"fld")}${mb(r.winter>0,"win")}${mb(hz.wind||false,"wnd")}${mb(hz.visibility||false,"vis")}</tr>`;
+  }).join("");
+  el.innerHTML = `<table class="threatMatrix"><thead><tr><th>Region</th><th>Tornado</th><th>Severe T-Storm</th><th>Flood</th><th>Winter / Ice</th><th>Wind</th><th>Visibility</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderRegionalDeepDive(regionPackages, regionForecasts, regionRankings, alerts) {
+  const el = document.getElementById('regionDeepGrid'); if(!el) return;
+  el.innerHTML = REGION_ORDER.map(region => {
+    const r    = regionForecasts[region];
+    const pkgs = (regionPackages[region]||[]).filter(Boolean);
+    const ri   = regionRankings.find(x=>x.name===region)||{tornado:0,severe:0,flood:0,winter:0,total:0};
+    const hz   = r?classifyRegionHazards(r):{};
+    const ra   = alerts.filter(a=>inRegion(a,REGION_STATES[region]));
+    const torC = ra.filter(a=>String(a.event||"").toLowerCase().includes("tornado warning")).length;
+    const sevC = ra.filter(a=>String(a.event||"").toLowerCase().includes("severe thunderstorm warning")).length;
+    const fldC = ra.filter(a=>String(a.event||"").toLowerCase().includes("flash flood")).length;
+    const chips = [];
+    if(ri.tornado>0) chips.push(`<span class="badge badgeHot">Tornado</span>`);
+    if(ri.severe>0)  chips.push(`<span class="badge badgeWarn">Severe</span>`);
+    if(ri.flood>0)   chips.push(`<span class="badge badgeCool">Flood</span>`);
+    if(hz.winter)    chips.push(`<span class="badge">Winter</span>`);
+    if(hz.wind)      chips.push(`<span class="badge">Wind</span>`);
+    if(chips.length===0) chips.push(`<span class="badge badgeGood">Quiet</span>`);
+    const cityRows = pkgs.map(pkg => {
+      const o = summarizeObservation(pkg?.observation||{});
+      return `<tr>
+        <td class="cityName">${escHtml((pkg?.point?.name||"—").replace(/, [A-Z]{2}$/,""))}</td>
+        <td>${o.tempF!=null?`${Math.round(o.tempF)}°`:"—"}</td>
+        <td>${o.dewF!=null?`${Math.round(o.dewF)}°`:"—"}</td>
+        <td>${o.rh!=null?`${Math.round(o.rh)}%`:"—"}</td>
+        <td>${o.windMph!=null?`${Math.round(o.windMph)}`:"—"}${o.gustMph!=null?`g${Math.round(o.gustMph)}`:""}</td>
+        <td>${o.visMiles!=null?o.visMiles.toFixed(0)+"mi":"—"}</td>
+      </tr>`;
+    }).join("");
+    const dp = r&&r.dailyPeriods?r.dailyPeriods[0]:null;
+    return `<div class="regionDeepCard">
+      <div class="regionDeepHead"><div class="regionDeepName">${escHtml(region)}</div><div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">${ra.length} alerts</div></div>
+      <div class="regionDeepBody">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">${chips.join("")}</div>
+        <div class="regionAggRow">
+          <div class="regionAggItem"><div class="regionAggVal">${escHtml(r?`${prettyTempF(r.tempRange[0])}–${prettyTempF(r.tempRange[1])}`:"—")}</div><div class="regionAggLabel">Temp Range</div></div>
+          <div class="regionAggItem"><div class="regionAggVal">${escHtml(r?`${prettyTempF(r.dewRange[0])}–${prettyTempF(r.dewRange[1])}`:"—")}</div><div class="regionAggLabel">Dewpoint</div></div>
+          <div class="regionAggItem"><div class="regionAggVal">${escHtml(r?prettyPct(r.rhAvg):"—")}</div><div class="regionAggLabel">Avg RH</div></div>
+          <div class="regionAggItem"><div class="regionAggVal">${escHtml(r?prettyWind(r.gustMax):"—")}</div><div class="regionAggLabel">Max Gust</div></div>
+          <div class="regionAggItem"><div class="regionAggVal">${escHtml(r?prettyPct(r.popMax):"—")}</div><div class="regionAggLabel">Max PoP</div></div>
+          <div class="regionAggItem"><div class="regionAggVal">${escHtml(r&&r.visMin!=null?prettyVis(r.visMin):"—")}</div><div class="regionAggLabel">Min Vis</div></div>
+        </div>
+        <table class="cityTable">
+          <thead><tr><th>City</th><th>Tmp</th><th>Dew</th><th>RH</th><th>Wind</th><th>Vis</th></tr></thead>
+          <tbody>${cityRows||`<tr><td colspan="6" style="color:var(--text-muted);font-family:var(--font-display);font-size:11px;padding:6px 5px;">Obs loading…</td></tr>`}</tbody>
+        </table>
+        <div class="regionFcst">${dp?`<strong>${escHtml(dp.name||"")}:</strong> ${escHtml(dp.shortForecast||"—")}`:"Forecast unavailable."}</div>
+        <div style="margin-top:6px;font-family:var(--font-display);font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);">Tor:${ri.tornado} Sev:${ri.severe} Fld:${ri.flood} Win:${ri.winter}${torC>0?` · ⚠${torC}TW`:""}${sevC>0?` ·${sevC}SW`:""}${fldC>0?` ·${fldC}FF`:""}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderCurrentConditions(regionMap) {
+  const el = document.getElementById('currentRegionGrid'); if(!el) return;
+  el.innerHTML = REGION_ORDER.map(region => {
+    const r = regionMap[region];
+    if (!r) return `<div class="currentCard"><div class="currentTitle">${escHtml(region)}</div><div class="currentText">Data unavailable.</div></div>`;
+    const hz = classifyRegionHazards(r);
+    const chips = [hz.severe?"Severe signal":null,hz.flood?"Flood signal":null,hz.winter?"Winter signal":null,hz.wind?"Wind signal":null,hz.visibility?"Visibility concern":null].filter(Boolean);
+    const dp = r.dailyPeriods[0]||{};
+    return `<div class="currentCard"><div class="currentTitle">${escHtml(region)}</div><div class="badges" style="justify-content:flex-start;margin-bottom:8px;">${chips.length?chips.map(c=>`<span class="badge badgeCool">${escHtml(c)}</span>`).join(""):`<span class="badge badgeGood">Lower-end signal</span>`}</div><div class="currentText">Temp: ${escHtml(prettyTempF(r.tempRange[0]))}–${escHtml(prettyTempF(r.tempRange[1]))}<br>Dew: ${escHtml(prettyTempF(r.dewRange[0]))}–${escHtml(prettyTempF(r.dewRange[1]))}<br>Avg RH: ${escHtml(prettyPct(r.rhAvg))}<br>Max wind: ${escHtml(prettyWind(r.windMax))} / Gust: ${escHtml(prettyWind(r.gustMax))}<br>Min vis: ${Number.isFinite(r.visMin)?escHtml(r.visMin.toFixed(1)+" mi"):"—"}<br>Max PoP: ${escHtml(prettyPct(r.popMax))}</div><div class="currentMeta">Lead forecast: ${escHtml(safeText(dp.shortForecast||"Unavailable"))}</div></div>`;
+  }).join("");
+}
+
+function renderForecastTimeline(regionForecasts, regionRankings) {
+  const tl = document.getElementById('fcstTimelineGrid'), hint = document.getElementById('fcstTimelineHint');
+  if (!tl) return;
+  const top = regionRankings.find(r=>r.total>0);
+  const rn = top?top.name:"Plains";
+  const rf = regionForecasts[rn];
+  if (!rf||!rf.dailyPeriods.length) { tl.innerHTML = "<div class='loadingBox'>Forecast timeline unavailable.</div>"; return; }
+  if (hint) hint.textContent = `Next 8 forecast periods — ${rn} (highest-concern region)`;
+  tl.innerHTML = rf.dailyPeriods.slice(0,8).map(p => {
+    const pop = p.probabilityOfPrecipitation?.value;
+    return `<div class="fcstPeriodCard"><div class="fcstPeriodName">${escHtml(p.name||"—")}</div><div class="fcstPeriodShort">${escHtml(p.shortForecast||"—")}</div><div class="fcstPeriodTemp">${p.temperature!=null?`${p.temperature}°${p.temperatureUnit||"F"}`:"—"}</div>${pop!=null?`<div class="fcstPeriodPop">${Math.round(pop)}% precip</div>`:""}</div>`;
+  }).join("");
+}
+
+function setLoadingState() {
+  const b = document.getElementById("swccLoadingBanner"); if(b) b.style.display="block";
+  ["priorityList","newestList","updatedList","expiringList","tornadoDesk","severeDesk","floodDesk","taggedList","stateBars","commandLog","hotspotList","fiveDayBoard","intensifyingList","steadyList","improvingList","issuanceRateList","tornadoStateBars","severeStateBars","floodStateBars","plainsDesk","southDesk","midwestDesk","northeastDesk","westDesk","currentRegionGrid","floodOutlookList","winterOutlookList","nationalSignalList"].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=makeLoadingBox("Loading…"); });
+  ["outlookTornado","outlookSevere","outlookFlood","outlookWinter","outlookTropical","near1","near2","near3"].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent="Loading…"; });
+  ["outlookTornadoMeta","outlookSevereMeta","outlookFloodMeta","outlookWinterMeta","outlookTropicalMeta","near1Meta","near2Meta","near3Meta"].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent="Please wait."; });
+  const u = document.getElementById("swccUpdated"); if(u) u.textContent="Loading…";
+}
+
+function renderCards(items, targetId, emptyText, mode="default") {
+  const el = document.getElementById(targetId); if(!el) return;
+  if (!items.length) { el.innerHTML=`<div class="empty">${escHtml(emptyText)}</div>`; return; }
+  el.innerHTML = items.map((a,idx) => {
+    if(a&&a.id) alertLookup.set(String(a.id),a);
+    const sev=safeText(a.severity),urg=safeText(a.urgency),cert=safeText(a.certainty);
+    let rankHtml="";
+    if(mode==="priority") rankHtml=`<div class="cardRank">Priority #${idx+1} · Score ${priorityScore(a)}</div>`;
+    else if(mode==="newest") rankHtml=`<div class="cardRank">Newest #${idx+1}</div>`;
+    return `<div class="card" data-alertid="${escHtml(safeText(a.id))}">${rankHtml}<div class="cardTop"><div class="cardTitle">${escHtml(safeText(a.event))}</div><div class="badges">${tagBadgesHtml(a)}<span class="badge ${severityClass(sev)}">${escHtml(sev)}</span><span class="badge">${escHtml(urg)}</span><span class="badge">${escHtml(cert)}</span></div></div><div class="cardMeta">${escHtml(safeText(a.area))}<br>Issued: ${escHtml(prettyTime(a.sent||a.effective||a.onset||""))} · Expires: ${escHtml(prettyTime(a.expires||""))}</div><div class="cardHeadline">${escHtml(safeText(a.headline))}</div></div>`;
+  }).join("");
+}
+function renderMiniList(items,targetId,formatter,emptyText){ const el=document.getElementById(targetId); if(!el) return; if(!items.length){ el.innerHTML=`<div class="empty">${escHtml(emptyText)}</div>`; return; } el.innerHTML=items.map(formatter).join(""); }
+function makeBarRows(items){ if(!items.length) return `<div class="empty">No data.</div>`; const mx=Math.max(...items.map(x=>x.value),1); return items.map(item=>{ const w=Math.max(4,Math.round((item.value/mx)*100)); return `<div class="barRow"><div class="barLabel" title="${escHtml(item.label)}">${escHtml(item.label)}</div><div class="barTrack"><div class="barFill" style="width:${w}%"></div></div><div class="barValue">${item.value}</div></div>`; }).join(""); }
+
+function openDetails(a) {
+  if(!a) return;
+  document.getElementById("dEvent").textContent=safeText(a.event);
+  document.getElementById("dSeverity").textContent=`Severity: ${safeText(a.severity)}`;
+  document.getElementById("dUrgency").textContent=`Urgency: ${safeText(a.urgency)}`;
+  document.getElementById("dCertainty").textContent=`Certainty: ${safeText(a.certainty)}`;
+  document.getElementById("dArea").textContent=safeText(a.area);
+  let timing=`Issued: ${safeText(prettyTime(a.sent||a.effective||a.onset||""))}`;
+  if(a.updated) timing+=`\nUpdated: ${safeText(prettyTime(a.updated))}`;
+  if(a.expires) timing+=`\nExpires: ${safeText(prettyTime(a.expires))}`;
+  document.getElementById("dTiming").textContent=timing;
+  document.getElementById("dHeadline").textContent=safeText(a.headline);
+  document.getElementById("dInstruction").textContent=safeText(a.instruction);
+  document.getElementById("dDescription").textContent=safeText(a.description);
+  document.getElementById("dSender").textContent=`Sender: ${safeText(a.sender)}`;
+  document.getElementById("dId").textContent=`ID: ${safeText(a.id)}`;
+  document.getElementById("detailsOverlay").classList.add("show");
+  document.getElementById("detailsModal").classList.add("show");
+}
+function closeDetails(){ document.getElementById("detailsOverlay").classList.remove("show"); document.getElementById("detailsModal").classList.remove("show"); }
+function syncSettingsUI(){ const t=document.getElementById("toggleNoAlaska"),txt=document.getElementById("noAlaskaText"); if(t) t.checked=!!settings.noAlaska; if(txt) txt.textContent=`Hide Alaska: ${settings.noAlaska?"ON":"OFF"}`; }
+
+function setupAccordions() {
+  document.querySelectorAll(".accordionToggle[data-acc-target]").forEach(btn => {
+    btn.addEventListener("click",()=>{
+      const id=btn.getAttribute("data-acc-target"),target=document.getElementById(id); if(!target) return;
+      const icon=btn.querySelector(".accIcon"),collapsed=target.classList.contains("collapsed");
+      target.classList.toggle("collapsed",!collapsed);
+      if(icon) icon.textContent=collapsed?"−":"+";
+    });
+  });
+}
+function setupNoticeBar(){
+  const bar=document.getElementById("swccNoticeBar"),btn=document.getElementById("btnCloseSwccNotice"); if(!bar||!btn) return;
+  if(localStorage.getItem(NOTICE_KEY)==="1"){ bar.classList.add("hidden"); document.body.style.paddingBottom="0px"; }
+  btn.addEventListener("click",()=>{ bar.classList.add("hidden"); localStorage.setItem(NOTICE_KEY,"1"); document.body.style.paddingBottom="0px"; });
+}
+
+/* ═══════════════════════════════════════════════════
+   LOAD FORECAST SECTION
+═══════════════════════════════════════════════════ */
+async function loadForecastSection(alerts, token) {
+  if (token !== swccLoadToken) return;
+  beginTask(token);
+
+  // ── Step 1: Fast data (no NWS API calls) — always works ──────────────
+  try {
+    const [eroLabels, nhcData, stormReports, spcMDs] = await Promise.all([
+      fetchEroLabels(),
+      fetchNhcStorms(),
+      fetchStormReports(),
+      fetchSpcMDs(),
+    ]);
+    renderNationalSituation(alerts, [], nhcData);
+    renderStormReports(stormReports);
+    renderSpcMDs(spcMDs, document.getElementById('mdList'));
+    setTs('tsNational', 'Updated');
+    renderEroBadges(eroLabels);
+    renderTropical(nhcData);
+    loadSpcOutlooks();
+  } catch(e) {
+    console.warn('[loadForecastSection] Fast data failed:', e);
+  }
+
+  // ── Set basic narratives immediately from alert data (no NWS API needed) ──
+  try {
+    ['outlookTornado','outlookSevere','outlookFlood','outlookWinter','outlookTropical',
+     'near1','near2','near3'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.textContent === 'Loading…') el.textContent = 'Loading regional data…';
+    });
+    // Set simple alert-based narratives right away
+    const torWarn = alerts.filter(a=>String(a.event||'').toLowerCase()==='tornado warning').length;
+    const sevWarn = alerts.filter(a=>String(a.event||'').toLowerCase()==='severe thunderstorm warning').length;
+    const ffWarn  = alerts.filter(a=>String(a.event||'').toLowerCase()==='flash flood warning').length;
+    document.getElementById('outlookTornado').textContent = torWarn > 0
+      ? `${torWarn} active tornado warning${torWarn>1?'s':''} — see Live Operations for affected areas.`
+      : 'No active tornado warnings. Regional analysis loading…';
+    document.getElementById('outlookTornadoMeta').textContent = `${torWarn} tornado warnings · ${alerts.filter(a=>String(a.event||'').toLowerCase()==='tornado watch').length} watches active`;
+    document.getElementById('outlookSevere').textContent = sevWarn > 0
+      ? `${sevWarn} active severe thunderstorm warning${sevWarn>1?'s':''} — see Live Operations for affected areas.`
+      : 'No active severe thunderstorm warnings. Regional analysis loading…';
+    document.getElementById('outlookSevereMeta').textContent = `${sevWarn} severe thunderstorm warnings active`;
+    document.getElementById('outlookFlood').textContent = ffWarn > 0
+      ? `${ffWarn} active flash flood warning${ffWarn>1?'s':''} — see Live Operations for affected areas.`
+      : 'No active flash flood warnings. Regional analysis loading…';
+    document.getElementById('outlookFloodMeta').textContent = `${ffWarn} flash flood warnings active`;
+  } catch(e) {}
+
+  // ── Step 2: WPC + Fire data (HTTP fetches, independent) ──────────────
+  try { await loadAndRenderWpcSection(); setTs('tsWpc','Updated'); } catch(e) { setTs('tsWpc','Error',true); console.warn('[WPC section]', e); }
+  try { await loadAndRenderFireSection(); } catch(e) { console.warn('[Fire section]', e); }
+
+  // ── Step 3: Regional forecast data (NWS API, slow, staggered) ────────
+  let regionForecasts = {}, regionPackages = {}, regionRankings = [];
+  try {
+    // Run all regions in parallel — cities within each region are staggered 200ms
+    const [regionPairs, regionPkgPairs] = await Promise.all([
+      Promise.all(REGION_ORDER.map(async r => [r, await fetchRegionForecast(r).catch(() => null)])),
+      Promise.all(REGION_ORDER.map(async r => [r, await fetchRegionPackages(r).catch(() => null)])),
+    ]);
+    regionForecasts = Object.fromEntries(regionPairs.filter(([,v]) => v));
+    regionPackages  = Object.fromEntries(regionPkgPairs.filter(([,v]) => v));
+    regionRankings  = buildRegionRanking(alerts, regionForecasts);
+
+    // Re-render national situation with full regional data
+    const [,,, nhcData] = await Promise.all([
+      Promise.resolve(), Promise.resolve(), Promise.resolve(),
+      fetchNhcStorms(),
+    ]).catch(() => [null,null,null,{storms:[],active:false}]);
+    renderNationalSituation(alerts, regionRankings, nhcData || {storms:[],active:false});
+  } catch(e) {
+    console.warn('[loadForecastSection] Regional data failed:', e);
+    ['threatMatrixContainer','regionDeepGrid','currentRegionGrid','fcstTimelineGrid'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div class="empty">Regional data unavailable — NWS API may be rate limiting. Will retry on next refresh.</div>';
+    });
+  }
+
+  // ── Step 4: Render regional panels (only if we got data) ─────────────
+  if (Object.keys(regionForecasts).length > 0) {
+    try { renderThreatMatrix(regionRankings, regionForecasts); } catch(e) { console.warn(e); }
+    try { renderRegionalDeepDive(regionPackages, regionForecasts, regionRankings, alerts); } catch(e) { console.warn(e); }
+    try { renderCurrentConditions(regionForecasts); } catch(e) { console.warn(e); }
+    try { renderForecastTimeline(regionForecasts, regionRankings); } catch(e) { console.warn(e); }
+    setTs('tsRegional', 'Updated');
+  }
+
+  // ── Step 5: Forecast narratives (depends on regional data) ───────────
+  try {
+    const nhcData = await fetchNhcStorms().catch(() => ({storms:[],active:false}));
+    const stormReports = await fetchStormReports().catch(() => ({torReports:[],windReports:[],hailReports:[]}));
+    const eroLabels = await fetchEroLabels().catch(() => []);
+
+    // Narratives
+    document.getElementById("outlookTornado").textContent = topRegionSummary(alerts, a => String(a.event||"").toLowerCase().includes("tornado") || isPossibleTornadoSevere(a), "No strong tornado concern areas currently stand out") + ".";
+    document.getElementById("outlookTornadoMeta").textContent = `${alerts.filter(a=>String(a.event||"").toLowerCase().includes("tornado warning")).length} active tornado warnings + ${alerts.filter(a=>String(a.event||"").toLowerCase().includes("tornado watch")).length} watches.`;
+    document.getElementById("outlookSevere").textContent = topRegionSummary(alerts, a => {const ev=String(a.event||"").toLowerCase();return ev.includes("severe thunderstorm")||ev.includes("extreme wind");}, "No strong severe concern areas currently stand out") + ".";
+    document.getElementById("outlookSevereMeta").textContent = `${alerts.filter(a=>String(a.event||"").toLowerCase().includes("severe thunderstorm")).length} active severe thunderstorm alerts.`;
+    document.getElementById("outlookFlood").textContent = `Flood concern based on active flash flood and flood alerts. Day 1 WPC ERO: ${eroLabels[0]?.category||"—"} · Day 2: ${eroLabels[1]?.category||"—"} · Day 3: ${eroLabels[2]?.category||"—"}.`;
+    document.getElementById("outlookFloodMeta").textContent = `${alerts.filter(a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("flash flood")||ev.includes("flood");}).length} active flood-type alerts.`;
+    const winterLeaders = regionRankings.filter(r=>r.winter>0).slice(0,3).map(r=>r.name).join(" · ") || "No strong winter signal";
+    document.getElementById("outlookWinter").textContent = `Winter / visibility concern: ${winterLeaders}.`;
+    document.getElementById("outlookWinterMeta").textContent = "Based on NWS forecast wording analysis.";
+    document.getElementById("outlookTropical").textContent = nhcData.active ? `NHC tracking ${nhcData.storms.length} active storm${nhcData.storms.length>1?"s":""}. ${nhcData.storms.map(s=>`${s.name} (${s.type})`).join(", ")}.` : "No active tropical cyclone advisories from NHC.";
+    document.getElementById("outlookTropicalMeta").textContent = "Source: NHC CurrentStorms.json";
+
+    const top1 = regionRankings[0], top2 = regionRankings[1], top3 = regionRankings[2];
+    document.getElementById("near1").textContent = top1&&top1.total>0 ? `${top1.name} is the highest-concern region right now.` : "No major national near-term hotspot.";
+    document.getElementById("near1Meta").textContent = top1&&top1.total>0 ? `Tor: ${top1.tornado} · Sev: ${top1.severe} · Fld: ${top1.flood} · Win: ${top1.winter}` : "National signal low.";
+    document.getElementById("near2").textContent = top2&&top2.total>0 ? `${top2.name} is the secondary concern region.` : "No clear secondary concern region.";
+    document.getElementById("near2Meta").textContent = top2&&top2.total>0 ? `Tor: ${top2.tornado} · Sev: ${top2.severe} · Fld: ${top2.flood} · Win: ${top2.winter}` : "Secondary signal low.";
+    document.getElementById("near3").textContent = top3&&top3.total>0 ? `${top3.name} is the broader backup concern region.` : "Pattern looks less concentrated beyond top concern regions.";
+    document.getElementById("near3Meta").textContent = top3&&top3.total>0 ? `Tor: ${top3.tornado} · Sev: ${top3.severe} · Fld: ${top3.flood} · Win: ${top3.winter}` : "No third strong region.";
+
+    // Hotspots
+    const hotspotEl = document.getElementById("hotspotList");
+    const hotspots = regionRankings.filter(x=>x.total>0).slice(0,5);
+    if (hotspotEl) hotspotEl.innerHTML = hotspots.length ? hotspots.map((h,i) => {
+      const rf = h.forecast;
+      return `<div class="card staticCard"><div class="cardRank">Hotspot #${i+1}</div><div class="cardTitle">${escHtml(h.name)}</div><div class="cardMeta">Combined threat score: ${h.total}</div><div class="cardHeadline">Tornado: ${h.tornado} · Severe: ${h.severe} · Flood: ${h.flood} · Winter: ${h.winter}</div></div>`;
+    }).join("") : `<div class="empty">No forecast hotspots — alert signal is low nationally.</div>`;
+
+    // ERO list
+    const floodEl = document.getElementById("floodOutlookList");
+    if (floodEl) floodEl.innerHTML = eroLabels.map(d=>`<div class="miniItem"><strong>WPC ERO Day ${d.day}</strong> — ${escHtml(d.category)}</div>`).join("") || '<div class="empty">ERO data unavailable.</div>';
+
+    // Winter signals
+    const winterEl = document.getElementById("winterOutlookList");
+    if (winterEl) {
+      const winterSigs = REGION_ORDER.map(region=>({region,hz:classifyRegionHazards(regionForecasts[region]||{joinedForecast:'',hourlyHaz:{},tempRange:[null,null],dewRange:[null,null]})})).filter(x=>x.hz.winter||x.hz.visibility);
+      winterEl.innerHTML = winterSigs.length ? winterSigs.map(x=>`<div class="miniItem"><strong>${escHtml(x.region)}</strong><br>${x.hz.winter?"❄ Winter wording detected. ":""}${x.hz.visibility?"🌫 Visibility concern detected.":""}</div>`).join("") : `<div class="empty">No winter / visibility signals detected.</div>`;
+    }
+
+    // National signals
+    const signalEl = document.getElementById("nationalSignalList");
+    if (signalEl) {
+      const allHz = REGION_ORDER.map(r => classifyRegionHazards(regionForecasts[r] || {joinedForecast:'',hourlyHaz:{}}));
+      signalEl.innerHTML = `<div class="miniItem">
+        ${allHz.some(h=>h.severe) ? "⚡ Severe thunderstorm wording in at least one region<br>" : "✓ No broad severe wording<br>"}
+        ${allHz.some(h=>h.flood)  ? "🌊 Heavy rain / flood wording in at least one region<br>" : "✓ No broad flood wording<br>"}
+        ${allHz.some(h=>h.winter) ? "❄ Winter weather wording in at least one region<br>" : "✓ No winter wording<br>"}
+        ${allHz.some(h=>h.wind)   ? "💨 Wind advisory wording detected<br>" : ""}
+        ${allHz.some(h=>h.visibility) ? "🌫 Fog / visibility wording detected<br>" : ""}
+        <span style="color:var(--text-muted);font-size:10px;">All signals from NWS forecast API</span>
+      </div>`;
+    }
+
+    // 5-day board
+    const boardEl = document.getElementById("fiveDayBoard");
+    if (boardEl) boardEl.innerHTML = ["Day 1","Day 2","Day 3","Day 4","Day 5"].map((dn,idx) => {
+      const torP = regionRankings.filter(x=>x.tornado>0).slice(0,2);
+      const sevP = regionRankings.filter(x=>x.severe>0).slice(0,2);
+      const fldP = regionRankings.filter(x=>x.flood>0).slice(0,2);
+      const winP = regionRankings.filter(x=>x.winter>0).slice(0,1);
+      const conf = ["Highest confidence","High confidence","Moderate confidence","Lower confidence","Awareness only"][idx];
+      return `<div class="dayCard"><div class="dayTitle">${escHtml(dn)}</div><div class="badges" style="justify-content:flex-start;margin-bottom:8px;"><span class="badge">${escHtml(conf)}</span></div><div class="dayMeta">
+        <div><strong>Tornado:</strong> ${torP.length ? torP.map(x=>`${x.name} (${x.tornado})`).join(" · ") : "No strong signal"}</div>
+        <div><strong>Severe:</strong> ${sevP.length ? sevP.map(x=>x.name).join(" · ") : "No strong signal"}</div>
+        <div><strong>Flood:</strong> ${fldP.length ? fldP.map(x=>x.name).join(" · ") : "None · ERO: "+( eroLabels[Math.min(idx,2)]?.category||"—")}</div>
+        <div><strong>Winter:</strong> ${winP.length ? winP.map(x=>x.name).join(" · ") : "No strong signal"}</div>
+        <div><strong>Tropical:</strong> ${nhcData.active ? nhcData.storms.map(s=>s.name).join(", ") : "No activity"}</div>
+      </div></div>`;
+    }).join("");
+
+    // Intensifying / steady / improving
+    const active = regionRankings.filter(x=>x.total>0);
+    const intEl = document.getElementById("intensifyingList");
+    if (intEl) intEl.innerHTML = active.slice(0,2).map(r=>`<div class="miniItem"><strong>${escHtml(r.name)}</strong><br>Tor: ${r.tornado} · Sev: ${r.severe} · Fld: ${r.flood} · Win: ${r.winter}</div>`).join("") || `<div class="empty">No intensifying regions.</div>`;
+    const steEl = document.getElementById("steadyList");
+    if (steEl) steEl.innerHTML = active.slice(2,4).map(r=>`<div class="miniItem"><strong>${escHtml(r.name)}</strong><br>Tor: ${r.tornado} · Sev: ${r.severe} · Fld: ${r.flood} · Win: ${r.winter}</div>`).join("") || `<div class="empty">No steady regions.</div>`;
+    const impEl = document.getElementById("improvingList");
+    if (impEl) {
+      const improving = REGION_ORDER.filter(n=>!active.some(x=>x.name===n));
+      impEl.innerHTML = improving.slice(0,3).map(n=>`<div class="miniItem"><strong>${escHtml(n)}</strong><br>Below active threshold.</div>`).join("") || `<div class="empty">No improving regions.</div>`;
+    }
+
+    document.getElementById("forecastBoardHint").textContent = "National 5-day concern board — Days 1–5";
+    setTs('tsForecast', 'Updated');
+
+  } catch(e) {
+    console.warn('[loadForecastSection] Narratives failed:', e);
+  }
+
+  endTask(token);
+}
+/* ═══════════════════════════════════════════════════
+   MAIN LOAD
+═══════════════════════════════════════════════════ */
+async function loadSwcc() {
+  swccLoadToken += 1;
+  const token = swccLoadToken;
+  swccPendingTasks = 0;
+  setLoadingState();
+  beginTask(token);
+  // Reload images on every main refresh
+  loadAllImages();
+
+  try {
+    const [dataRes, statusRes] = await Promise.all([
+      fetch("/data_all", {cache:"no-store"}),
+      fetch("/status",   {cache:"no-store"})
+    ]);
+    const data   = await dataRes.json();
+    const status = await statusRes.json();
+    const rawAlerts = Array.isArray(data.alerts) ? data.alerts.slice() : [];
+    const alerts = applyFilter(rawAlerts);
+    alertLookup = new Map();
+
+    const torW  = alerts.filter(a=>String(a.event||"").toLowerCase()==="tornado warning");
+    const sevW  = alerts.filter(a=>String(a.event||"").toLowerCase()==="severe thunderstorm warning");
+    const ffW   = alerts.filter(a=>String(a.event||"").toLowerCase()==="flash flood warning");
+    const torWch= alerts.filter(a=>String(a.event||"").toLowerCase()==="tornado watch");
+    const sevWch= alerts.filter(a=>String(a.event||"").toLowerCase()==="severe thunderstorm watch");
+    const ffWch = alerts.filter(a=>String(a.event||"").toLowerCase()==="flash flood watch");
+    const pdsA  = alerts.filter(a=>hasTag(a,"PDS"));
+    const confA = alerts.filter(a=>hasTag(a,"CONFIRMED"));
+    const emgA  = alerts.filter(a=>hasTag(a,"EMERGENCY"));
+    const possTor=alerts.filter(a=>hasTag(a,"TORNADO POSSIBLE"));
+
+    document.getElementById("countTorWarn").textContent  = torW.length;
+    document.getElementById("countStWarn").textContent   = sevW.length;
+    document.getElementById("countFfWarn").textContent   = ffW.length;
+    document.getElementById("countTorWatch").textContent = torWch.length;
+    document.getElementById("countStWatch").textContent  = sevWch.length;
+    document.getElementById("countFfWatch").textContent  = ffWch.length;
+    document.getElementById("countPds").textContent      = pdsA.length;
+    document.getElementById("countConfirmed").textContent= confA.length;
+    document.getElementById("countEmergency").textContent= emgA.length;
+    document.getElementById("countPossibleTor").textContent=possTor.length;
+    document.getElementById("swccUpdated").textContent   = status?.last_ok_ts
+      ? `Feed: ${new Date(status.last_ok_ts*1000).toLocaleString()}${settings.noAlaska?" · AK off":""}`
+      : "Awaiting feed…";
+
+    const sp             = severePlusAlerts(alerts);
+    const priorityList   = sortByPriority(sp).slice(0,15);
+    const newestSevere   = sp.slice().sort((a,b)=>parseTimeMs(b.sent||b.effective||b.onset||"")-parseTimeMs(a.sent||a.effective||a.onset||"")).slice(0,15);
+    const recentlyUpdated= alerts.slice().sort((a,b)=>parseTimeMs(b.updated||b.sent||b.effective||b.onset||"")-parseTimeMs(a.updated||a.sent||a.effective||a.onset||"")).slice(0,8);
+    const expiringSoon   = alerts.filter(a=>parseTimeMs(a.expires)>Date.now()).slice().sort((a,b)=>parseTimeMs(a.expires)-parseTimeMs(b.expires)).slice(0,8);
+
+    const tornadoDesk  = sortByPriority(alerts.filter(a=>{const ev=String(a.event||"").toLowerCase();return ev==="tornado warning"||ev==="tornado watch";})).slice(0,12);
+    const severeDesk   = sortByPriority(alerts.filter(a=>{const ev=String(a.event||"").toLowerCase();return ev==="severe thunderstorm warning"||ev==="severe thunderstorm watch"||isPossibleTornadoSevere(a);})).slice(0,12);
+    const floodDesk    = sortByPriority(alerts.filter(a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("flash flood")||ev==="flood warning"||ev==="flood advisory"||ev==="flood watch";})).slice(0,12);
+    const taggedAlerts = sortByPriority(alerts.filter(a=>tornadoTagList(a).length>0)).slice(0,12);
+    const plainsDesk   = sortByPriority(alerts.filter(a=>inRegion(a,REGION_STATES.Plains))).slice(0,10);
+    const southDesk    = sortByPriority(alerts.filter(a=>inRegion(a,REGION_STATES.South))).slice(0,10);
+    const midwestDesk  = sortByPriority(alerts.filter(a=>inRegion(a,REGION_STATES.Midwest))).slice(0,10);
+    const northeastDesk= sortByPriority(alerts.filter(a=>inRegion(a,REGION_STATES.Northeast))).slice(0,10);
+    const westDesk     = sortByPriority(alerts.filter(a=>inRegion(a,REGION_STATES.West))).slice(0,10);
+
+    renderCards(priorityList,  "priorityList",   "No priority severe alerts.", "priority");
+    renderCards(newestSevere,  "newestList",     "No newest severe alerts.",   "newest");
+    renderCards(tornadoDesk,   "tornadoDesk",    "No tornado-focused alerts.");
+    renderCards(severeDesk,    "severeDesk",     "No severe thunderstorm desk alerts.");
+    renderCards(floodDesk,     "floodDesk",      "No flood desk alerts.");
+    renderCards(taggedAlerts,  "taggedList",     "No tagged alerts.");
+    renderCards(plainsDesk,    "plainsDesk",     "No Plains alerts.");
+    renderCards(southDesk,     "southDesk",      "No South alerts.");
+    renderCards(midwestDesk,   "midwestDesk",    "No Midwest alerts.");
+    renderCards(northeastDesk, "northeastDesk",  "No Northeast alerts.");
+    renderCards(westDesk,      "westDesk",       "No West alerts.");
+
+    renderMiniList(recentlyUpdated,"updatedList",a=>`<div class="miniItem"><strong>${escHtml(safeText(a.event))}</strong><br>${escHtml(safeText(a.area))}<br>Updated: ${escHtml(prettyTime(a.updated||a.sent||a.effective||a.onset||""))}</div>`,"No recently updated alerts.");
+    renderMiniList(expiringSoon,"expiringList",a=>{ const m=minutesUntil(a.expires); return `<div class="miniItem"><strong>${escHtml(safeText(a.event))}</strong><br>${escHtml(safeText(a.area))}<br>Expires in: ${escHtml(m==null?"—":m+" min")}</div>`; },"No expiring alerts.");
+
+    const stateMap=new Map();
+    alerts.forEach(a=>{ const w=Math.max(1,severityRank(a.severity)); extractStatesFromArea(a.area||"").forEach(st=>{ stateMap.set(st,(stateMap.get(st)||0)+w); }); });
+    document.getElementById("stateBars").innerHTML=makeBarRows(Array.from(stateMap.entries()).map(([l,v])=>({label:l,value:v})).sort((a,b)=>b.value-a.value).slice(0,10));
+    document.getElementById("tornadoStateBars").innerHTML=makeBarRows(makeStateCounts(alerts,a=>{const ev=String(a.event||"").toLowerCase();return ev==="tornado warning"||ev==="tornado watch";}));
+    document.getElementById("severeStateBars").innerHTML=makeBarRows(makeStateCounts(alerts,a=>{const ev=String(a.event||"").toLowerCase();return ev==="severe thunderstorm warning"||ev==="severe thunderstorm watch";}));
+    document.getElementById("floodStateBars").innerHTML=makeBarRows(makeStateCounts(alerts,a=>{const ev=String(a.event||"").toLowerCase();return ev.includes("flash flood")||ev==="flood warning"||ev==="flood advisory"||ev==="flood watch";}));
+
+    const r15=issuedWithinMinutes(alerts,15),r30=issuedWithinMinutes(alerts,30),r60=issuedWithinMinutes(alerts,60),r180=issuedWithinMinutes(alerts,180);
+    document.getElementById("issuanceRateList").innerHTML=`<div class="card staticCard"><div class="cardTitle">Last 15 min</div><div class="cardHeadline">${r15} alerts issued</div></div><div class="card staticCard"><div class="cardTitle">Last 30 min</div><div class="cardHeadline">${r30} alerts issued</div></div><div class="card staticCard"><div class="cardTitle">Last 60 min</div><div class="cardHeadline">${r60} alerts issued</div></div><div class="card staticCard"><div class="cardTitle">Last 3 hours</div><div class="cardHeadline">${r180} alerts issued</div></div>`;
+
+    const cmdItems=[];
+    priorityList.slice(0,5).forEach(a=>{ if(a&&a.id) alertLookup.set(String(a.id),a); cmdItems.push({sk:priorityScore(a)+5000,html:`<div class="card" data-alertid="${escHtml(safeText(a.id))}"><div class="cardRank">High Priority</div><div class="cardTitle">${escHtml(safeText(a.event))}</div><div class="cardMeta">${escHtml(safeText(a.area))}</div><div class="cardHeadline">Score ${priorityScore(a)} · Issued ${escHtml(prettyTime(a.sent||a.effective||a.onset||""))}</div></div>`}); });
+    recentlyUpdated.slice(0,4).forEach(a=>{ if(a&&a.id) alertLookup.set(String(a.id),a); cmdItems.push({sk:parseTimeMs(a.updated||a.sent||""),html:`<div class="card" data-alertid="${escHtml(safeText(a.id))}"><div class="cardRank">Updated</div><div class="cardTitle">${escHtml(safeText(a.event))}</div><div class="cardMeta">${escHtml(safeText(a.area))}</div><div class="cardHeadline">Updated ${escHtml(prettyTime(a.updated||a.sent||""))}</div></div>`}); });
+    expiringSoon.slice(0,4).forEach(a=>{ if(a&&a.id) alertLookup.set(String(a.id),a); const m=minutesUntil(a.expires); cmdItems.push({sk:1000000-(m==null?999999:m),html:`<div class="card" data-alertid="${escHtml(safeText(a.id))}"><div class="cardRank">Expiring</div><div class="cardTitle">${escHtml(safeText(a.event))}</div><div class="cardMeta">${escHtml(safeText(a.area))}</div><div class="cardHeadline">Expires in ${escHtml(m==null?"—":m+" min")}</div></div>`}); });
+    cmdItems.sort((a,b)=>b.sk-a.sk);
+    document.getElementById("commandLog").innerHTML=cmdItems.length?cmdItems.slice(0,12).map(x=>x.html).join(""):`<div class="empty">No command log entries.</div>`;
+    setTs('tsLiveOps', 'Updated');
+
+    await loadForecastSection(alerts, token);
+
+  } catch(e) {
+    ["priorityList","newestList","updatedList","expiringList","tornadoDesk","severeDesk","floodDesk","taggedList","stateBars","commandLog","hotspotList","fiveDayBoard","intensifyingList","steadyList","improvingList","issuanceRateList","tornadoStateBars","severeStateBars","floodStateBars","plainsDesk","southDesk","midwestDesk","northeastDesk","westDesk","currentRegionGrid","floodOutlookList","winterOutlookList","nationalSignalList"].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=`<div class="empty">SWCC failed to load.</div>`; });
+    document.getElementById("swccUpdated").textContent="SWCC failed to load.";
+  } finally { endTask(token); }
+}
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+document.getElementById("btnCloseDetails").addEventListener("click",closeDetails);
+document.getElementById("detailsOverlay").addEventListener("click",closeDetails);
+document.addEventListener("click",e=>{ const c=e.target.closest("[data-alertid]"); if(!c) return; const a=alertLookup.get(c.getAttribute("data-alertid")||""); if(a) openDetails(a); });
+document.getElementById("btnRefresh").addEventListener("click",loadSwcc);
+document.getElementById("toggleNoAlaska").addEventListener("change",()=>{ settings.noAlaska=!!document.getElementById("toggleNoAlaska").checked; saveSettings(); syncSettingsUI(); loadSwcc(); });
+
+syncSettingsUI();
+setupAccordions();
+setupNoticeBar();
+initLightbox();
+initRetryButtons();
+
+// Detect proxy first, then load everything
+// Load everything immediately — do NOT wait for proxy check
+// Proxy check runs in background and updates images when done
+loadSwcc();
+loadSpcOutlooks();
+
+// Proxy detection runs async in background — won't block anything
+detectProxy().then(() => {
+  // Reload images now that we know proxy status
+  loadAllImages();
+  startImgRefreshTimers();
+}).catch(() => {
+  // Even if proxy detection fails, start refresh timers with direct URLs
+  startImgRefreshTimers();
+});
+
+// Main data refresh every 30 seconds
+setInterval(loadSwcc, 30 * 1000);
+setInterval(loadSpcOutlooks, 15 * 60 * 1000); // SPC outlooks update a few times per day
+// Re-detect proxy every 5 minutes (in case server restarts)
+setInterval(detectProxy, 5 * 60 * 1000);
+
+</script>
+</body>
+</html>

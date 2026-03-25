@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changelog - NWS Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;}
+body{font-family:'Barlow',system-ui,sans-serif;background:#04060d;color:#dde4ff;font-size:15px;line-height:1.6;position:relative;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(38,50,90,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(38,50,90,0.07) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 24px;height:60px;background:linear-gradient(135deg,rgba(12,6,24,0.98) 0%,rgba(8,10,26,0.98) 40%,rgba(5,12,30,0.98) 100%);border-bottom:1px solid rgba(55,75,130,0.9);box-shadow:0 2px 24px rgba(0,0,0,0.6);position:relative;}
+.topbar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(41,198,255,0.4),rgba(124,111,255,0.4),transparent);}
+.topbarTitle{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#29c6ff;}
+.backBtn{border:1px solid rgba(55,75,130,0.9);background:rgba(38,50,90,0.25);color:#dde4ff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background 150ms,border-color 150ms;}
+.backBtn:hover{background:rgba(41,198,255,0.1);border-color:rgba(41,198,255,0.5);color:#29c6ff;}
+.container{max-width:860px;margin:0 auto;padding:36px 24px 60px;position:relative;z-index:1;}
+.pageTitle{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:6px;}
+.pageMeta{font-family:'Share Tech Mono',monospace;font-size:11px;color:#5568a0;letter-spacing:1px;margin-bottom:32px;}
+.release{border:1px solid rgba(55,75,130,0.7);border-radius:10px;background:rgba(8,11,22,0.7);margin-bottom:20px;position:relative;overflow:hidden;}
+.release::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(41,198,255,0.4),transparent);}
+.releaseHeader{padding:16px 22px;border-bottom:1px solid rgba(55,75,130,0.5);display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.releaseVersion{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;letter-spacing:2px;color:#fff;}
+.releaseBadge{padding:3px 10px;border-radius:999px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;}
+.badgeLatest{background:rgba(41,198,255,0.15);border:1px solid rgba(41,198,255,0.5);color:#29c6ff;}
+.badgePrev{background:rgba(255,255,255,0.05);border:1px solid rgba(55,75,130,0.6);color:#5568a0;}
+.releaseDate{font-family:'Share Tech Mono',monospace;font-size:11px;color:#5568a0;margin-left:auto;}
+.releaseBody{padding:20px 22px;}
+.section{margin-bottom:20px;}
+.section:last-child{margin-bottom:0;}
+.sectionTitle{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#29c6ff;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sectionTitle::after{content:'';flex:1;height:1px;background:rgba(55,75,130,0.5);}
+.changeList{display:grid;gap:7px;}
+.changeItem{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#b8c8e8;line-height:1.5;}
+.changeIcon{flex-shrink:0;margin-top:1px;}
+a{color:#29c6ff;text-decoration:none;}
+a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbarTitle">Changelog</div>
+  <a class="backBtn" href="/">← Dashboard</a>
+</div>
+
+<div class="container">
+  <div class="pageTitle">Changelog</div>
+  <div class="pageMeta">NWS Alerts — Release History</div>
+
+  <!-- Beta 1.4.3 -->
+  <div class="release">
+    <div class="releaseHeader">
+      <div class="releaseVersion">Beta 1.4.3</div>
+      <span class="releaseBadge badgeLatest">Latest</span>
+      <div class="releaseDate">March 22, 2026</div>
+    </div>
+    <div class="releaseBody">
+
+      <div class="section">
+        <div class="sectionTitle">✨ New Features</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">📢</span><span><strong>Site Announcements</strong> — Admins can now publish announcements that appear as a banner at the top of the dashboard or as a modal popup on page load. Announcements support custom messages, frequency controls (once per user or every visit), and optional start/end dates.</span></div>
+          <div class="changeItem"><span class="changeIcon">🖥️</span><span><strong>NWSAlerts Desktop App</strong> — NWSAlerts is now available as a free Windows desktop app. Get instant desktop notifications for major alerts, a system tray icon with live alert count, and the full dashboard in a native window. <a href="/download">Download here</a>.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔔</span><span><strong>Custom Notification Preferences</strong> — Desktop app users can now choose exactly which alert types, severity levels, and impact tags trigger desktop notifications from the Notification Settings menu.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔄</span><span><strong>Auto Updates</strong> — The desktop app now automatically checks for updates in the background and prompts you to install them when a new version is available.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">🐛 Bug Fixes & Improvements</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🔧</span><span><strong>Download Link Hidden in App</strong> — The Download Desktop App link in the About section and footer is now automatically hidden when using the desktop app.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔧</span><span><strong>Expand Button Hidden on Mobile</strong> — The map expand button is no longer shown on mobile devices where it is not usable.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔧</span><span><strong>Restored /stats Route</strong> — The Stats page was inaccessible due to a missing route. It has been restored.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Beta 1.4.2 -->
+  <div class="release">
+    <div class="releaseHeader">
+      <div class="releaseVersion">Beta 1.4.2</div>
+      <span class="releaseBadge badgePrev">Previous</span>
+      <div class="releaseDate">March 20, 2026</div>
+    </div>
+    <div class="releaseBody">
+
+      <div class="section">
+        <div class="sectionTitle">✨ New Features</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🏷️</span><span><strong>Impact Tag System</strong> — Alerts now display impact tags automatically detected from NWS alert text. Supported tags: 🚨 EMERGENCY, 💧 FLASH FLOOD EMERGENCY, ⚠ PDS, ✓ CONFIRMED, 🌪 TORNADO POSSIBLE, 🌊 CATASTROPHIC, 💥 DESTRUCTIVE, ☠ LIFE THREATENING, ⚡ CONSIDERABLE. Tags appear on alert cards, the map, and the details panel.</span></div>
+          <div class="changeItem"><span class="changeIcon">🗺️</span><span><strong>Tag Labels Always Visible on Map</strong> — Alerts with active tags now display their label on the map at all zoom levels, so critical alerts are never hidden regardless of how far you're zoomed out.</span></div>
+          <div class="changeItem"><span class="changeIcon">✎</span><span><strong>User Tag Overrides</strong> — You can manually override auto-detected tags on any alert directly from the alert details panel. Overrides are saved locally and display an indicator showing the tag was overridden.</span></div>
+          <div class="changeItem"><span class="changeIcon">⚡</span><span><strong>Tagged Alerts Flash Continuously</strong> — Alerts tagged EMERGENCY, FLASH FLOOD EMERGENCY, or CATASTROPHIC now flash continuously on the map and sidebar for their entire active lifetime, matching the behavior of Tornado Warnings.</span></div>
+          <div class="changeItem"><span class="changeIcon">🌊</span><span><strong>Flash Flood Emergency Color</strong> — Flash Flood Emergency alerts now use a distinct blue color on the map and sidebar to differentiate them from standard Flash Flood Warnings.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">🎨 Design</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🏷️</span><span><strong>New Badge Styles</strong> — Each tag has a distinct color and style. EMERGENCY and CATASTROPHIC badges include a pulsing glow animation. Override indicators show clearly on both the sidebar card and the map label.</span></div>
+          <div class="changeItem"><span class="changeIcon">🗺️</span><span><strong>Map Override Indicator</strong> — Map labels show a small ✎ symbol when a tag has been manually overridden, so you always know which tags are auto-detected vs manually applied.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">🐛 Bug Fixes & Improvements</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🔧</span><span><strong>Tag Suppression Logic</strong> — Higher-severity tags correctly suppress lower ones on the same alert.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔧</span><span><strong>Stale Override Cleanup</strong> — Tag overrides for expired alerts are automatically removed on each data refresh.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔧</span><span><strong>Flash Colors Updated</strong> — EMERGENCY alerts flash pink, FLASH FLOOD EMERGENCY flash blue, and CATASTROPHIC flash purple.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Beta 1.4.1 -->
+  <div class="release">
+    <div class="releaseHeader">
+      <div class="releaseVersion">Beta 1.4.1</div>
+      <span class="releaseBadge badgePrev">Previous</span>
+      <div class="releaseDate">March 18, 2026</div>
+    </div>
+    <div class="releaseBody">
+
+      <div class="section">
+        <div class="sectionTitle">✨ New Features</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🗺️</span><span><strong>Radar Loop</strong> — 12-frame NEXRAD reflectivity loop with play/pause, frame scrubber, and opacity slider. Live frame auto-refreshes every 5 minutes.</span></div>
+          <div class="changeItem"><span class="changeIcon">🌙</span><span><strong>Dark Map Mode</strong> — Toggle between light and dark base map tiles from the map header. Preference saved across sessions.</span></div>
+          <div class="changeItem"><span class="changeIcon">📊</span><span><strong>Alert Count in Tab Title</strong> — Browser tab shows the current active alert count so you can monitor at a glance.</span></div>
+          <div class="changeItem"><span class="changeIcon">⌨️</span><span><strong>Keyboard Shortcuts</strong> — <kbd style="background:rgba(255,255,255,0.08);border:1px solid rgba(55,75,130,0.7);border-radius:4px;padding:1px 6px;font-size:12px;">S</kbd> Settings, <kbd style="background:rgba(255,255,255,0.08);border:1px solid rgba(55,75,130,0.7);border-radius:4px;padding:1px 6px;font-size:12px;">F</kbd> Fullscreen, <kbd style="background:rgba(255,255,255,0.08);border:1px solid rgba(55,75,130,0.7);border-radius:4px;padding:1px 6px;font-size:12px;">Esc</kbd> Close modals.</span></div>
+          <div class="changeItem"><span class="changeIcon">🗃️</span><span><strong>State Filter</strong> — Filter alerts by one or more US states from Settings.</span></div>
+          <div class="changeItem"><span class="changeIcon">⚡</span><span><strong>Flash Speed & Ticker Speed Controls</strong> — Adjust flash and ticker speeds in Settings.</span></div>
+          <div class="changeItem"><span class="changeIcon">ℹ️</span><span><strong>About Section in Settings</strong> — Quick links to Data Sources, Terms, Privacy, and Feedback.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">🎨 Design</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🖥️</span><span><strong>Dashboard Redesign</strong> — Unified visual style matching SWCC and Stats. New fonts, darker panels, corner accents, grid overlay, and blue accent colors.</span></div>
+          <div class="changeItem"><span class="changeIcon">📄</span><span><strong>Page Redesigns</strong> — Terms, Privacy, and Data Sources pages redesigned to match.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">🐛 Bug Fixes</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🔧</span><span>Fixed focused weather "Weather unavailable" error for ld+json NWS responses</span></div>
+          <div class="changeItem"><span class="changeIcon">🔧</span><span>Fixed expiry timers triggering too late — now triggers at 6 minutes</span></div>
+          <div class="changeItem"><span class="changeIcon">🔧</span><span>Fixed alert time formatting showing raw ISO strings</span></div>
+          <div class="changeItem"><span class="changeIcon">🔧</span><span>Fixed Settings defaults inconsistency between first load and Reset Defaults</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Beta 1.4 -->
+  <div class="release">
+    <div class="releaseHeader">
+      <div class="releaseVersion">Beta 1.4</div>
+      <span class="releaseBadge badgePrev">Previous</span>
+      <div class="releaseDate">March 16, 2026</div>
+    </div>
+    <div class="releaseBody">
+
+      <div class="section">
+        <div class="sectionTitle">✨ New Features</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🔍</span><span>Real-time alert search box in the alert list panel</span></div>
+          <div class="changeItem"><span class="changeIcon">📊</span><span>Live severity summary bar with count pills above the alert list</span></div>
+          <div class="changeItem"><span class="changeIcon">🟢</span><span>Live connection status indicator in the status bar</span></div>
+          <div class="changeItem"><span class="changeIcon">⚠️</span><span>Latest Severe+ button to jump to the most recent high-impact alert</span></div>
+          <div class="changeItem"><span class="changeIcon">🌪️</span><span>Tornado Warning tag detection — EMERGENCY, PDS, CONFIRMED</span></div>
+          <div class="changeItem"><span class="changeIcon">⛈️</span><span>Severe Thunderstorm Warning tornado-possible tag detection</span></div>
+          <div class="changeItem"><span class="changeIcon">⚡</span><span>Continuous flash for Tornado Warnings and tornado-tagged Severe Thunderstorm Warnings</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">🎨 Design & Performance</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🎨</span><span>Redesigned alert cards with colored event names and cleaner layout</span></div>
+          <div class="changeItem"><span class="changeIcon">🖥️</span><span>Complete visual overhaul of Stats page</span></div>
+          <div class="changeItem"><span class="changeIcon">🚀</span><span>Non-blocking zone fetching, parallel geometry loading, single FeatureCollection map layer</span></div>
+          <div class="changeItem"><span class="changeIcon">💾</span><span>In-memory image and data proxy caching with per-domain TTLs</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

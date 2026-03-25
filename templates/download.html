@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download — NWS Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;}
+body{font-family:'Barlow',system-ui,sans-serif;background:#04060d;color:#dde4ff;font-size:15px;line-height:1.6;position:relative;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(38,50,90,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(38,50,90,0.07) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 24px;height:60px;background:linear-gradient(135deg,rgba(12,6,24,0.98) 0%,rgba(8,10,26,0.98) 40%,rgba(5,12,30,0.98) 100%);border-bottom:1px solid rgba(55,75,130,0.9);box-shadow:0 2px 24px rgba(0,0,0,0.6);position:relative;}
+.topbar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(41,198,255,0.4),rgba(124,111,255,0.4),transparent);}
+.topbarTitle{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#29c6ff;}
+.backBtn{border:1px solid rgba(55,75,130,0.9);background:rgba(38,50,90,0.25);color:#dde4ff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background 150ms,border-color 150ms;}
+.backBtn:hover{background:rgba(41,198,255,0.1);border-color:rgba(41,198,255,0.5);color:#29c6ff;}
+
+.container{max-width:900px;margin:0 auto;padding:60px 24px 80px;position:relative;z-index:1;}
+
+/* HERO */
+.hero{text-align:center;margin-bottom:60px;}
+.heroLogo{width:80px;height:80px;object-fit:contain;margin-bottom:20px;filter:drop-shadow(0 0 20px rgba(41,198,255,0.3));}
+.heroTitle{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;line-height:1;margin-bottom:8px;}
+.heroTitle span{color:#29c6ff;}
+.heroSub{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5568a0;margin-bottom:32px;}
+.downloadBtn{display:inline-flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(41,198,255,0.2),rgba(41,198,255,0.1));border:1px solid rgba(41,198,255,0.6);color:#29c6ff;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:16px 36px;border-radius:10px;text-decoration:none;transition:all 150ms;position:relative;overflow:hidden;}
+.downloadBtn:hover{background:linear-gradient(135deg,rgba(41,198,255,0.3),rgba(41,198,255,0.15));border-color:rgba(41,198,255,0.9);box-shadow:0 0 30px rgba(41,198,255,0.2);text-decoration:none;}
+.downloadBtn::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(41,198,255,0.6),transparent);}
+.downloadIcon{font-size:22px;}
+.downloadMeta{font-family:'Share Tech Mono',monospace;font-size:11px;color:#5568a0;margin-top:12px;letter-spacing:1px;}
+
+/* FEATURES */
+.featuresGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:48px;}
+@media(max-width:600px){.featuresGrid{grid-template-columns:1fr;}}
+.featureCard{border:1px solid rgba(55,75,130,0.6);border-radius:10px;background:rgba(8,11,22,0.7);padding:24px;position:relative;overflow:hidden;}
+.featureCard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(41,198,255,0.3),transparent);}
+.featureIcon{font-size:28px;margin-bottom:12px;}
+.featureTitle{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;margin-bottom:6px;}
+.featureDesc{font-size:13px;color:#8898cc;line-height:1.5;}
+
+/* REQUIREMENTS */
+.reqSection{border:1px solid rgba(55,75,130,0.5);border-radius:10px;background:rgba(8,11,22,0.7);padding:24px;margin-bottom:48px;position:relative;overflow:hidden;}
+.reqSection::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(41,198,255,0.3),transparent);}
+.reqTitle{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#29c6ff;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.reqTitle::after{content:'';flex:1;height:1px;background:rgba(55,75,130,0.5);}
+.reqList{display:flex;flex-wrap:wrap;gap:10px;}
+.reqItem{font-family:'Share Tech Mono',monospace;font-size:11px;color:#8898cc;background:rgba(0,0,0,0.3);border:1px solid rgba(55,75,130,0.4);border-radius:6px;padding:5px 10px;}
+
+/* GITHUB */
+.githubSection{text-align:center;}
+.githubLink{display:inline-flex;align-items:center;gap:8px;color:#5568a0;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-decoration:none;border:1px solid rgba(55,75,130,0.4);border-radius:8px;padding:10px 18px;transition:all 150ms;}
+.githubLink:hover{color:#29c6ff;border-color:rgba(41,198,255,0.4);text-decoration:none;}
+
+.sectionLabel{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#5568a0;text-align:center;margin-bottom:20px;}
+
+a{color:#29c6ff;text-decoration:none;}
+a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbarTitle">Download</div>
+  <a class="backBtn" href="/">← Dashboard</a>
+</div>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <img class="heroLogo" src="/static/logo.png" alt="NWSAlerts">
+    <div class="heroTitle">NWS<span>Alerts</span></div>
+    <div class="heroSub">Desktop App for Windows</div>
+    <a class="downloadBtn" href="https://nwsalerts.net/static/NWSAlerts%20Setup%201.4.3.exe" id="downloadBtn">
+      <span class="downloadIcon">⬇</span>
+      Download for Windows
+    </a>
+    <div class="downloadMeta">Version 1.4.3 &nbsp;•&nbsp; Windows 10/11 &nbsp;•&nbsp; Free</div>
+  </div>
+
+  <!-- FEATURES -->
+  <div class="sectionLabel">What's included</div>
+  <div class="featuresGrid">
+    <div class="featureCard">
+      <div class="featureIcon">🔔</div>
+      <div class="featureTitle">Desktop Notifications</div>
+      <div class="featureDesc">Get instant Windows notifications for Tornado Warnings, Emergencies, Blizzards, and other major alerts — even when the app is minimized.</div>
+    </div>
+    <div class="featureCard">
+      <div class="featureIcon">⚡</div>
+      <div class="featureTitle">System Tray Alert Count</div>
+      <div class="featureDesc">The tray icon shows your active alert count at a glance so you always know what's happening without opening the app.</div>
+    </div>
+    <div class="featureCard">
+      <div class="featureIcon">🗕</div>
+      <div class="featureTitle">Minimizes to Tray</div>
+      <div class="featureDesc">Closing the window keeps NWSAlerts running quietly in the background, ready to notify you the moment severe weather is issued.</div>
+    </div>
+    <div class="featureCard">
+      <div class="featureIcon">🔄</div>
+      <div class="featureTitle">Auto Updates</div>
+      <div class="featureDesc">The app automatically checks for updates in the background and prompts you to install them —
+        always stay on the latest version.</div>
+    </div>
+    <div class="featureCard">
+      <div class="featureIcon">⚙️</div>
+      <div class="featureTitle">Custom Notification Preferences</div>
+      <div class="featureDesc">Choose exactly which alert types, severities, and impact tags trigger desktop notifications.
+        Only get notified for what matters to you.</div>
+    </div>
+  </div>
+
+  <!-- REQUIREMENTS -->
+  <div class="reqSection">
+    <div class="reqTitle">System Requirements</div>
+    <div class="reqList">
+      <span class="reqItem">Windows 10 or 11</span>
+      <span class="reqItem">64-bit</span>
+      <span class="reqItem">Internet connection required</span>
+      <span class="reqItem">~300 MB disk space</span>
+    </div>
+  </div>
+
+  <!-- CHANGELOG -->
+  <div class="githubSection">
+    <div class="sectionLabel">Previous Releases</div>
+    <a class="githubLink" href="/changelog">
+      View Changelog →
+    </a>
+  </div>
+
+</div>
+
+</body>
+</html>
