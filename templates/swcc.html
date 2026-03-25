@@ -2650,6 +2650,18 @@ document.getElementById("toggleNoAlaska").addEventListener("change",()=>{ settin
 syncSettingsUI();
 setupAccordions();
 setupNoticeBar();
+
+// Auto-expand accordion section if URL hash matches its id
+(function handleHashAccordion() {
+  const id = location.hash.replace('#', '');
+  if (!id) return;
+  const target = document.getElementById(id);
+  if (!target || !target.classList.contains('accordionContent')) return;
+  target.classList.remove('collapsed');
+  const btn = document.querySelector(`.accordionToggle[data-acc-target="${id}"] .accIcon`);
+  if (btn) btn.textContent = '−';
+  setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+})();
 initLightbox();
 initRetryButtons();
 
