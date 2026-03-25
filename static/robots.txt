@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /data_shown
+Disallow: /data_all
+Disallow: /status
+Disallow: /alert_types_all
+Disallow: /imgproxy
+Disallow: /dataproxy
+
+Sitemap: https://nwsalerts.net/sitemap.xml
