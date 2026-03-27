@@ -50,11 +50,71 @@ a:hover{text-decoration:underline;}
   <div class="pageTitle">Changelog</div>
   <div class="pageMeta">NWS Alerts — Release History</div>
 
+  <!-- Beta 1.5 -->
+  <div class="release">
+    <div class="releaseHeader">
+      <div class="releaseVersion">Beta 1.5</div>
+      <span class="releaseBadge badgeLatest">Latest</span>
+      <div class="releaseDate">March 25, 2026</div>
+    </div>
+    <div class="releaseBody">
+
+      <div class="section">
+        <div class="sectionTitle">✨ New Features — Dashboard</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🗺️</span><span><strong>Map Hover Highlight (Card → Map)</strong> — Hovering an alert card in the sidebar now pulses the corresponding polygon on the map, making it easy to locate any alert instantly.</span></div>
+          <div class="changeItem"><span class="changeIcon">🗺️</span><span><strong>Map Hover Highlight (Map → Card)</strong> — Hovering a polygon on the map now highlights the matching card in the sidebar, with bidirectional sync.</span></div>
+          <div class="changeItem"><span class="changeIcon">📢</span><span><strong>Announcement Dismiss Fixed</strong> — Banner close button (✕) and modal "Got it" button now correctly dismiss announcements and mark them as seen.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">🔍 SEO & Discoverability</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🔍</span><span><strong>SEO Meta Tags</strong> — Full Open Graph, Twitter Card, and schema.org structured data (WebSite + WebApplication) added to the dashboard for better search engine indexing and rich link previews.</span></div>
+          <div class="changeItem"><span class="changeIcon">🗂️</span><span><strong>Sitemap & Robots</strong> — <code>sitemap.xml</code> and <code>robots.txt</code> added with <code>/sitemap.xml</code> and <code>/robots.txt</code> routes in the backend.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">✨ New Features — SWCC Page</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">⛈️</span><span><strong>SPC Convective Outlooks (Day 1–3)</strong> — Day 1, 2, and 3 SPC convective outlook data now feeds into the National Situation, Threat Matrix, Regional Deep Dive, 5-Day Concern Board, and Forecast Narratives sections.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔥</span><span><strong>SPC Fire Weather Outlooks (Day 1–2)</strong> — SPC Fire Weather Day 1 and Day 2 outlooks integrated across all SWCC analysis sections.</span></div>
+          <div class="changeItem"><span class="changeIcon">🌧️</span><span><strong>WPC Rainfall & Hazard Outlooks</strong> — WPC QPF, Excessive Rainfall Outlook (ERO), and Hazard Outlooks integrated across all SWCC sections.</span></div>
+          <div class="changeItem"><span class="changeIcon">📅</span><span><strong>5-Day Concern Board Overhaul</strong> — Now shows actual SPC risk categories, tornado/wind/hail probabilities, fire weather outlooks, and ERO per day instead of repeating active alert data.</span></div>
+          <div class="changeItem"><span class="changeIcon">💬</span><span><strong>SPC Convective Cards — Expanded Discussion</strong> — Cards now show more discussion text with a collapsible Show more / Show less expand button.</span></div>
+          <div class="changeItem"><span class="changeIcon">💬</span><span><strong>SPC Fire Weather Cards — Expanded Discussion</strong> — Same expand treatment applied to Fire Weather outlook cards.</span></div>
+          <div class="changeItem"><span class="changeIcon">💬</span><span><strong>WPC Cards — Expanded Details</strong> — WPC cards now surface QPF amounts, affected areas, winter storm impacts, and full discussion text with Show more / Show less.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">🖥️ Desktop App (v1.4.3)</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🔔</span><span><strong>Notification Preferences Window</strong> — New settings window lets you configure exactly which alert types, severity levels, and tags trigger desktop notifications.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔕</span><span><strong>No Startup Notifications</strong> — Notifications now only fire for new alerts that arrive while the app is running — not for existing alerts loaded on startup.</span></div>
+          <div class="changeItem"><span class="changeIcon">🔄</span><span><strong>Auto-Update Support</strong> — App now auto-checks for updates via <code>electron-updater</code> and prompts to install when a new version is available.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">⚡ Performance</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🚀</span><span><strong>Eliminated per-request file I/O</strong> — <code>/data_shown</code> and <code>/data_all</code> now serve suppression, injection, MOTD, and overrides directly from in-memory globals instead of reading <code>admin_settings.json</code> on every poll cycle.</span></div>
+          <div class="changeItem"><span class="changeIcon">🚀</span><span><strong>Webhook check no longer reads disk</strong> — Background alert loop now checks webhook config from memory instead of re-reading the settings file every 15 seconds.</span></div>
+          <div class="changeItem"><span class="changeIcon">🧹</span><span><strong>Rate limit memory cleanup</strong> — Per-IP rate limit history capped at 500 entries; stale IPs idle for more than 1 hour are pruned automatically when the table exceeds 2,000 entries.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Beta 1.4.3 -->
   <div class="release">
     <div class="releaseHeader">
       <div class="releaseVersion">Beta 1.4.3</div>
-      <span class="releaseBadge badgeLatest">Latest</span>
+      <span class="releaseBadge badgePrev">Previous</span>
       <div class="releaseDate">March 22, 2026</div>
     </div>
     <div class="releaseBody">

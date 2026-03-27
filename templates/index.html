@@ -178,7 +178,6 @@
     .modalHeader .h {
       font-weight: 700;
       letter-spacing: 1.2px;
-      font-size: 13px;
       font-family: var(--font-display);
       font-size: 16px;
     }
@@ -553,8 +552,10 @@
       0%,100% { opacity:1; } 50% { opacity:0.4; }
     }
     .alertCard.focusCard {
-      outline: 2px solid rgba(255,255,255,0.3);
-      box-shadow: 0 0 18px rgba(255,255,255,0.12);
+      outline: 2px solid rgba(41,198,255,0.75);
+      box-shadow: 0 0 18px rgba(41,198,255,0.25);
+      background: rgba(12,16,40,0.95);
+      animation: pulseOutline 1.2s ease-in-out infinite;
     }
     @keyframes wwFlash {
       0%   { box-shadow: 0 0 0 rgba(255,255,255,0.0); background: rgba(6,8,16,0.75); }
@@ -574,6 +575,11 @@
     .flashCardContinuous {
       animation: wwFlashContinuous 0.8s ease-in-out infinite;
     }
+    .alertCard.alertFresh { box-shadow: 0 0 10px rgba(41,198,255,0.18); border-top: 1px solid rgba(41,198,255,0.25); }
+    .alertCard.alertNearExpiry { opacity: 0.55; filter: saturate(0.4); }
+    .stateQPill { padding:3px 8px; border-radius:999px; border:1px solid rgba(55,75,130,0.7); background:rgba(255,255,255,0.05); color:var(--muted,#5568a0); font-size:10px; font-weight:700; cursor:pointer; font-family:var(--font-mono); transition:background 100ms,color 100ms; white-space:nowrap; }
+    .stateQPill:hover { background:rgba(255,255,255,0.12); color:var(--text); }
+    .stateQPill.active { background:rgba(41,198,255,0.18); border-color:rgba(41,198,255,0.6); color:#29c6ff; }
 
     .alertCardTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .alertEventName {
@@ -672,6 +678,21 @@
       color: #aa66ff;
       animation: emergencyPulse 1.2s ease-in-out infinite;
     }
+    /* SPC external data tags */
+    .badge-spc-md   { background:rgba(255,140,0,0.18);  border:1px solid rgba(255,140,0,0.6);  color:#ffaa33; }
+    .badge-spc-high { background:rgba(255,0,200,0.18);  border:1px solid rgba(255,0,200,0.6);  color:#ff44ee; animation:emergencyPulse 1s ease-in-out infinite; }
+    .badge-spc-mdt  { background:rgba(220,0,0,0.18);    border:1px solid rgba(220,0,0,0.5);    color:#ff5555; }
+    .badge-spc-enh  { background:rgba(200,100,0,0.18);  border:1px solid rgba(200,100,0,0.5);  color:#ff9944; }
+    .badge-spc-slgt { background:rgba(200,200,0,0.14);  border:1px solid rgba(180,180,0,0.5);  color:#dddd44; }
+    .badge-spc-mrgl { background:rgba(0,180,0,0.12);    border:1px solid rgba(0,160,0,0.5);    color:#55cc55; }
+    @keyframes stormDotGlow {
+      0%,100% { box-shadow: 0 0 3px 1px var(--dot-c); opacity:0.85; }
+      50%      { box-shadow: 0 0 9px 4px var(--dot-c); opacity:1; }
+    }
+    .storm-dot { width:8px;height:8px;border-radius:50%;animation:stormDotGlow 2s ease-in-out infinite;cursor:pointer; }
+    .storm-dot.tor  { background:#ff2929; --dot-c:rgba(255,41,41,0.8); }
+    .storm-dot.wind { background:#ff8c00; --dot-c:rgba(255,140,0,0.8); }
+    .storm-dot.hail { background:#a0e664; --dot-c:rgba(160,230,100,0.8); }
     .badge-tw {
       background: rgba(255,26,26,0.15);
       border: 1px solid rgba(255,26,26,0.5);
@@ -742,6 +763,22 @@
       letter-spacing: 0.3px;
     }
     #btnLatestSevere:hover { background: rgba(30,36,65,0.95); }
+    #btnSnapRadar, #btnWatchLayer, #btnClosestAlert {
+      background: rgba(15,18,34,0.92);
+      border: 1px solid rgba(41,198,255,0.45);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #a8d8f0;
+    }
+    #btnSnapRadar:hover, #btnWatchLayer:hover, #btnClosestAlert:hover {
+      background: rgba(41,198,255,0.15);
+      border-color: rgba(41,198,255,0.75);
+      color: #ddf4ff;
+    }
 
     @media (min-width: 768px) { #btnExpandMap { display: inline-flex !important; } }
     #btnExpandMap {
@@ -966,10 +1003,41 @@
     .mobileHide { display: none !important; }
     .debugHide { display: none !important; }
 
+    /* Quiet Mode */
+    #btnQuietMode { transition: background 150ms, border-color 150ms, color 150ms; }
+    #btnQuietMode.active {
+      background: rgba(255,30,30,0.22);
+      border-color: rgba(255,60,60,0.8);
+      color: #ff6060;
+      box-shadow: 0 0 12px rgba(255,40,40,0.25);
+    }
+    #quietModeBanner {
+      display: none; position: relative; z-index: 198;
+      align-items: center; justify-content: center; gap: 10px;
+      background: linear-gradient(90deg, rgba(180,0,0,0.25), rgba(120,0,0,0.18));
+      border-bottom: 1px solid rgba(255,50,50,0.5);
+      padding: 6px 48px;
+      font-family: var(--font-display); font-size: 12px; font-weight: 800;
+      letter-spacing: 2px; text-transform: uppercase; color: #ff8080;
+    }
+    #quietModeBanner.show { display: flex; }
+    #quietModeBannerClose {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #883030; font-size: 18px; cursor: pointer; padding: 4px 8px; line-height: 1;
+    }
+    #quietModeBannerClose:hover { color: #ff8080; }
+
     /* Announcements */
     #announcementBanner{display:none;position:relative;z-index:200;background:rgba(41,198,255,0.1);border-bottom:1px solid rgba(41,198,255,0.4);padding:10px 48px 10px 20px;font-size:13px;color:#dde4ff;line-height:1.4;}
     #announcementBannerClose{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#5568a0;font-size:18px;cursor:pointer;padding:4px 8px;}
     #announcementBannerClose:hover{color:#dde4ff;}
+    /* Tornado Outlook Banner */
+    #torOutlookBanner{display:none;position:relative;z-index:199;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(200,50,0,0.18),rgba(255,140,0,0.10));border-bottom:1px solid rgba(220,90,0,0.5);padding:8px 48px 8px 16px;font-size:13px;color:#ffd0a0;line-height:1.4;flex-wrap:wrap;}
+    #torOutlookBannerInner{display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap;}
+    #torOutlookBannerLink{color:var(--accent);text-decoration:none;font-weight:700;white-space:nowrap;font-size:12px;letter-spacing:.5px;}
+    #torOutlookBannerLink:hover{text-decoration:underline;}
+    #torOutlookBannerClose{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#a06040;font-size:18px;cursor:pointer;padding:4px 8px;line-height:1;}
+    #torOutlookBannerClose:hover{color:#ffd0a0;}
     #announcementModal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;}
     #announcementModal.show{display:flex;}
     #announcementModalBox{background:#0a0e1a;border:1px solid rgba(55,75,130,0.9);border-radius:12px;padding:28px;max-width:480px;width:90%;position:relative;}
@@ -984,6 +1052,7 @@
     }
 
     @media (max-width: 820px) {
+      #btnSnapRadar, #btnWatchLayer, #btnClosestAlert, #btnQuietMode, #btnMdBadge { display: none !important; }
       body { overflow: auto; }
 
       .topbar {
@@ -1111,6 +1180,11 @@
             <option value="fast">Fast</option>
           </select>
         </div>
+        <div class="row">
+          <div style="font-weight:600;font-size:12px;">Sidebar scrolls to alert on map hover</div>
+          <div class="toggle"><input type="checkbox" id="toggleHoverScroll"><span id="hoverScrollText">OFF</span></div>
+        </div>
+
         <div class="row">
           <div style="font-weight:600;font-size:12px;">Disable Alaska alerts</div>
           <div class="toggle"><input type="checkbox" id="toggleNoAlaska"><span id="noAlaskaText">OFF</span></div>
@@ -1241,7 +1315,20 @@
     <span id="announcementBannerMsg"></span>
     <button id="announcementBannerClose" onclick="dismissAnnouncement()">✕</button>
   </div>
-  
+  <div id="torOutlookBanner">
+    <div id="torOutlookBannerInner">
+      <span style="font-size:16px;line-height:1;">🌪</span>
+      <span id="torOutlookBannerMsg"></span>
+      <a id="torOutlookBannerLink" href="/swcc#spcSection">View Outlooks on SWCC ↗</a>
+    </div>
+    <button id="torOutlookBannerClose" onclick="dismissTorOutlookBanner()">✕</button>
+  </div>
+
+  <div id="quietModeBanner">
+    🔇 QUIET MODE — Showing Tornado Warnings, Watches &amp; PDS/Emergency only
+    <button id="quietModeBannerClose" onclick="toggleQuietMode()">✕</button>
+  </div>
+
   <div id="announcementModal">
     <div id="announcementModalBox">
       <button id="announcementModalClose" onclick="dismissAnnouncement()">✕</button>
@@ -1252,6 +1339,9 @@
       <button class="btn" style="margin-top:16px;width:100%;justify-content:center;" onclick="dismissAnnouncement()">Got
         it</button>
     </div>
+  </div>
+  <div id="motdBanner" style="display:none;align-items:center;justify-content:center;padding:7px 16px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;text-align:center;flex-wrap:wrap;gap:8px;position:relative;z-index:11;">
+    <span id="motdBannerText"></span>
   </div>
   <div class="topbar">
     <div class="brand">
@@ -1264,6 +1354,9 @@
       </div>
     </div>
     <div class="topButtons">
+      <div class="btn" id="btnPdsBadge" style="display:none; background:rgba(160,32,240,0.18); border-color:rgba(160,32,240,0.6); color:#d070ff; letter-spacing:0.8px; cursor:default;">⚠ <span id="pdsBadgeText">0 PDS/EMRG</span></div>
+      <a class="btn" id="btnMdBadge" href="/swcc#nationSection" style="display:none; background:rgba(255,140,0,0.18); border-color:rgba(255,140,0,0.6); color:#ffa040; letter-spacing:0.8px;">🔶 <span id="mdBadgeText">MD IN EFFECT</span></a>
+      <button class="btn" id="btnQuietMode" title="Show only Tornado Warnings, Watches, and PDS/Emergency alerts">🔇 Quiet</button>
       <button class="btn" id="btnSettings">⚙ Settings</button>
       <button class="btn" id="btnFullscreen">⛶ Fullscreen</button>
     </div>
@@ -1295,6 +1388,7 @@
         </div>
         <div class="severityBar" id="severityBar"></div>
       </div>
+      <div id="stateQuickPills" style="display:none; flex-wrap:wrap; gap:4px; padding:6px 10px 4px; border-bottom:1px solid rgba(55,75,130,0.35); flex-shrink:0;"></div>
       <div class="listBody" id="alertList">
         <div class="alertCard" style="border-left-color:#2fd3ff;cursor:default;">
           <div class="alertEventName">Loading alerts…</div>
@@ -1312,18 +1406,29 @@
           <div style="color:var(--muted);font-size:10px;" id="subLine">Click alerts for details</div>
         </div>
         <div class="right">
-          <div class="pill" id="pillCount">Shown: 0</div>
+          <div class="pill" id="pillCount">Shown: 0<span id="pillTrend" style="font-size:10px;"></span></div>
+          <div class="pill" id="closestAlertPill" style="display:none; cursor:pointer; border-color:rgba(255,100,100,0.5); color:#ff9090; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
           <div class="pill" id="pillClock">—</div>
           <div class="pill" id="btnMapTheme" style="cursor:pointer;user-select:none;">☀ Light</div>
+          <div class="pill" id="btnSpcOutlook" style="cursor:pointer;user-select:none;opacity:0.45;">SPC Outlook</div>
+          <div class="pill" id="btnStormReports" style="cursor:pointer;user-select:none;opacity:0.45;">Storm Reports</div>
         </div>
       </div>
 
       <div id="mapWrap">
         <div id="mapJumpControls">
           <button class="btn" id="btnLatestSevere" type="button">⚠ Latest Severe+</button>
-          <button class="btn" id="btnExpandMap" type="button" style="display:none;" class="desktopOnly">⤢ Expand</button>
+          <button class="btn" id="btnSnapRadar" type="button" title="Snap radar to highest-priority active warning">⚡ Snap</button>
+          <button class="btn" id="btnWatchLayer" type="button" title="Toggle watch area fills">👁 Watches</button>
+          <button class="btn" id="btnClosestAlert" type="button" title="Find closest active warning to your location">📍 Nearest</button>
+          <button class="btn desktopOnly" id="btnExpandMap" type="button" style="display:none;">⤢ Expand</button>
         </div>
         <div id="map"></div>
+        <div id="spcLegend" style="display:none;position:absolute;top:50%;right:10px;transform:translateY(-50%);z-index:500;pointer-events:none;background:rgba(6,8,18,0.82);border:1px solid rgba(80,100,160,0.45);border-radius:8px;padding:7px 10px;font-family:'Barlow Condensed',sans-serif;backdrop-filter:blur(6px);min-width:130px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#8899bb;margin-bottom:5px;">SPC OUTLOOK</div>
+          <div id="spcLegendRows"></div>
+        </div>
+
         <div id="mapNoAlerts"
           style="display:none;position:absolute;inset:0;z-index:400;align-items:center;justify-content:center;pointer-events:none;">
           <div
@@ -1384,10 +1489,11 @@
       <div>
         <a href="/terms">Terms</a> • <a href="/privacy">Privacy</a> • <a href="/dsa">Data Sources</a> • <a href="/changelog">Changelog</a> • <a href="/download" id="footerDownloadLink">⬇ Download</a>
       </div>
-      <div class="bottomFootRight">Beta Version 1.4.3 • Updated Mar 22 2026</div>
+      <div class="bottomFootRight">Beta Version 1.5 • Updated Mar 25 2026</div>
     </div>
   </div>
 
+<script type="application/json" id="appDefaultEvents">{{ default_events|tojson }}</script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -1395,6 +1501,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const DEFAULT_VIEW   = [39.5, -98.35];
   const DEFAULT_ZOOM   = 4;
   const REFRESH_MS     = 15_000;
+  const FRESH_ALERT_MS  = 5 * 60 * 1000;
+  const NEAR_EXPIRY_MS  = 10 * 60 * 1000;
   const NEW_ALERT_FLASH_MS    = 15_000;
   const EXPIRING_SOON_MS = 5 * 60 * 1000;
   const EXPIRING_FLASH_MS = 5_000;
@@ -1417,7 +1525,7 @@ document.addEventListener("DOMContentLoaded", () => {
     MARQUEE_PX_PER_SEC = speed === "slow" ? 40 : speed === "fast" ? 120 : 70;
   }
 
-  const DEFAULT_SELECTED = {{ default_events|tojson }};
+  const DEFAULT_SELECTED = JSON.parse(document.getElementById("appDefaultEvents").textContent);
 
   // ── Utility helpers ────────────────────────────────────────────────────────
   const norm      = s => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
@@ -1567,13 +1675,17 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!["slow", "medium", "fast"].includes(s.flashSpeed)) s.flashSpeed = "medium";
       if (typeof s.tickerSpeed !== "string") s.tickerSpeed = "medium";
       if (!["slow", "medium", "fast"].includes(s.tickerSpeed)) s.tickerSpeed = "medium";
-      if (typeof s.mapDark !== "boolean") s.mapDark = false;
+      if (typeof s.mapDark !== "boolean")   s.mapDark   = false;
+      if (typeof s.mapTheme !== "string")   s.mapTheme  = s.mapDark ? "dark" : "light";
       if (!Array.isArray(s.stateFilter)) s.stateFilter = [];
       if (typeof s.stateFilterEnabled !== "boolean") s.stateFilterEnabled = false;
       if (typeof s.cycleMode !== "string")      s.cycleMode     = "all";
       if (!["all","severe_plus","most_severe"].includes(s.cycleMode)) s.cycleMode="all";
       if (typeof s.sortMode !== "string")       s.sortMode      = "severity_desc";
       if (typeof s.mobileView !== "string")     s.mobileView    = "map";
+      if (typeof s.hoverScroll !== "boolean")       s.hoverScroll       = false;
+      if (typeof s.spcOutlookEnabled !== "boolean")   s.spcOutlookEnabled   = true;
+      if (typeof s.stormReportsEnabled !== "boolean") s.stormReportsEnabled = true;
       return s;
     } catch(e) {
       return {
@@ -1581,7 +1693,7 @@ document.addEventListener("DOMContentLoaded", () => {
         soundEnabled: true, voiceEnabled: true, voiceName: "",
         autoZoomNew: true, autoZoomMode: "all",
         rotateEnabled: false, noAlaska: false, debugEnabled: true,
-        stateFilter: [], stateFilterEnabled: false, flashSpeed: "medium", tickerSpeed: "medium", mapDark: false, cycleMode: "all", sortMode: "severity_desc", mobileView: "map",
+        stateFilter: [], stateFilterEnabled: false, flashSpeed: "medium", tickerSpeed: "medium", mapDark: false, cycleMode: "all", sortMode: "severity_desc", mobileView: "map", hoverScroll: false, spcOutlookEnabled: true, stormReportsEnabled: true,
       };
     }
   }
@@ -1653,7 +1765,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const desc = String(alertObj?.description||"").toLowerCase();
     const full = `${hl} ${desc}`;
 
-    const tags = detectTags(alertObj);
+    const _scOverride = alertObj ? getMergedOverride(alertObj.id || "") : null;
+    const tags = _scOverride ? _scOverride.tags : detectTags(alertObj);
     const isPDS = tags.includes("pds");
     const isEmergency = tags.includes("emergency");
     const isConfirmed = tags.includes("confirmed");
@@ -1719,7 +1832,19 @@ document.addEventListener("DOMContentLoaded", () => {
     try { _userTagOverrides = JSON.parse(localStorage.getItem("nwsalerts_tag_overrides") || "{}"); } catch(e) {}
     function saveTagOverrides() { localStorage.setItem("nwsalerts_tag_overrides", JSON.stringify(_userTagOverrides)); }
 
+    // SPC external tag state — populated async, read synchronously in detectTags
+    let _spcTagCache = new Map();
+    let _spcMdStates = new Set();
+    let _spcOutlookFeatures = [];
+    let _spcMdFeatures = [];
+    let _spcDataTs = 0;
+    const _SPC_DATA_TTL = 5 * 60 * 1000;
+    let _stormReportData = null;
+    let _stormReportTs = 0;
+    const _STORM_REPORT_TTL = 10 * 60 * 1000;
+
     let _adminTagOverrides = {};
+    let _prevShownCount = -1;
     let _userOverrideEnabled = true;
 
     function normalizeAlertId(aid) {
@@ -1779,11 +1904,13 @@ document.addEventListener("DOMContentLoaded", () => {
         cls: "badge-confirmed",
         txt: "✓ CONFIRMED",
         patterns: [
-          /confirmed tornado/, /confirmed large/, /radar confirmed/,
+          /confirmed tornado/, /confirmed large tornado/, /radar confirmed tornado/,
           /weather spotters confirmed tornado/, /law enforcement confirmed tornado/,
           /emergency management confirmed tornado/, /broadcast media confirmed tornado/,
-          /observed tornado/, /tornado observed/, /tornado on the ground/,
-          /a tornado was observed/, /trained weather spotters reported a tornado/,
+          /tornado on the ground/, /a tornado was observed/, /observed tornado/,
+          /trained weather spotters reported a tornado/,
+          /tornado.*has been confirmed/, /tornado.*was confirmed/, /tornado.*confirmed by/,
+          /tornado.*observed by/, /tornado.*reported on the ground/,
         ],
         suppressedBy: [],
       },
@@ -1794,10 +1921,10 @@ document.addEventListener("DOMContentLoaded", () => {
         patterns: [
           /tornado possible/, /brief tornado possible/, /remain alert for a possible tornado/,
           /tornadoes can develop quickly/, /radar indicated rotation/,
-          /cannot be ruled out/, /capable of producing a tornado/,
+          /tornado cannot be ruled out/, /capable of producing a tornado/,
           /this storm may produce a tornado/, /tornado indicated/,
-          /rotating wall cloud/, /funnel cloud/, /wall cloud/,
-          /rotation has been detected/, /tornadic/,
+          /rotating wall cloud/, /tornadic/,
+          /rotation has been detected/,
         ],
         suppressedBy: ["emergency", "confirmed"],
       },
@@ -1806,8 +1933,8 @@ document.addEventListener("DOMContentLoaded", () => {
         cls: "badge-catastrophic",
         txt: "🌊 CATASTROPHIC",
         patterns: [
-          /catastrophic/, /damage threat.*catastrophic/, /catastrophic damage/,
-          /catastrophic flooding/, /catastrophic destruction/,
+          /damage threat.*catastrophic/, /catastrophic damage/,
+          /catastrophic flooding is occurring/, /catastrophic destruction/,
           /complete destruction is possible/, /complete destruction likely/,
           /tornado damage threat.*catastrophic/, /deadly tornado/,
         ],
@@ -1818,7 +1945,8 @@ document.addEventListener("DOMContentLoaded", () => {
         cls: "badge-destructive",
         txt: "💥 DESTRUCTIVE",
         patterns: [
-          /\bdestructive\b/, /damage threat.*destructive/, /tornado damage threat.*destructive/,
+          /this is a particularly dangerous and destructive/,
+          /damage threat.*destructive/, /tornado damage threat.*destructive/,
           /baseball.?size.?hail/, /baseball.?sized hail/, /hail.*baseball/,
           /80 mph winds/, /90 mph winds/, /100 mph winds/,
           /winds in excess of 80/, /winds in excess of 90/,
@@ -1836,7 +1964,7 @@ document.addEventListener("DOMContentLoaded", () => {
           /a matter of life and death/, /fatal flooding/,
           /you are in a life.threatening situation/,
           /this is a life.threatening situation/,
-          /risk to life/, /threat to life/,
+          /(?<!no longer )poses (?:an? )?(?:immediate |serious )?risk to life/, /(?<!no longer )poses (?:an? )?(?:immediate |serious )?threat to life/,
           /people and animals outdoors will be severely injured/,
         ],
         suppressedBy: ["emergency", "flash-flood-emergency", "catastrophic"],
@@ -1846,10 +1974,10 @@ document.addEventListener("DOMContentLoaded", () => {
         cls: "badge-considerable",
         txt: "⚡ CONSIDERABLE",
         patterns: [
-          /\bconsiderable\b/, /damage threat.*considerable/, /tornado damage threat.*considerable/,
+          /damage threat.*considerable/, /tornado damage threat.*considerable/,
           /considerable damage/, /significant damage is expected/,
-          /expect considerable/, /considerable tree damage/,
-          /considerable damage to homes/,
+          /considerable tree damage/, /considerable damage to homes/,
+          /considerable damage to roofs/, /considerable damage to vehicles/,
         ],
         suppressedBy: ["emergency", "catastrophic", "destructive"],
       },
@@ -1871,6 +1999,13 @@ document.addEventListener("DOMContentLoaded", () => {
           found.delete(def.key);
         }
       }
+
+      // Event-type suppressions — some tags are redundant on certain alert types
+      const ev = String(a?.event || "").toLowerCase();
+      if (ev === "tornado warning")            found.delete("tornado-possible");
+      if (ev === "tornado watch")              found.delete("tornado-possible");
+      if (ev === "flash flood emergency")      found.delete("life-threatening");
+      if (ev === "tornado emergency")          found.delete("life-threatening");
 
       return [...found];
     }
@@ -1915,26 +2050,80 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Leaflet map setup ──────────────────────────────────────────────────────
   const map = L.map("map", { preferCanvas: true }).setView(DEFAULT_VIEW, DEFAULT_ZOOM);
   const sharedCanvasRenderer = L.canvas({ padding: 0.5 });
+  // Dedicated pane for hover overlay — z-index 450 sits above overlayPane (400) and watchLayer SVG,
+  // so the pulse is never covered regardless of how many other layers are added.
+  const _hoverPane = map.createPane('alertHoverPane');
+  _hoverPane.style.zIndex = '450';
+  _hoverPane.style.pointerEvents = 'none';
+  // Dedicated pane for SPC outlook/MD outlines — above canvas (400) but below hover (450)
+  const _spcPane = map.createPane('spcPane');
+  _spcPane.style.zIndex = '410';
+  _spcPane.style.pointerEvents = 'none';
+  // Storm report dots sit above SPC outlines, below hover pulse
+  const _stormPane = map.createPane('stormPane');
+  _stormPane.style.zIndex = '420';
 
-  const TILE_LIGHT = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-    const TILE_DARK = "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png";
-    let mapDarkMode = !!settings.mapDark;
-    let baseTileLayer = L.tileLayer(mapDarkMode ? TILE_DARK : TILE_LIGHT, { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
-    document.getElementById("btnMapTheme").textContent = mapDarkMode ? "🌙 Dark" : "☀ Light";
+  const MAP_THEMES = [
+    { key:"light",   label:"☀ Light",    url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",                                                                       attr:"© OpenStreetMap" },
+    { key:"dark",    label:"🌙 Dark",    url:"https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png",                                            attr:"© OpenStreetMap © CARTO" },
+    { key:"voyager", label:"🗺 Voyager",  url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",                                             attr:"© OpenStreetMap © CARTO" },
+    { key:"street",  label:"🛣 Street",   url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",                     attr:"© Esri © OpenStreetMap" },
+    { key:"natgeo",  label:"🌎 NatGeo",   url:"https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}",                     attr:"© Esri © National Geographic" },
+  ];
 
-    document.getElementById("btnMapTheme").addEventListener("click", () => {
-      mapDarkMode = !mapDarkMode;
-      settings.mapDark = mapDarkMode;
+  // Migrate old boolean mapDark → mapTheme string
+  if (!settings.mapTheme) settings.mapTheme = settings.mapDark ? "dark" : "light";
+
+  let _themeIdx = Math.max(0, MAP_THEMES.findIndex(t => t.key === settings.mapTheme));
+  let _curTheme = MAP_THEMES[_themeIdx];
+  let baseTileLayer = L.tileLayer(_curTheme.url, { maxZoom: 19, attribution: _curTheme.attr }).addTo(map);
+  document.getElementById("btnMapTheme").textContent = _curTheme.label;
+
+  document.getElementById("btnMapTheme").addEventListener("click", () => {
+    _themeIdx = (_themeIdx + 1) % MAP_THEMES.length;
+    _curTheme = MAP_THEMES[_themeIdx];
+    settings.mapTheme = _curTheme.key;
+    settings.mapDark = _curTheme.key === "dark"; // keep legacy compat
+    saveSettings();
+    map.removeLayer(baseTileLayer);
+    baseTileLayer = L.tileLayer(_curTheme.url, { maxZoom: 19, attribution: _curTheme.attr }).addTo(map);
+    baseTileLayer.bringToBack();
+    document.getElementById("btnMapTheme").textContent = _curTheme.label;
+  });
+
+    function syncSpcOutlookBtn() {
+      const btn = document.getElementById("btnSpcOutlook");
+      if (!btn) return;
+      btn.style.opacity = settings.spcOutlookEnabled ? "1" : "0.45";
+      btn.style.borderColor = settings.spcOutlookEnabled ? "rgba(79,195,255,0.6)" : "";
+      btn.style.color = settings.spcOutlookEnabled ? "#4fc3ff" : "";
+    }
+    document.getElementById("btnSpcOutlook").addEventListener("click", () => {
+      settings.spcOutlookEnabled = !settings.spcOutlookEnabled;
       saveSettings();
-      map.removeLayer(baseTileLayer);
-      baseTileLayer = L.tileLayer(mapDarkMode ? TILE_DARK : TILE_LIGHT, {
-        maxZoom: 19, attribution: "© OpenStreetMap"
-      }).addTo(map);
-      baseTileLayer.bringToBack();
-      document.getElementById("btnMapTheme").textContent = mapDarkMode ? "🌙 Dark" : "☀ Light";
+      syncSpcOutlookBtn();
+      rebuildSpcLayers();
     });
+    syncSpcOutlookBtn();
+
+    function syncStormReportsBtn() {
+      const btn = document.getElementById("btnStormReports");
+      if (!btn) return;
+      btn.style.opacity = settings.stormReportsEnabled ? "1" : "0.45";
+      btn.style.borderColor = settings.stormReportsEnabled ? "rgba(160,230,100,0.6)" : "";
+      btn.style.color = settings.stormReportsEnabled ? "#a0e664" : "";
+    }
+    document.getElementById("btnStormReports").addEventListener("click", () => {
+      settings.stormReportsEnabled = !settings.stormReportsEnabled;
+      saveSettings();
+      syncStormReportsBtn();
+      rebuildStormReportLayer();
+    });
+    syncStormReportsBtn();
+
   // ── Radar player ──────────────────────────────────────────────────────────
     const RADAR_PRODUCT = "nexrad-n0q";
+    const RADAR_PRODUCTS = { "REF": "nexrad-n0q", "VEL": "nexrad-n0u" };
     const RADAR_FRAMES = 12;
     const RADAR_INTERVAL = 500; // ms per frame during playback
 
@@ -2208,6 +2397,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // one Leaflet layer object per alert.
 
   let alertsLayer   = null;   // single L.geoJSON for all base polygons
+  let watchLayer = null;
+  let watchLayerVisible = true;
+  let spcOutlookLayer = null;
+  let spcMdLayer = null;
+  let stormReportLayer = null;
   let hoveredAlertId = null;
   let rotateLayer   = null;   // single L.geoJSON for the currently-rotated alert
   let labelsLayer   = L.layerGroup().addTo(map);
@@ -2275,36 +2469,59 @@ document.addEventListener("DOMContentLoaded", () => {
           if (hoveredAlertId && hoveredAlertId !== a.id) unhighlightAlertOnMap(hoveredAlertId);
           hoveredAlertId = a.id;
           highlightAlertOnMap(a.id);
-          // Highlight sidebar card
+          // Highlight sidebar card and scroll it into view
           document.querySelectorAll(".alertCard[data-aid]").forEach(c => {
-            c.classList.toggle("focusCard", c.getAttribute("data-aid") === a.id);
+            const match = c.getAttribute("data-aid") === a.id;
+            c.classList.toggle("focusCard", match);
+            if (match && settings.hoverScroll) c.scrollIntoView({ behavior: "smooth", block: "nearest" });
           });
         });
-        layer.on("mouseout", () => {
+        layer.on("mouseout", (e) => {
           const a = alertById.get(feature.properties.id);
           if (!a) return;
+          // Canvas renderer fires false mouseout events as the mouse moves within a polygon.
+          // Verify the mouse actually left by checking the reported latlng against the geometry.
+          if (e.latlng && a.geometry && pointInGeometry(e.latlng.lng, e.latlng.lat, a.geometry)) return;
           stopHoverPulse();
           unhighlightAlertOnMap(a.id);
           hoveredAlertId = null;
-          document.querySelectorAll(".alertCard[data-aid]").forEach(c => {
-            c.classList.remove("focusCard");
-          });
+          document.querySelectorAll(".alertCard[data-aid]").forEach(c => c.classList.remove("focusCard"));
         });
       }
     }).addTo(map);
 
-    // Labels — tornado warnings always show; special tags combined into same badge
-    const z = map.getZoom();
+    // Watch layer
+    if (watchLayer) { try { watchLayer.remove(); } catch(e) {} watchLayer = null; }
+    const watchAlerts = (alerts || []).filter(a => String(a?.event||"").toLowerCase().includes("watch") && a.geometry?.coordinates);
+    if (watchAlerts.length > 0) {
+      try {
+        const watchFc = { type:"FeatureCollection", features: watchAlerts.map(a => ({ type:"Feature", geometry:a.geometry, properties:{id:a.id} })) };
+        watchLayer = L.geoJSON(watchFc, {
+          renderer: sharedCanvasRenderer,
+          interactive: false,
+          style: feature => {
+            const a = (alerts||[]).find(x => x.id === feature.properties.id);
+            const c = a ? stableColorFor(a.event, a) : "#ffcc00";
+            return { color:c, weight:1, opacity:0.5, fillColor:c, fillOpacity:0.10, dashArray:"5 4" };
+          }
+        });
+        if (watchLayerVisible) watchLayer.addTo(map);
+      } catch(e) {}
+    }
+
+    rebuildLabels(alerts);
+  }
+
+  function rebuildLabels(alerts) {
+    labelsLayer.clearLayers();
     for (const a of (alerts || [])) {
       if (!a.centroid) continue;
       const ev   = String(a?.event || "").toLowerCase();
       const isTW = ev === "tornado warning";
       const tagHtml = alertTagBadges(a, false);
-      const tags = detectTags(a);
-
       const overrideInfo = getMergedOverride(a?.id || "");
+      const tags = overrideInfo ? overrideInfo.tags : detectTags(a);
       if (!isTW && !tagHtml && !overrideInfo) continue;
-
       let badgeHtml;
       const overrideSuffix = overrideInfo ? `<span class="badge" style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.35);color:#ffc800;font-size:9px;">✎ ${overrideInfo.by === "admin" ? "ADMIN" : "USER"}</span>` : "";
       if (isTW) {
@@ -2317,7 +2534,6 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         badgeHtml = `<div class="alert-map-tags">${tagHtml}${overrideSuffix}</div>`;
       }
-
       try {
         const icon = L.divIcon({ className: "", html: badgeHtml, iconSize: null });
         const m    = L.marker([a.centroid.lat, a.centroid.lon], { icon, interactive: true });
@@ -2326,54 +2542,166 @@ document.addEventListener("DOMContentLoaded", () => {
         labelsLayer.addLayer(m);
       } catch(e) {}
     }
+    updateLabelVisibility();
   }
 
   let _hoverPulseInterval = null;
-    let _hoverPulsePhase = 0;
+  let _hoverPulsePhase = 0;
+  let _hoverLayer = null;
+  const _hoverSvgRenderer = L.svg({ padding: 0.5, pane: 'alertHoverPane' });
+  const _spcSvgRenderer = L.svg({ padding: 0.5, pane: 'spcPane' });
 
-    function highlightAlertOnMap(aid) {
-      if (!alertsLayer) return;
-      let targetLayer = null;
-      alertsLayer.eachLayer(layer => {
-        const a = alertById.get(layer.feature?.properties?.id);
-        if (!a || a.id !== aid) return;
-        const c = stableColorFor(a.event, a);
-        layer.setStyle({ color: c, weight: 4, opacity: 1, fillOpacity: 0.18, dashArray: null });
-        layer.bringToFront();
-        targetLayer = layer;
-      });
-      if (!targetLayer) return;
-      _hoverPulsePhase = 0;
-      if (_hoverPulseInterval) clearInterval(_hoverPulseInterval);
-      _hoverPulseInterval = setInterval(() => {
-        if (!hoveredAlertId) { clearInterval(_hoverPulseInterval); return; }
-        const a = alertById.get(targetLayer.feature?.properties?.id);
-        if (!a) return;
-        const c = stableColorFor(a.event, a);
-        _hoverPulsePhase = (_hoverPulsePhase + 1) % 20;
-        const t = _hoverPulsePhase / 19;
-        const sine = Math.sin(t * Math.PI);
-        const weight = 2.5 + sine * 3.5;
-        const fillOpacity = 0.08 + sine * 0.18;
-        targetLayer.setStyle({ color: c, weight, opacity: 1, fillOpacity, dashArray: null });
-      }, 50);
+  const OUTLOOK_COLORS = { HIGH:'#ff00cc', MDT:'#dd0000', ENH:'#ff8800', SLGT:'#cccc00', MRGL:'#00aa00' };
+
+  async function _fetchStormReports() {
+    if (Date.now() - _stormReportTs < _STORM_REPORT_TTL && _stormReportData) return false;
+    _stormReportTs = Date.now();
+    try {
+      const d = new Date();
+      const fmt = dt => {
+        const yy = String(dt.getUTCFullYear()).slice(2);
+        const mm = String(dt.getUTCMonth()+1).padStart(2,'0');
+        const dd = String(dt.getUTCDate()).padStart(2,'0');
+        return `${yy}${mm}${dd}`;
+      };
+      const parseCSV = (text, type) => {
+        if (!text) return [];
+        return text.trim().split('\n')
+          .filter(l => l.trim() && !l.startsWith('Time') && !l.startsWith('#'))
+          .map(line => {
+            const p = line.split(',');
+            const lat = parseFloat(p[5]);
+            const lon = parseFloat(p[6]);
+            if (!lat || !lon || isNaN(lat) || isNaN(lon)) return null;
+            return { type, lat, lon, time:p[0]?.trim()||'', magnitude:p[1]?.trim()||'', location:p[2]?.trim()||'', county:p[3]?.trim()||'', state:p[4]?.trim()||'', comments:(p[7]||'').trim() };
+          }).filter(Boolean);
+      };
+      const tryDate = async date => {
+        const base = `https://www.spc.noaa.gov/climo/reports/${date}`;
+        const [tR, wR, hR] = await Promise.all([
+          fetch(`/dataproxy?url=${encodeURIComponent(base+'_rpts_torn.csv')}`,{cache:'no-store'}).then(r=>r.ok?r.text():'').catch(()=>''),
+          fetch(`/dataproxy?url=${encodeURIComponent(base+'_rpts_wind.csv')}`,{cache:'no-store'}).then(r=>r.ok?r.text():'').catch(()=>''),
+          fetch(`/dataproxy?url=${encodeURIComponent(base+'_rpts_hail.csv')}`,{cache:'no-store'}).then(r=>r.ok?r.text():'').catch(()=>''),
+        ]);
+        return [...parseCSV(tR,'tor'), ...parseCSV(wR,'wind'), ...parseCSV(hR,'hail')];
+      };
+      let reports = await tryDate(fmt(d));
+      if (!reports.length) reports = await tryDate(fmt(new Date(d - 86400000)));
+      _stormReportData = reports;
+      return true;
+    } catch(e) {
+      _stormReportData = _stormReportData || [];
+      return false;
+    }
+  }
+
+  function rebuildStormReportLayer() {
+    if (stormReportLayer) { try { stormReportLayer.remove(); } catch(e) {} stormReportLayer = null; }
+    if (!settings.stormReportsEnabled || !_stormReportData?.length) return;
+    stormReportLayer = L.layerGroup();
+    for (const r of _stormReportData) {
+      const cls = r.type === 'tor' ? 'tor' : r.type === 'wind' ? 'wind' : 'hail';
+      const typeLabel = r.type === 'tor' ? 'Tornado' : r.type === 'wind' ? 'Wind' : 'Hail';
+      const mag = r.magnitude ? ` — ${r.magnitude}` : '';
+      const tip = `<b>${typeLabel}${mag}</b><br>${r.location}, ${r.county} Co., ${r.state}<br>${r.time} UTC${r.comments ? '<br><i>'+r.comments+'</i>' : ''}`;
+      const icon = L.divIcon({ className:'', html:`<div class="storm-dot ${cls}"></div>`, iconSize:[8,8], iconAnchor:[4,4] });
+      L.marker([r.lat, r.lon], { icon, pane:'stormPane' })
+        .bindTooltip(tip, { sticky:true, opacity:0.92, className:'leaflet-tooltip' })
+        .addTo(stormReportLayer);
+    }
+    stormReportLayer.addTo(map);
+  }
+
+  const OUTLOOK_LABELS = { HIGH:'HIGH RISK', MDT:'MDT RISK', ENH:'ENH RISK', SLGT:'SLGT RISK', MRGL:'MRGL RISK' };
+
+  function rebuildSpcLayers() {
+    if (spcOutlookLayer) { try { spcOutlookLayer.remove(); } catch(e) {} spcOutlookLayer = null; }
+    if (spcMdLayer) { try { spcMdLayer.remove(); } catch(e) {} spcMdLayer = null; }
+    const legend = document.getElementById('spcLegend');
+    if (!settings.spcOutlookEnabled) { if (legend) legend.style.display = 'none'; return; }
+
+    // SPC Day 1 Categorical Outlook outlines
+    if (_spcOutlookFeatures.length > 0) {
+      const fc = {
+        type: 'FeatureCollection',
+        features: _spcOutlookFeatures.map(({label, geom}) => ({
+          type: 'Feature', geometry: geom, properties: { label }
+        }))
+      };
+      spcOutlookLayer = L.geoJSON(fc, {
+        renderer: _spcSvgRenderer,
+        interactive: false,
+        style: f => {
+          const c = OUTLOOK_COLORS[f.properties.label] || '#888888';
+          return { color: c, weight: 2.5, opacity: 0.85, fillOpacity: 0.06, dashArray: '7 5' };
+        }
+      }).addTo(map);
     }
 
-    function stopHoverPulse() {
-      if (_hoverPulseInterval) { clearInterval(_hoverPulseInterval); _hoverPulseInterval = null; }
+    // Active SPC Mesoscale Discussion outlines
+    if (_spcMdFeatures.length > 0) {
+      const fc = { type: 'FeatureCollection', features: _spcMdFeatures };
+      spcMdLayer = L.geoJSON(fc, {
+        renderer: _spcSvgRenderer,
+        interactive: false,
+        style: { color: '#ffa040', weight: 2.5, opacity: 0.9, fillOpacity: 0.05, dashArray: '10 6' }
+      }).addTo(map);
     }
 
-    function unhighlightAlertOnMap(aid) {
-      if (!alertsLayer) return;
-      alertsLayer.eachLayer(layer => {
-        const a = alertById.get(layer.feature?.properties?.id);
-        if (!a || a.id !== aid) return;
-        const c = stableColorFor(a.event, a);
-        const sev = severityRank(a.severity);
-        const iTP = isPossibleTornadoSevere(a);
-        layer.setStyle(styleForAlert(c, map.getZoom(), sev, iTP));
-      });
+    // Update legend
+    const rows = document.getElementById('spcLegendRows');
+    if (!legend || !rows) return;
+    const activeLabels = [...new Set(_spcOutlookFeatures.map(f => f.label))];
+    const hasMd = _spcMdFeatures.length > 0;
+    if (!activeLabels.length && !hasMd) { legend.style.display = 'none'; return; }
+    let html = '';
+    for (const lbl of activeLabels) {
+      const c = OUTLOOK_COLORS[lbl] || '#888';
+      html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+        <svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="${c}" stroke-width="2.5" stroke-dasharray="7 5"/></svg>
+        <span style="font-size:11px;font-weight:600;color:${c};">${OUTLOOK_LABELS[lbl]||lbl}</span>
+      </div>`;
     }
+    if (hasMd) {
+      html += `<div style="display:flex;align-items:center;gap:6px;margin-top:${activeLabels.length?'4':'0'}px;">
+        <svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#ffa040" stroke-width="2.5" stroke-dasharray="10 6"/></svg>
+        <span style="font-size:11px;font-weight:600;color:#ffa040;">MESO DISC</span>
+      </div>`;
+    }
+    rows.innerHTML = html;
+    legend.style.display = 'block';
+  }
+
+  function highlightAlertOnMap(aid) {
+    if (_hoverLayer) { try { _hoverLayer.remove(); } catch(e) {} _hoverLayer = null; }
+    if (_hoverPulseInterval) { clearInterval(_hoverPulseInterval); _hoverPulseInterval = null; }
+    const a = alertById.get(aid);
+    if (!a?.geometry?.coordinates) return;
+    const c = stableColorFor(a.event, a);
+    _hoverLayer = L.geoJSON(toGeoJSONFeature(a.geometry), {
+      renderer: _hoverSvgRenderer,
+      interactive: false,
+      style: { color: c, weight: 4, opacity: 1, fillOpacity: 0.18, dashArray: null }
+    }).addTo(map);
+    _hoverPulsePhase = 0;
+    _hoverPulseInterval = setInterval(() => {
+      if (!hoveredAlertId || !_hoverLayer) { clearInterval(_hoverPulseInterval); return; }
+      _hoverPulsePhase = (_hoverPulsePhase + 1) % 20;
+      const sine = Math.sin((_hoverPulsePhase / 19) * Math.PI);
+      const weight = 2.5 + sine * 3.5;
+      const fillOpacity = 0.08 + sine * 0.18;
+      _hoverLayer.setStyle({ color: c, weight, opacity: 1, fillOpacity, dashArray: null });
+    }, 50);
+  }
+
+  function stopHoverPulse() {
+    if (_hoverPulseInterval) { clearInterval(_hoverPulseInterval); _hoverPulseInterval = null; }
+    if (_hoverLayer) { try { _hoverLayer.remove(); } catch(e) {} _hoverLayer = null; }
+  }
+
+  function unhighlightAlertOnMap(aid) {
+    stopHoverPulse();
+  }
 
   function restyleAllPolygons() {
     if (!alertsLayer) return;
@@ -2640,6 +2968,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   let savedView = null;
+  let _pendingAutoZoomId = null; // retry auto-zoom when geometry arrives on next refresh
   const saveCurrentView    = () => { try { const c=map.getCenter(); savedView={center:[c.lat,c.lng],zoom:map.getZoom()}; } catch(e){savedView=null;} };
   const restoreSavedView   = () => { if (!savedView) return; try { map.setView(savedView.center,savedView.zoom); } catch(e){} savedView=null; };
 
@@ -2654,6 +2983,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function playNewTone()     { if (!settings.soundEnabled) return; const ctx=ensureAudio(),t=ctx.currentTime+0.02; beep(880,140,t,0.085,"square"); beep(1175,140,t+0.18,0.085,"square"); beep(1568,190,t+0.36,0.085,"square"); }
   function playExpiredTone() { if (!settings.soundEnabled) return; const ctx=ensureAudio(),t=ctx.currentTime+0.02; beep(740,180,t,0.075,"sine"); beep(494,240,t+0.24,0.075,"sine"); }
+  function playTornadoWarningTone() {
+    if (!settings.soundEnabled) return;
+    try {
+      const ctx = ensureAudio(), t = ctx.currentTime + 0.02;
+      beep(1760, 200, t,        0.14, "sawtooth");
+      beep(1318, 200, t + 0.28, 0.14, "sawtooth");
+      beep(987,  300, t + 0.56, 0.14, "sawtooth");
+      beep(1760, 200, t + 1.2,  0.12, "sawtooth");
+      beep(1318, 200, t + 1.48, 0.12, "sawtooth");
+      beep(987,  300, t + 1.76, 0.12, "sawtooth");
+    } catch(e) {}
+  }
 
   // ── Voice ──────────────────────────────────────────────────────────────────
   let availableVoices = [];
@@ -2851,6 +3192,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!settings.rotateEnabled) { setRotateVisibilityForAlert(null); document.getElementById("rotStatus").textContent="—"; clearSidebarFocus(); }
     else if (lastTickerAlert && !isRotationPaused()) { rotateToTopBarAlert(lastTickerAlert); focusSidebarOnAlert(lastTickerAlert); }
   });
+  document.getElementById("toggleHoverScroll").addEventListener("change", e => { settings.hoverScroll=!!e.target.checked; saveSettings(); syncSettingsUI(); });
   document.getElementById("toggleNoAlaska").addEventListener("change", e => { settings.noAlaska=!!e.target.checked; saveSettings(); syncSettingsUI(); tickerIdx=0; refresh(); });
   document.getElementById("toggleDebug").addEventListener("change", e => { settings.debugEnabled=!!e.target.checked; saveSettings(); syncSettingsUI(); applyDebugUI(); });
   // ── State filter ───────────────────────────────────────────────────────────
@@ -2945,6 +3287,7 @@ document.addEventListener("DOMContentLoaded", () => {
     el("toggleVoice").checked    = settings.voiceEnabled;    el("voiceText").textContent    = settings.voiceEnabled?"ON":"OFF";
     el("toggleAutoZoom").checked = settings.autoZoomNew;     el("autoZoomText").textContent = settings.autoZoomNew?"ON":"OFF";
     el("toggleRotate").checked   = settings.rotateEnabled;   el("rotateText").textContent   = settings.rotateEnabled?"ON":"OFF";
+    el("toggleHoverScroll").checked = settings.hoverScroll; el("hoverScrollText").textContent = settings.hoverScroll?"ON":"OFF";
     el("toggleNoAlaska").checked = settings.noAlaska;        el("noAlaskaText").textContent = settings.noAlaska?"ON":"OFF";
     el("toggleDebug").checked    = settings.debugEnabled;    el("debugText").textContent    = settings.debugEnabled?"ON":"OFF";
     el("autoZoomModeSelect").value = settings.autoZoomMode||"all";
@@ -3015,12 +3358,34 @@ document.addEventListener("DOMContentLoaded", () => {
     buildEventList();
   }
 
+  // ── Quiet mode ──────────────────────────────────────────────────────────────
+  let _quietMode = false;
+
+  function isQuietModeAlert(a) {
+    const ev = norm(a?.event || "");
+    if (ev === norm("Tornado Warning") || ev === norm("Tornado Watch")) return true;
+    const tags = detectTags(a);
+    return tags.includes("emergency") || tags.includes("pds");
+  }
+
+  window.toggleQuietMode = function() {
+    _quietMode = !_quietMode;
+    const btn    = document.getElementById("btnQuietMode");
+    const banner = document.getElementById("quietModeBanner");
+    if (btn)    btn.classList.toggle("active", _quietMode);
+    if (banner) banner.classList.toggle("show",  _quietMode);
+    refresh();
+  };
+
+  document.getElementById("btnQuietMode").addEventListener("click", toggleQuietMode);
+
   // ── Filter / scope ─────────────────────────────────────────────────────────
   function filterSelected(allAlerts) {
       const selected = new Set(settings.selectedKeys || []);
       let arr = [...(allAlerts || [])];
       if (settings.noAlaska) arr = arr.filter(a => !isAlaskaAlert(a));
-      arr = arr.filter(a => selected.has(norm(a.event)));
+      if (_quietMode) return arr.filter(isQuietModeAlert);
+      arr = arr.filter(a => a._injected || selected.has(norm(a.event)));
       if (settings.stateFilterEnabled && settings.stateFilter && settings.stateFilter.length > 0) {
         const stateSet = new Set(settings.stateFilter);
         arr = arr.filter(a => {
@@ -3101,9 +3466,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const isTimedFlash = a.id && !isContinuous && isFlashing(a.id) && flashOn;
       const flashCls = isContinuous ? "flashCardContinuous" : (isTimedFlash ? "flashCard" : "");
       const flashColor = isContinuous ? flashColorFor(a) : "";
+      const nowMs2 = Date.now();
+      const issMs = a.sent ? Date.parse(a.sent) : 0;
+      const expMs2 = a.expires ? Date.parse(a.expires) : 0;
+      const isFresh = issMs > 0 && (nowMs2 - issMs) < FRESH_ALERT_MS;
+      const isNearExpiry = expMs2 > 0 && (expMs2 - nowMs2) > 0 && (expMs2 - nowMs2) < NEAR_EXPIRY_MS;
+      const isContinuousFlash = flashCls && flashCls.includes("Continuous");
+      const ageClass = isFresh ? "alertFresh" : (isNearExpiry && !isContinuousFlash ? "alertNearExpiry" : "");
 
       return `
-        <div class="alertCard ${flashCls}" data-idx="${idx}" data-aid="${idAttr}" style="border-left-color:${c};${flashColor?`--flash-color:${flashColor}33;`:''}">
+        <div class="alertCard ${flashCls} ${ageClass}" data-idx="${idx}" data-aid="${idAttr}" style="border-left-color:${c};${flashColor?`--flash-color:${flashColor}33;`:''}">
           <div class="alertCardTop">
             <div class="alertEventName" style="color:${c}">${a.event}</div>
             <div class="badges">
@@ -3316,7 +3688,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const removedIds = [...previousShownIds].filter(id=>!currentIds.has(id));
 
     if (newAlert) {
-      playNewTone();
+      if (String(newAlert?.event || "").toLowerCase() === "tornado warning") { playTornadoWarningTone(); } else { playNewTone(); }
       if (severityRank(newAlert.severity)>=3) {
         const area=formatAreaForVoice((newAlert.area||"").trim());
         let msg = `New ${newAlert.event||"alert"}.`;
@@ -3339,8 +3711,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 0);
       if (shouldAutoZoomAlert(newAlert)) {
         if (!settings.rotateEnabled) saveCurrentView();
-        zoomToAlert(newAlert);
-        setTimeout(() => { if (!settings.rotateEnabled) restoreSavedView(); }, NEW_ALERT_FLASH_MS+50);
+        if (zoomToAlert(newAlert)) {
+          _pendingAutoZoomId = null;
+          setTimeout(() => { if (!settings.rotateEnabled) restoreSavedView(); }, NEW_ALERT_FLASH_MS+50);
+        } else {
+          // Geometry not yet available (zones still prefetching) — retry on next refresh
+          _pendingAutoZoomId = newAlert.id;
+        }
       } else if (settings.rotateEnabled) { rotateToTopBarAlert(newAlert); focusSidebarOnAlert(newAlert); }
     }
 
@@ -3447,6 +3824,53 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnShowAlerts").addEventListener("click", ()=>showMobile("alerts"));
   document.getElementById("btnShowMap").addEventListener("click", ()=>showMobile("map"));
   document.getElementById("btnLatestSevere").addEventListener("click", goToLatestSeverePlus);
+
+  const btnSnapRadar = document.getElementById("btnSnapRadar");
+  if (btnSnapRadar) {
+    btnSnapRadar.addEventListener("click", async () => {
+      const candidates = (currentShownAlerts || [])
+        .filter(a => a.centroid || a.geometry?.coordinates)
+        .sort((a, b) => (severityRank(b.severity)||0) - (severityRank(a.severity)||0));
+      if (!candidates.length) return;
+      zoomToAlert(candidates[0]);
+      try { if (typeof initRadar === "function" && typeof RADAR_PRODUCT !== "undefined") await initRadar(RADAR_PRODUCT); } catch(e) {}
+      btnSnapRadar.textContent = "✓ Snapped";
+      setTimeout(() => { btnSnapRadar.textContent = "⚡ Snap"; }, 1500);
+    });
+  }
+
+  const btnWatchLayer = document.getElementById("btnWatchLayer");
+  if (btnWatchLayer) {
+    btnWatchLayer.addEventListener("click", () => {
+      watchLayerVisible = !watchLayerVisible;
+      if (watchLayerVisible) { if (watchLayer && !map.hasLayer(watchLayer)) watchLayer.addTo(map); btnWatchLayer.style.opacity = "1"; }
+      else { if (watchLayer && map.hasLayer(watchLayer)) watchLayer.remove(); btnWatchLayer.style.opacity = "0.45"; }
+    });
+  }
+
+  const btnClosestAlert = document.getElementById("btnClosestAlert");
+  if (btnClosestAlert) {
+    btnClosestAlert.addEventListener("click", () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        let best = null, bestDist = Infinity;
+        for (const a of (currentShownAlerts || [])) {
+          if (!a.centroid) continue;
+          const d = haversineKm(latitude, longitude, a.centroid.lat, a.centroid.lon);
+          if (d < bestDist) { bestDist = d; best = a; }
+        }
+        const pill = document.getElementById("closestAlertPill");
+        if (!best || !pill) return;
+        const distMi = (bestDist * 0.621371).toFixed(0);
+        pill.textContent = `📍 ${distMi}mi — ${best.event}`;
+        pill.style.display = "inline-flex";
+        pill.onclick = () => { try { zoomToAlert(best); } catch(e) {} };
+        setTimeout(() => { if (pill) pill.style.display = "none"; }, 30000);
+      }, () => {});
+    });
+  }
+
   showMobile(settings.mobileView||"map");
   window.addEventListener("resize", ()=>showMobile(settings.mobileView||"map"));
 
@@ -3481,6 +3905,27 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem('nwsalerts_dismissed_announcements', JSON.stringify(dismissed));
       }
     }
+  }
+
+  function showMotd(motd) {
+    const banner = document.getElementById('motdBanner');
+    if (!banner) return;
+    if (!motd || !motd.enabled || !motd.message) {
+      banner.style.display = 'none';
+      return;
+    }
+    const colors = {
+      info:    { bg: 'rgba(41,198,255,0.12)', border: 'rgba(41,198,255,0.4)', text: '#29c6ff' },
+      warning: { bg: 'rgba(255,179,0,0.12)',  border: 'rgba(255,179,0,0.4)',  text: '#ffb300' },
+      alert:   { bg: 'rgba(255,41,41,0.12)',  border: 'rgba(255,41,41,0.4)',  text: '#ff8080' },
+      success: { bg: 'rgba(0,230,118,0.12)',  border: 'rgba(0,230,118,0.4)', text: '#00e676' },
+    };
+    const c = colors[motd.style] || colors.info;
+    banner.style.background = c.bg;
+    banner.style.borderBottom = `1px solid ${c.border}`;
+    banner.style.color = c.text;
+    banner.style.display = 'flex';
+    document.getElementById('motdBannerText').innerHTML = motd.message;
   }
 
   function showAnnouncements(announcements) {
@@ -3526,6 +3971,7 @@ document.addEventListener("DOMContentLoaded", () => {
       _adminTagOverrides = dataJson.tag_overrides || {};
       if (typeof dataJson.user_override_enabled === "boolean") _userOverrideEnabled = dataJson.user_override_enabled;
       if (dataJson.announcements) showAnnouncements(dataJson.announcements);
+      if (dataJson.motd) showMotd(dataJson.motd);
       // Prune stale user overrides for expired alerts
       const liveNids = new Set((all || []).map(a => normalizeAlertId(a.id)));
       let pruned = false;
@@ -3549,6 +3995,8 @@ document.addEventListener("DOMContentLoaded", () => {
       currentShownAlerts = [...shownAll];
 
       renderList(shownAll);
+      updatePdsBadge(shownAll);
+      updateStateQuickPills(shownAll);
       renderSeverityBar(shownAll);
 
       if (!shownAll.length && sidebarReturnTimer) {
@@ -3565,6 +4013,17 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         updateLabelVisibility();
         applyPolygonFlash();
+      }
+
+      // Retry auto-zoom for a new alert whose geometry wasn't available when first detected
+      if (_pendingAutoZoomId) {
+        const pa = alertById.get(_pendingAutoZoomId);
+        if (pa?.geometry?.coordinates && zoomToAlert(pa)) {
+          _pendingAutoZoomId = null;
+          if (!settings.rotateEnabled) setTimeout(() => restoreSavedView(), NEW_ALERT_FLASH_MS+50);
+        } else if (!pa) {
+          _pendingAutoZoomId = null; // alert expired, clear pending
+        }
       }
 
       if (dataChanged) handleNewAlertsExpiringExpired(shownAll);
@@ -3584,7 +4043,21 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("actualCount").textContent= String(st.nws_actual_count??0);
       document.getElementById("matchCount").textContent = String(shownAll.length);
       document.getElementById("httpCode").textContent   = String(st.last_http_status??"—");
-      document.getElementById("pillCount").textContent  = `Shown: ${shownAll.length}`;
+      const pillCountEl = document.getElementById("pillCount");
+      if (pillCountEl) {
+        // Update only the text node (first child), leaving the pillTrend span intact
+        const firstNode = pillCountEl.childNodes[0];
+        if (firstNode && firstNode.nodeType === Node.TEXT_NODE) { firstNode.nodeValue = `Shown: ${shownAll.length}`; }
+        else { pillCountEl.insertBefore(document.createTextNode(`Shown: ${shownAll.length}`), pillCountEl.firstChild); }
+      }
+      const trendEl = document.getElementById("pillTrend");
+      if (trendEl) {
+        if (_prevShownCount < 0) { trendEl.textContent = ""; }
+        else if (shownAll.length > _prevShownCount) { trendEl.textContent = " ▲"; trendEl.style.color = "#ff4444"; }
+        else if (shownAll.length < _prevShownCount) { trendEl.textContent = " ▼"; trendEl.style.color = "#44cc88"; }
+        else { trendEl.textContent = " —"; trendEl.style.color = "var(--muted,#5568a0)"; }
+      }
+      _prevShownCount = shownAll.length;
       document.title = shownAll.length > 0 ? `(${shownAll.length}) NWS ALERTS` : "NWS ALERTS";
       document.getElementById("hintText" ) && (document.getElementById("hintText").textContent =
         `NWS ${st.nws_total_features??0} • Actual ${st.nws_actual_count??0} • Filter ${all.length} • Selected ${shownAll.length}${st.last_error?` • ${st.last_error}`:""}`);
@@ -3595,6 +4068,16 @@ document.addEventListener("DOMContentLoaded", () => {
       applyTickerMarquee();
       updateExpiryTimers();
 
+      // Async: refresh SPC data every 5 min; always redraw SPC outlines (data or not)
+      _refreshSpcData().then(spcChanged => {
+        rebuildSpcLayers();
+        if (spcChanged) rebuildLabels(currentShownAlerts);
+      });
+      // Async: refresh storm reports every 10 min
+      _fetchStormReports().then(changed => {
+        if (changed) rebuildStormReportLayer();
+      });
+
     } catch(err) {
       updateConnectionStatus(false, err.message);
       console.error("Refresh error:", err);
@@ -3603,6 +4086,286 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const sortModeSel = document.getElementById("sortMode");
 
+  // ── Tornado Outlook Banner ────────────────────────────────────────────────
+  const _TOR_OUTLOOK_SESSION_KEY = 'nwsalerts_tor_outlook_dismissed_v1';
+
+  window.dismissTorOutlookBanner = function() {
+    sessionStorage.setItem(_TOR_OUTLOOK_SESSION_KEY, '1');
+    document.getElementById('torOutlookBanner').style.display = 'none';
+  };
+
+  async function checkTornadoOutlook() {
+    try {
+      if (sessionStorage.getItem(_TOR_OUTLOOK_SESSION_KEY)) return;
+
+      // Fetch Day 1 and Day 2 in parallel
+      const [d1Html, d2Html] = await Promise.all([
+        fetch(`/dataproxy?url=${encodeURIComponent('https://www.spc.noaa.gov/products/outlook/day1otlk.html')}`, {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => ''),
+        fetch(`/dataproxy?url=${encodeURIComponent('https://www.spc.noaa.gov/products/outlook/day2otlk.html')}`, {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => ''),
+      ]);
+
+      function extractText(rawHtml) {
+        if (!rawHtml) return '';
+        const preMatches = [...rawHtml.matchAll(/<pre[^>]*>([\s\S]*?)<\/pre>/gi)];
+        if (preMatches.length) {
+          const texts = preMatches.map(m => m[1].replace(/<[^>]+>/g,'').replace(/&[^;]+;/g,' ').trim()).filter(t => t.length > 100);
+          if (texts.length) return texts.sort((a,b) => b.length - a.length)[0];
+        }
+        return rawHtml.replace(/<[^>]+>/g,' ');
+      }
+
+      function parseOutlook(text) {
+        if (!text) return null;
+        const upper = text.toUpperCase();
+        // Only ENH and above
+        let riskKey = null, riskLabel = '', riskColor = '';
+        if (/HIGH RISK/.test(upper))              { riskKey='HIGH'; riskLabel='HIGH RISK';      riskColor='#ff2929'; }
+        else if (/MODERATE RISK|MDT/.test(upper)) { riskKey='MDT';  riskLabel='MODERATE RISK'; riskColor='#ff5500'; }
+        else if (/ENHANCED RISK|ENH/.test(upper)) { riskKey='ENH';  riskLabel='ENHANCED RISK'; riskColor='#ff8c00'; }
+        if (!riskKey) return null;
+        // Probabilities
+        const torM  = upper.match(/TORN[^.]*?(\d+)\s*%/)  || upper.match(/(\d+)\s*%[^.]*TORN/);
+        const windM = upper.match(/WIND[^.]*?(\d+)\s*%/)  || upper.match(/(\d+)\s*%[^.]*WIND/);
+        const hailM = upper.match(/HAIL[^.]*?(\d+)\s*%/)  || upper.match(/(\d+)\s*%[^.]*HAIL/);
+        return {
+          riskKey, riskLabel, riskColor,
+          torProb:  torM  ? parseInt(torM[1])  : 0,
+          windProb: windM ? parseInt(windM[1]) : 0,
+          hailProb: hailM ? parseInt(hailM[1]) : 0,
+          sigTor:   /SIG.*TOR|TOR.*SIG|HATCHING.*TOR/.test(upper),
+        };
+      }
+
+      const d1 = parseOutlook(extractText(d1Html));
+      const d2 = parseOutlook(extractText(d2Html));
+      if (!d1 && !d2) return;
+
+      // Day 1 takes priority; fall back to Day 2
+      const primary  = d1 || d2;
+      const dayLabel = d1 ? 'DAY 1' : 'DAY 2';
+      const dayNum   = d1 ? 1 : 2;
+
+      // Build threat string
+      const threats = [];
+      if (primary.torProb > 0)  threats.push(`${primary.torProb}% tornado`);
+      if (primary.sigTor)       threats.push('<strong style="color:#ff6060">sig. tornado possible</strong>');
+      if (primary.windProb > 0) threats.push(`${primary.windProb}% damaging wind`);
+      if (primary.hailProb > 0) threats.push(`${primary.hailProb}% large hail`);
+      const threatStr = threats.length ? ` · ${threats.join(' · ')}` : '';
+      const d2Note = (d1 && d2) ? ` <span style="color:#c08060;font-size:11px;">· Day 2 also ${d2.riskLabel}</span>` : '';
+
+      document.getElementById('torOutlookBannerMsg').innerHTML =
+        `<strong style="color:${primary.riskColor};font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:1px;">SPC ${dayLabel} ${primary.riskLabel}</strong>${threatStr}${d2Note}`;
+      const link = document.getElementById('torOutlookBannerLink');
+      link.href = `/swcc#spcSection`;
+      link.textContent = `View Outlooks on SWCC ↗`;
+      document.getElementById('torOutlookBanner').style.display = 'flex';
+    } catch(e) {
+      // Silent fail — don't break the main dashboard
+    }
+  }
+
+  // ── PDS/Emergency Badge ────────────────────────────────────────────────────
+  function updatePdsBadge(alerts) {
+    let count = 0;
+    for (const a of (alerts || [])) {
+      const tags = detectTags(a);
+      if (tags.includes("emergency") || tags.includes("pds")) count++;
+    }
+    const btn = document.getElementById("btnPdsBadge");
+    const txt = document.getElementById("pdsBadgeText");
+    if (!btn || !txt) return;
+    if (count > 0) { txt.textContent = `${count} PDS/EMRG`; btn.style.display = "inline-flex"; }
+    else { btn.style.display = "none"; }
+  }
+
+  // ── SPC data → alert tags ─────────────────────────────────────────────────
+  const _STATE_NAMES = {
+    'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+    'colorado':'CO','connecticut':'CT','delaware':'DE','florida':'FL','georgia':'GA',
+    'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA',
+    'kansas':'KS','kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD',
+    'massachusetts':'MA','michigan':'MI','minnesota':'MN','mississippi':'MS',
+    'missouri':'MO','montana':'MT','nebraska':'NE','nevada':'NV',
+    'new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY',
+    'north carolina':'NC','north dakota':'ND','ohio':'OH','oklahoma':'OK',
+    'oregon':'OR','pennsylvania':'PA','rhode island':'RI','south carolina':'SC',
+    'south dakota':'SD','tennessee':'TN','texas':'TX','utah':'UT',
+    'vermont':'VT','virginia':'VA','washington':'WA','west virginia':'WV',
+    'wisconsin':'WI','wyoming':'WY',
+  };
+
+  function _pointInRing(px, py, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi))
+        inside = !inside;
+    }
+    return inside;
+  }
+  function _pointInGeom(lon, lat, geom) {
+    if (!geom) return false;
+    try {
+      if (geom.type === 'Polygon') return _pointInRing(lon, lat, geom.coordinates[0]);
+      if (geom.type === 'MultiPolygon')
+        return geom.coordinates.some(poly => _pointInRing(lon, lat, poly[0]));
+    } catch(e) {}
+    return false;
+  }
+
+  function _computeSpcTagCache(alerts) {
+    const cache = new Map();
+    for (const a of (alerts || [])) {
+      const tags = [];
+      // MD: tag if any alert zone state is covered by an active MD
+      if (_spcMdStates.size > 0) {
+        const astates = new Set((a.zone_ids || []).map(z => String(z).slice(0,2).toUpperCase()));
+        if ([...astates].some(s => _spcMdStates.has(s))) tags.push('spc-md');
+      }
+      // Outlook: point-in-polygon check using alert centroid vs Day 1 risk polygons
+      if (a.centroid && _spcOutlookFeatures.length > 0) {
+        for (const {label, geom} of _spcOutlookFeatures) {
+          if (_pointInGeom(a.centroid.lon, a.centroid.lat, geom)) {
+            tags.push(`spc-${label.toLowerCase()}`);
+            break; // highest risk first, stop after first match
+          }
+        }
+      }
+      if (tags.length > 0) cache.set(a.id, tags);
+    }
+    _spcTagCache = cache;
+  }
+
+  async function _refreshSpcData() {
+    if (Date.now() - _spcDataTs < _SPC_DATA_TTL) return false;
+    _spcDataTs = Date.now();
+
+    // 1. Fetch active MD pages and extract covered states
+    const mdStates = new Set();
+    try {
+      const mdHtml = await fetch(`/dataproxy?url=${encodeURIComponent('https://www.spc.noaa.gov/products/md/')}`, {cache:'no-store'})
+        .then(r => r.ok ? r.text() : '').catch(() => '');
+      if (mdHtml && !/No Mesoscale Discussions are currently in effect/i.test(mdHtml)) {
+        const recentIdx = mdHtml.search(/recent\s+mesoscale\s+discussion/i);
+        const activePart = recentIdx > 0 ? mdHtml.slice(0, recentIdx) : mdHtml;
+        const mdNums = [...new Set([...activePart.matchAll(/\/md\/md(\d+)\.html/gi)].map(m => m[1]))].slice(0, 5);
+        await Promise.all(mdNums.map(async num => {
+          try {
+            const mHtml = await fetch(`/dataproxy?url=${encodeURIComponent(`https://www.spc.noaa.gov/products/md/md${num}.html`)}`, {cache:'no-store'})
+              .then(r => r.ok ? r.text() : '').catch(() => '');
+            if (!mHtml) return;
+            const lower = mHtml.toLowerCase();
+            for (const [name, code] of Object.entries(_STATE_NAMES))
+              if (lower.includes(name)) mdStates.add(code);
+          } catch(e) {}
+        }));
+      }
+    } catch(e) {}
+    _spcMdStates = mdStates;
+
+    // 2. Fetch SPC Day 1 categorical outlook GeoJSON — sorted highest → lowest risk
+    const outlookFeatures = [];
+    try {
+      const gjUrl = 'https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson';
+      const gj = await fetch(`/dataproxy?url=${encodeURIComponent(gjUrl)}`, {cache:'no-store'})
+        .then(r => r.ok ? r.json() : null).catch(() => null);
+      if (gj?.features) {
+        const ORDER = ['HIGH','MDT','ENH','SLGT','MRGL'];
+        for (const f of gj.features) {
+          const label = (f.properties?.LABEL || '').toUpperCase();
+          if (ORDER.includes(label) && f.geometry) outlookFeatures.push({label, geom: f.geometry});
+        }
+        outlookFeatures.sort((a,b) => ORDER.indexOf(a.label) - ORDER.indexOf(b.label));
+      }
+    } catch(e) {}
+    _spcOutlookFeatures = outlookFeatures;
+
+    // 3. Fetch individual MD GeoJSON polygons for each active MD
+    const mdFeatures = [];
+    if (mdNums.length > 0) {
+      await Promise.all(mdNums.map(async num => {
+        try {
+          const gjUrl = `https://www.spc.noaa.gov/products/md/md${num}.geojson`;
+          const gj = await fetch(`/dataproxy?url=${encodeURIComponent(gjUrl)}`, {cache:'no-store'})
+            .then(r => r.ok ? r.json() : null).catch(() => null);
+          if (!gj) return;
+          if (Array.isArray(gj.features)) {
+            for (const f of gj.features) {
+              if (f.geometry) mdFeatures.push({ type:'Feature', geometry: f.geometry, properties: { num } });
+            }
+          } else if (gj.geometry) {
+            mdFeatures.push({ type:'Feature', geometry: gj.geometry, properties: { num } });
+          }
+        } catch(e) {}
+      }));
+    }
+    _spcMdFeatures = mdFeatures;
+
+    return true;
+  }
+
+  // ── Active MD Badge ────────────────────────────────────────────────────────
+  async function checkSpcMDs() {
+    try {
+      const html = await fetch(`/dataproxy?url=${encodeURIComponent('https://www.spc.noaa.gov/products/md/')}`, {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
+      const btn = document.getElementById("btnMdBadge");
+      const txt = document.getElementById("mdBadgeText");
+      if (!btn || !txt) return;
+      // If SPC says no active MDs, hide badge immediately
+      if (!html || /No Mesoscale Discussions are currently in effect/i.test(html)) {
+        btn.style.display = "none"; return;
+      }
+      // Only look at the active section — stop before the "Recent" block
+      const recentIdx = html.search(/recent\s+mesoscale\s+discussion/i);
+      const activePart = recentIdx > 0 ? html.slice(0, recentIdx) : html;
+      const matches = [...activePart.matchAll(/href="([^"]*\/md\/md(\d+)\.html)"/gi)];
+      const seen = new Set(), mds = [];
+      for (const m of matches) { if (!seen.has(m[2])) { seen.add(m[2]); mds.push(m[2]); } }
+      if (mds.length > 0) { txt.textContent = `MD IN EFFECT (${mds.length})`; btn.style.display = "inline-flex"; }
+      else { btn.style.display = "none"; }
+    } catch(e) {}
+  }
+
+  // ── State Quick Pills ──────────────────────────────────────────────────────
+  function updateStateQuickPills(alerts) {
+    const container = document.getElementById("stateQuickPills");
+    if (!container) return;
+    const stateCounts = {};
+    for (const a of (alerts || [])) {
+      for (const zid of (a.zone_ids || [])) {
+        const st = String(zid).slice(0, 2).toUpperCase();
+        if (/^[A-Z]{2}$/.test(st)) stateCounts[st] = (stateCounts[st] || 0) + 1;
+      }
+    }
+    const states = Object.keys(stateCounts).sort();
+    if (states.length === 0) { container.style.display = "none"; return; }
+    container.style.display = "flex";
+    const activeFilter = settings.stateFilterEnabled ? new Set(settings.stateFilter) : new Set();
+    let html = `<button class="stateQPill${!settings.stateFilterEnabled ? " active" : ""}" data-state="ALL" style="border-color:rgba(100,120,220,0.6);">All</button>`;
+    for (const st of states) {
+      html += `<button class="stateQPill${activeFilter.has(st) ? " active" : ""}" data-state="${st}">${st} <span style="color:var(--muted,#5568a0);font-size:9px;">${stateCounts[st]}</span></button>`;
+    }
+    container.innerHTML = html;
+    container.querySelectorAll(".stateQPill").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const st = btn.getAttribute("data-state");
+        if (st === "ALL") { settings.stateFilter = []; settings.stateFilterEnabled = false; }
+        else if (settings.stateFilterEnabled && settings.stateFilter.length === 1 && settings.stateFilter[0] === st) { settings.stateFilter = []; settings.stateFilterEnabled = false; }
+        else { settings.stateFilter = [st]; settings.stateFilterEnabled = true; }
+        saveSettings();
+        refresh();
+      });
+    });
+  }
+
+  // ── Haversine distance ─────────────────────────────────────────────────────
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
   // ── Init ───────────────────────────────────────────────────────────────────
   (async function init() {
     applyTickerSpeed();
@@ -3610,13 +4373,14 @@ document.addEventListener("DOMContentLoaded", () => {
     setPills();
     syncSettingsUI();
     await loadAllTypes();
-    setPills();
-    syncSettingsUI();
-    await loadAllTypes();
     await refresh();
     updateTicker();
     scheduleNextTickerTick();
     setInterval(refresh, REFRESH_MS);
+    checkTornadoOutlook();
+    setInterval(checkTornadoOutlook, 15 * 60 * 1000);
+    checkSpcMDs();
+    setInterval(checkSpcMDs, 5 * 60 * 1000);
   })();
 
 });

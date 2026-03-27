@@ -2,7 +2,7 @@ import os
 import threading
 import time
 import collections
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait as futures_wait
 from typing import Any, Dict, List, Optional, Tuple
 from functools import wraps
 from datetime import datetime, timedelta
@@ -83,6 +83,31 @@ SESSION.headers.update({
     "Accept": "application/geo+json, application/ld+json, application/json;q=0.9, */*;q=0.8",
 })
 
+_server_start_time: float = time.time()
+
+# ── Response time tracking ──────────────────────────────────────────────────
+_response_times: collections.deque = collections.deque(maxlen=20)
+_response_times_lock = threading.Lock()
+
+# ── Active user tracking (rolling 5-min window of /data_shown hits) ─────────
+_active_user_ts: collections.deque = collections.deque(maxlen=2000)
+_active_user_lock = threading.Lock()
+
+# ── Rate limit tracking (per-IP, rolling 60 s window on proxy endpoints) ────
+_rate_limit_data: Dict[str, collections.deque] = {}
+_rate_limit_lock = threading.Lock()
+
+# ── Peak alert counts ────────────────────────────────────────────────────────
+_peak_today: int = 0
+_peak_today_date: str = ""
+_peak_week: int = 0
+_peak_week_num: str = ""
+_peaks_lock = threading.Lock()
+
+# ── Previous alert IDs for webhook new-alert detection ──────────────────────
+_prev_alert_ids: set = set()
+_prev_alert_ids_lock = threading.Lock()
+
 
 def _zone_id_from_url(zone_url: str) -> str:
     return zone_url.rstrip("/").split("/")[-1].upper()
@@ -101,6 +126,17 @@ def _should_exclude_alert(affected_zones: List[str]) -> bool:
         return True
     if EXCLUDE_TERRITORIES and all(_is_territory_zone(z) for z in zones):
         return True
+    # Geo filter: exclude if all zones are in the excluded-states list
+    try:
+        excl = list(_geo_filter.get("excluded_states", []))
+        if excl:
+            def _zstate(z):
+                zid = _zone_id_from_url(z)
+                return zid[:2] if len(zid) >= 2 else ""
+            if all(_zstate(z) in excl for z in zones):
+                return True
+    except Exception:
+        pass
     return False
 
 def _get_zone_geometry(zone_url: str) -> Optional[Dict[str, Any]]:
@@ -259,6 +295,81 @@ def _safe_str(v, default=""):
     return str(v) if isinstance(v, str) else default
 
 
+def _track_rate_limit(ip: str) -> None:
+    now = time.time()
+    with _rate_limit_lock:
+        if ip not in _rate_limit_data:
+            # Cap per-IP history to 500 hits; prune IPs idle for >1h periodically
+            _rate_limit_data[ip] = collections.deque(maxlen=500)
+            if len(_rate_limit_data) > 2000:
+                cutoff = now - 3600
+                stale = [k for k, v in _rate_limit_data.items() if not v or v[-1] < cutoff]
+                for k in stale:
+                    del _rate_limit_data[k]
+        _rate_limit_data[ip].append(now)
+
+
+def _update_peaks(count: int) -> None:
+    global _peak_today, _peak_today_date, _peak_week, _peak_week_num
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    week_str  = datetime.now().strftime("%Y-W%W")
+    with _peaks_lock:
+        if today_str != _peak_today_date:
+            _peak_today = 0
+            _peak_today_date = today_str
+        if count > _peak_today:
+            _peak_today = count
+        if week_str != _peak_week_num:
+            _peak_week = 0
+            _peak_week_num = week_str
+        if count > _peak_week:
+            _peak_week = count
+
+
+def _fire_webhook_post(url: str, payload: dict) -> None:
+    try:
+        requests.post(url, json=payload, timeout=8)
+    except Exception as e:
+        log(f"[webhook] POST failed: {e}")
+
+
+def _maybe_fire_webhook(alerts: list) -> None:
+    global _prev_alert_ids
+    with _prev_alert_ids_lock:
+        current_ids = {a["id"] for a in alerts if a.get("id")}
+        new_ids = current_ids - _prev_alert_ids
+        _prev_alert_ids = current_ids
+    if not new_ids:
+        return
+    with _tag_overrides_lock:
+        wh = dict(_webhook_config)
+    if not (wh.get("enabled") and wh.get("url")):
+        return
+    sev_order = {"Extreme": 0, "Severe": 1, "Moderate": 2, "Minor": 3, "Unknown": 4}
+    threshold = sev_order.get(wh.get("min_severity", "Extreme"), 0)
+    for alert in alerts:
+        if alert.get("id") not in new_ids:
+            continue
+        sev = alert.get("severity", "Unknown")
+        if sev_order.get(sev, 99) > threshold:
+            continue
+        payload = {
+            "username": "NWS Alerts",
+            "embeds": [{
+                "title": alert.get("event", "Alert"),
+                "description": (alert.get("headline") or alert.get("area", ""))[:512],
+                "color": 0xFF2929 if sev == "Extreme" else 0xFF8C00,
+                "fields": [
+                    {"name": "Severity", "value": sev, "inline": True},
+                    {"name": "Area", "value": alert.get("area", "—")[:200], "inline": True},
+                ],
+                "footer": {"text": f"NWSAlerts \u2022 {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"},
+            }]
+        }
+        threading.Thread(target=_fire_webhook_post, args=(wh["url"], payload), daemon=True).start()
+        log(f"[webhook] Fired for {alert.get('event')} \u2014 {alert.get('id','')[:40]}")
+
+
 def fetch_active_alerts_loop():
     global active_alerts_all, active_event_names, fetch_status, ALERTS_ETAG
     log("[fetch_active_alerts_loop] thread started")
@@ -284,6 +395,7 @@ def fetch_active_alerts_loop():
             if ALERTS_ETAG:
                 request_headers["If-None-Match"] = ALERTS_ETAG
 
+            _fetch_start = time.time()
             r = SESSION.get(url, timeout=15, headers=request_headers)
             local_status["last_http_status"] = r.status_code
             log(f"[fetch_active_alerts_loop] HTTP {r.status_code}")
@@ -312,10 +424,42 @@ def fetch_active_alerts_loop():
             local_status["nws_total_features"] = len(features)
             log(f"[fetch_active_alerts_loop] {len(features)} features")
 
+            # Pre-fetch zone geometries for alerts that lack their own polygon so that
+            # every alert has geometry on the SAME cycle it first appears.
+            needed_zones: set = set()
+            for _f in features:
+                _g = _f.get("geometry")
+                if isinstance(_g, dict) and _g.get("coordinates"):
+                    continue  # alert already has polygon
+                _aff = _f.get("properties", {}).get("affectedZones", [])
+                if isinstance(_aff, list):
+                    for _z in _aff:
+                        if not (isinstance(_z, str) and _z.strip()):
+                            continue
+                        if EXCLUDE_MARINE_ZONES and _is_marine_zone(_z):
+                            continue
+                        if EXCLUDE_TERRITORIES and _is_territory_zone(_z):
+                            continue
+                        needed_zones.add(_z)
+            if needed_zones:
+                _now_t = time.time()
+                uncached_now = []
+                with _zone_cache_lock:
+                    for _z in needed_zones:
+                        _c = _zone_geom_cache.get(_z)
+                        if not _c or (_now_t - _c["ts"] >= ZONE_CACHE_TTL_SECONDS):
+                            uncached_now.append(_z)
+                if uncached_now:
+                    log(f"[fetch_active_alerts_loop] pre-fetching {len(uncached_now)} zones synchronously...")
+                    _pf_ex = ThreadPoolExecutor(max_workers=8)
+                    _pf_futs = [_pf_ex.submit(_get_zone_geometry, _z) for _z in uncached_now]
+                    futures_wait(_pf_futs, timeout=10)
+                    _pf_ex.shutdown(wait=False)
+
             alerts = []
             events_set = set()
             actual_count = 0
-            all_uncached_zones = set()  # collect zones needing prefetch
+            all_uncached_zones = set()  # collect any remaining zones for follow-up prefetch
 
             for feature in features:
                 props = feature.get("properties") if isinstance(feature.get("properties"), dict) else {}
@@ -412,6 +556,11 @@ def fetch_active_alerts_loop():
                 local_status["ok"] = True
                 local_status["last_ok_ts"] = int(time.time())
                 fetch_status = local_status
+            # ── Record response time, update peaks, fire webhook ──────────────
+            with _response_times_lock:
+                _response_times.append(round(time.time() - _fetch_start, 3))
+            _update_peaks(len(alerts))
+            _maybe_fire_webhook(alerts)
 
         except Exception as e:
             log(f"[fetch_active_alerts_loop] error: {repr(e)}")
@@ -475,27 +624,37 @@ def _ensure_background_threads():
 def data_all():
     with _state_lock:
         alerts = list(active_alerts_all)
-    resp = jsonify({"alerts": alerts})
+    with _tag_overrides_lock:
+        suppressed = dict(_suppressed_alerts)
+        injected = [a for a in _injected_alerts if a.get("enabled", True)]
+    if suppressed:
+        alerts = [a for a in alerts if a.get("id") not in suppressed]
+    resp = jsonify({"alerts": injected + alerts})
     resp.headers["Cache-Control"] = "public, max-age=14"
     return resp
 
 @app.get("/data_shown")
 def data_shown():
+    # Track active user estimate
+    with _active_user_lock:
+        _active_user_ts.append(time.time())
     with _state_lock:
         alerts = list(active_alerts_all)
         st     = dict(fetch_status)
-    try:
-        with open(_SETTINGS_FILE, "r") as f:
-            _settings_data = json.load(f)
-        overrides = _settings_data.get("tag_overrides", {})
-        user_override_enabled = _settings_data.get("user_override_enabled", True)
-        announcements = _settings_data.get("announcements", [])
-    except Exception:
-        with _tag_overrides_lock:
-            overrides = dict(_tag_overrides)
+    with _tag_overrides_lock:
+        overrides = dict(_tag_overrides)
         user_override_enabled = _user_override_enabled
         announcements = list(_announcements)
-    resp = jsonify({"alerts": alerts, "status": st, "tag_overrides": overrides, "user_override_enabled": user_override_enabled, "announcements": announcements})
+        suppressed = dict(_suppressed_alerts)
+        motd = dict(_motd)
+        injected = [a for a in _injected_alerts if a.get("enabled", True)]
+    if suppressed:
+        alerts = [a for a in alerts if a.get("id") not in suppressed]
+    resp = jsonify({
+        "alerts": injected + alerts, "status": st,
+        "tag_overrides": overrides, "user_override_enabled": user_override_enabled,
+        "announcements": announcements, "motd": motd,
+    })
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
@@ -574,6 +733,7 @@ def _prune_cache(cache, ttls, default_ttl):
 def img_proxy():
     if request.args.get('ping'):
         return 'ok', 200
+    _track_rate_limit(request.remote_addr)
     url = request.args.get('url', '')
     try:
         parsed = urlparse(url)
@@ -632,6 +792,7 @@ def img_proxy():
 
 @app.route('/dataproxy')
 def data_proxy():
+    _track_rate_limit(request.remote_addr)
     url = request.args.get('url', '')
     try:
         parsed = urlparse(url)
@@ -681,15 +842,21 @@ def data_proxy():
         return 'Error', 502
 
 
-# ── Tag override store ─────────────────────────────────────────────────────
+# ── Settings store ─────────────────────────────────────────────────────────
 _SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "admin_settings.json")
 _tag_overrides: Dict[str, Dict] = {}
 _tag_overrides_lock = threading.Lock()
 _user_override_enabled = True
 _announcements: List[Dict] = []
+_suppressed_alerts: Dict[str, str] = {}
+_geo_filter: Dict[str, Any] = {"excluded_states": []}
+_motd: Dict[str, Any] = {"message": "", "enabled": False, "style": "info"}
+_webhook_config: Dict[str, Any] = {"url": "", "enabled": False, "min_severity": "Extreme"}
+_injected_alerts: List[Dict] = []
 
 def _load_admin_settings():
-    global _tag_overrides, _user_override_enabled, _announcements
+    global _tag_overrides, _user_override_enabled, _announcements, \
+           _suppressed_alerts, _geo_filter, _motd, _webhook_config, _injected_alerts
     try:
         if os.path.exists(_SETTINGS_FILE):
             with open(_SETTINGS_FILE, "r") as f:
@@ -697,6 +864,11 @@ def _load_admin_settings():
             _tag_overrides = data.get("tag_overrides", {})
             _user_override_enabled = data.get("user_override_enabled", True)
             _announcements = data.get("announcements", [])
+            _suppressed_alerts = data.get("suppressed_alerts", {})
+            _geo_filter = data.get("geo_filter", {"excluded_states": []})
+            _motd = data.get("motd", {"message": "", "enabled": False, "style": "info"})
+            _webhook_config = data.get("webhook_config", {"url": "", "enabled": False, "min_severity": "Extreme"})
+            _injected_alerts = data.get("injected_alerts", [])
             log(f"[admin] Loaded settings from {_SETTINGS_FILE}")
     except Exception as e:
         log(f"[admin] Failed to load settings: {e}")
@@ -708,6 +880,11 @@ def _save_admin_settings():
                 "tag_overrides": _tag_overrides,
                 "user_override_enabled": _user_override_enabled,
                 "announcements": _announcements,
+                "suppressed_alerts": _suppressed_alerts,
+                "geo_filter": _geo_filter,
+                "motd": _motd,
+                "webhook_config": _webhook_config,
+                "injected_alerts": _injected_alerts,
             }
         with open(_SETTINGS_FILE, "w") as f:
             json.dump(data, f)
@@ -765,14 +942,22 @@ def admin_dashboard():
         data_urls  = list(_data_cache.keys())
     with _log_lock:
         logs = list(_log_buffer)
-    import os
     templates = sorted([f for f in os.listdir(app.template_folder) if f.endswith(".html")])
+    try:
+        with open(_SETTINGS_FILE, "r") as f:
+            sdata = json.load(f)
+    except Exception:
+        sdata = {}
     return render_template("admin.html",
         status=st,
         img_count=img_count, img_urls=img_urls,
         data_count=data_count, data_urls=data_urls,
         logs=logs,
         templates=templates,
+        suppressed=sdata.get("suppressed_alerts", {}),
+        geo_filter=sdata.get("geo_filter", {"excluded_states": []}),
+        motd=sdata.get("motd", {"message": "", "enabled": False, "style": "info"}),
+        webhook=sdata.get("webhook_config", {"url": "", "enabled": False, "min_severity": "Extreme"}),
     )
 
 @app.route("/admin/clear_cache", methods=["POST"])
@@ -828,7 +1013,26 @@ def admin_status_json():
         img_count = len(_img_cache)
     with _data_cache_lock:
         data_count = len(_data_cache)
-    return jsonify({"status": st, "img_cache_count": img_count, "data_cache_count": data_count})
+    now_t = time.time()
+    with _active_user_lock:
+        active_users = sum(1 for t in _active_user_ts if now_t - t < 300)
+    with _response_times_lock:
+        rtimes = list(_response_times)
+    avg_ms = round(sum(rtimes) / len(rtimes) * 1000) if rtimes else 0
+    with _peaks_lock:
+        peak_today = _peak_today
+        peak_week  = _peak_week
+    return jsonify({
+        "status": st,
+        "img_cache_count": img_count,
+        "data_cache_count": data_count,
+        "uptime_s": int(now_t - _server_start_time),
+        "active_users": active_users,
+        "avg_response_ms": avg_ms,
+        "last_response_ms": round(rtimes[-1] * 1000) if rtimes else 0,
+        "peak_today": peak_today,
+        "peak_week": peak_week,
+    })
 
 @app.route("/admin/tag_overrides", methods=["GET","POST","DELETE"])
 @admin_required
@@ -949,6 +1153,292 @@ def admin_tag_settings():
             json.dump(current, f)
     log(f"[admin] User tag override {'enabled' if _user_override_enabled else 'disabled'}")
     return jsonify({"ok": True, "user_override_enabled": _user_override_enabled})
+
+# ── Admin metrics endpoint ────────────────────────────────────────────────
+@app.route("/admin/metrics")
+@admin_required
+def admin_metrics():
+    now_t = time.time()
+    uptime_s = int(now_t - _server_start_time)
+    with _active_user_lock:
+        active_users = sum(1 for t in _active_user_ts if now_t - t < 300)
+    with _response_times_lock:
+        rtimes = list(_response_times)
+    avg_ms  = round(sum(rtimes) / len(rtimes) * 1000) if rtimes else 0
+    last_ms = round(rtimes[-1] * 1000) if rtimes else 0
+    with _peaks_lock:
+        peak_today = _peak_today
+        peak_week  = _peak_week
+    with _state_lock:
+        st = dict(fetch_status)
+    with _img_cache_lock:
+        img_count = len(_img_cache)
+    with _data_cache_lock:
+        data_count = len(_data_cache)
+    with _rate_limit_lock:
+        rl = {ip: sum(1 for t in dq if now_t - t < 60) for ip, dq in _rate_limit_data.items()}
+    top_ips = sorted(rl.items(), key=lambda x: -x[1])[:20]
+    return jsonify({
+        "uptime_s": uptime_s,
+        "active_users": active_users,
+        "avg_response_ms": avg_ms,
+        "last_response_ms": last_ms,
+        "response_times": [round(t * 1000) for t in rtimes[-10:]],
+        "peak_today": peak_today,
+        "peak_week": peak_week,
+        "status": st,
+        "img_cache_count": img_count,
+        "data_cache_count": data_count,
+        "rate_limits": [{"ip": ip, "hits_60s": h} for ip, h in top_ips],
+    })
+
+
+# ── Alert suppression ─────────────────────────────────────────────────────
+@app.route("/admin/suppress", methods=["GET", "POST", "DELETE"])
+@admin_required
+def admin_suppress():
+    global _suppressed_alerts
+    with _tag_overrides_lock:
+        try:
+            with open(_SETTINGS_FILE, "r") as f:
+                current = json.load(f)
+        except Exception:
+            current = {}
+        if request.method == "POST":
+            data = request.get_json(force=True)
+            aid    = data.get("alert_id", "").strip()
+            reason = data.get("reason", "").strip()
+            if aid:
+                current.setdefault("suppressed_alerts", {})[aid] = reason or "admin"
+                _suppressed_alerts = current["suppressed_alerts"]
+                with open(_SETTINGS_FILE, "w") as f:
+                    json.dump(current, f)
+                log(f"[admin] Suppressed alert: {aid}")
+            return jsonify({"ok": True})
+        if request.method == "DELETE":
+            data = request.get_json(force=True)
+            aid = data.get("alert_id", "").strip()
+            current.setdefault("suppressed_alerts", {}).pop(aid, None)
+            _suppressed_alerts = current.get("suppressed_alerts", {})
+            with open(_SETTINGS_FILE, "w") as f:
+                json.dump(current, f)
+            log(f"[admin] Unsuppressed alert: {aid}")
+            return jsonify({"ok": True})
+        return jsonify({"suppressed": current.get("suppressed_alerts", {})})
+
+
+# ── Geo filter ────────────────────────────────────────────────────────────
+@app.route("/admin/geo_filter", methods=["GET", "POST"])
+@admin_required
+def admin_geo_filter():
+    global _geo_filter
+    with _tag_overrides_lock:
+        try:
+            with open(_SETTINGS_FILE, "r") as f:
+                current = json.load(f)
+        except Exception:
+            current = {}
+        if request.method == "POST":
+            data   = request.get_json(force=True)
+            states = data.get("excluded_states", [])
+            if isinstance(states, list):
+                current["geo_filter"] = {"excluded_states": [s.upper()[:2] for s in states if isinstance(s, str)]}
+                _geo_filter = current["geo_filter"]
+                with open(_SETTINGS_FILE, "w") as f:
+                    json.dump(current, f)
+                log(f"[admin] Geo filter updated: {current['geo_filter']['excluded_states']}")
+            return jsonify({"ok": True, "geo_filter": current.get("geo_filter", {})})
+        return jsonify({"geo_filter": current.get("geo_filter", {"excluded_states": []})})
+
+
+# ── Custom alert injector ─────────────────────────────────────────────────
+@app.route("/admin/inject_alert", methods=["GET", "POST", "DELETE", "PATCH"])
+@admin_required
+def admin_inject_alert():
+    global _injected_alerts
+    with _tag_overrides_lock:
+        try:
+            with open(_SETTINGS_FILE, "r") as f:
+                current = json.load(f)
+        except Exception:
+            current = {}
+        if request.method == "POST":
+            data     = request.get_json(force=True)
+            alert_id = f"injected-{int(time.time() * 1000)}"
+            now_iso  = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            injected = {
+                "id": alert_id,
+                "event": data.get("event", "Test Alert"),
+                "severity": data.get("severity", "Moderate"),
+                "urgency": data.get("urgency", "Expected"),
+                "certainty": data.get("certainty", "Likely"),
+                "area": data.get("area", "Test Area"),
+                "headline": data.get("headline", ""),
+                "description": data.get("description", ""),
+                "instruction": data.get("instruction", ""),
+                "sender": "Admin Injected",
+                "sent": now_iso, "updated": now_iso, "effective": now_iso, "onset": now_iso,
+                "expires": data.get("expires", ""),
+                "geometry": None, "centroid": None, "zone_ids": [],
+                "enabled": True, "_injected": True,
+            }
+            current.setdefault("injected_alerts", []).append(injected)
+            _injected_alerts = current["injected_alerts"]
+            with open(_SETTINGS_FILE, "w") as f:
+                json.dump(current, f)
+            log(f"[admin] Injected alert: {injected['event']} \u2014 {alert_id}")
+            return jsonify({"ok": True, "alert": injected})
+        if request.method == "DELETE":
+            data = request.get_json(force=True)
+            aid  = data.get("alert_id", "")
+            current["injected_alerts"] = [a for a in current.get("injected_alerts", []) if a.get("id") != aid]
+            _injected_alerts = current["injected_alerts"]
+            with open(_SETTINGS_FILE, "w") as f:
+                json.dump(current, f)
+            log(f"[admin] Removed injected alert: {aid}")
+            return jsonify({"ok": True})
+        if request.method == "PATCH":
+            data = request.get_json(force=True)
+            aid  = data.get("alert_id", "")
+            for a in current.get("injected_alerts", []):
+                if a.get("id") == aid:
+                    a["enabled"] = not a.get("enabled", True)
+                    break
+            _injected_alerts = current.get("injected_alerts", [])
+            with open(_SETTINGS_FILE, "w") as f:
+                json.dump(current, f)
+            return jsonify({"ok": True})
+        return jsonify({"injected_alerts": current.get("injected_alerts", [])})
+
+
+# ── MOTD ──────────────────────────────────────────────────────────────────
+@app.route("/admin/motd", methods=["GET", "POST"])
+@admin_required
+def admin_motd():
+    global _motd
+    with _tag_overrides_lock:
+        try:
+            with open(_SETTINGS_FILE, "r") as f:
+                current = json.load(f)
+        except Exception:
+            current = {}
+        if request.method == "POST":
+            data = request.get_json(force=True)
+            current["motd"] = {
+                "message": data.get("message", "").strip(),
+                "enabled": bool(data.get("enabled", False)),
+                "style": data.get("style", "info"),
+            }
+            _motd = current["motd"]
+            with open(_SETTINGS_FILE, "w") as f:
+                json.dump(current, f)
+            log(f"[admin] MOTD {'enabled' if _motd['enabled'] else 'disabled'}: {_motd['message'][:50]}")
+            return jsonify({"ok": True, "motd": _motd})
+        return jsonify({"motd": current.get("motd", {"message": "", "enabled": False, "style": "info"})})
+
+
+# ── Static file manager ───────────────────────────────────────────────────
+@app.route("/admin/static_files", methods=["GET", "DELETE", "POST"])
+@admin_required
+def admin_static_files():
+    static_dir = app.static_folder
+    if request.method == "POST":
+        uploaded = []
+        for f in request.files.getlist("files"):
+            if f and f.filename:
+                safe_name = os.path.basename(f.filename)
+                path = os.path.join(static_dir, safe_name)
+                f.save(path)
+                log(f"[admin] Static file uploaded: {safe_name}")
+                uploaded.append(safe_name)
+        return jsonify({"ok": True, "uploaded": uploaded})
+    if request.method == "DELETE":
+        data  = request.get_json(force=True)
+        fname = os.path.basename(data.get("filename", ""))
+        if fname:
+            path = os.path.join(static_dir, fname)
+            if os.path.exists(path):
+                os.remove(path)
+                log(f"[admin] Static file deleted: {fname}")
+                return jsonify({"ok": True})
+        return jsonify({"ok": False, "error": "File not found"})
+    try:
+        files = []
+        for fname in sorted(os.listdir(static_dir)):
+            fpath = os.path.join(static_dir, fname)
+            if os.path.isfile(fpath):
+                stat = os.stat(fpath)
+                files.append({"name": fname, "size": stat.st_size, "mtime": int(stat.st_mtime)})
+    except Exception:
+        files = []
+    return jsonify({"files": files})
+
+
+# ── Webhook config ────────────────────────────────────────────────────────
+@app.route("/admin/webhook", methods=["GET", "POST"])
+@admin_required
+def admin_webhook():
+    global _webhook_config
+    with _tag_overrides_lock:
+        try:
+            with open(_SETTINGS_FILE, "r") as f:
+                current = json.load(f)
+        except Exception:
+            current = {}
+        if request.method == "POST":
+            data = request.get_json(force=True)
+            current["webhook_config"] = {
+                "url": data.get("url", "").strip(),
+                "enabled": bool(data.get("enabled", False)),
+                "min_severity": data.get("min_severity", "Extreme"),
+            }
+            _webhook_config = current["webhook_config"]
+            with open(_SETTINGS_FILE, "w") as f:
+                json.dump(current, f)
+            log(f"[admin] Webhook {'enabled' if _webhook_config['enabled'] else 'disabled'}")
+            return jsonify({"ok": True})
+        return jsonify({"webhook_config": current.get("webhook_config", {"url": "", "enabled": False, "min_severity": "Extreme"})})
+
+
+# ── Rate limit monitor ────────────────────────────────────────────────────
+@app.route("/admin/rate_limits")
+@admin_required
+def admin_rate_limits():
+    now_t = time.time()
+    with _rate_limit_lock:
+        data = {ip: {
+            "hits_60s": sum(1 for t in dq if now_t - t <   60),
+            "hits_5m":  sum(1 for t in dq if now_t - t <  300),
+            "hits_1h":  sum(1 for t in dq if now_t - t < 3600),
+        } for ip, dq in _rate_limit_data.items()}
+    sorted_ips = sorted(data.items(), key=lambda x: -x[1]["hits_60s"])[:30]
+    return jsonify({"rate_limits": [{"ip": ip, **v} for ip, v in sorted_ips]})
+
+
+# ── Export data ───────────────────────────────────────────────────────────
+@app.route("/admin/export")
+@admin_required
+def admin_export():
+    import csv, io as _io
+    fmt = request.args.get("format", "json")
+    with _state_lock:
+        alerts = list(active_alerts_all)
+    if fmt == "csv":
+        out    = _io.StringIO()
+        fields = ["id", "event", "severity", "urgency", "certainty", "area", "headline", "sent", "expires", "sender"]
+        w = csv.DictWriter(out, fieldnames=fields, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(alerts)
+        resp = Response(out.getvalue(), content_type="text/csv")
+        resp.headers["Content-Disposition"] = f'attachment; filename="alerts_{int(time.time())}.csv"'
+        return resp
+    resp = Response(
+        json.dumps({"alerts": alerts, "exported_at": datetime.utcnow().isoformat()}, indent=2),
+        content_type="application/json",
+    )
+    resp.headers["Content-Disposition"] = f'attachment; filename="alerts_{int(time.time())}.json"'
+    return resp
+
 
 @app.route("/stats")
 def stats():

@@ -58,6 +58,7 @@ body::before{
 
 /* STAT CARDS */
 .statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.statGrid8{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 .statCard{border:1px solid rgba(55,75,130,0.6);border-radius:8px;background:rgba(5,8,18,0.6);padding:14px 16px;}
 .statLabel{font-family:'Share Tech Mono',monospace;font-size:10px;color:#5568a0;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
 .statValue{font-family:'Share Tech Mono',monospace;font-size:28px;color:#fff;letter-spacing:-1px;line-height:1;}
@@ -114,8 +115,33 @@ body::before{
 .dotErr{background:#ff4444;box-shadow:0 0 6px rgba(255,68,68,0.5);}
 .dotWarn{background:#ffb300;}
 
+/* SECTION HEADERS */
+.sectionLabel{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#3a4a70;padding:4px 0;border-bottom:1px solid rgba(55,75,130,0.25);margin-bottom:4px;}
+
+/* RESPONSE TIME BARS */
+.rtBar{display:inline-block;width:14px;background:rgba(41,198,255,0.4);border-radius:2px;vertical-align:bottom;margin:0 1px;transition:height 300ms;}
+.rtBar.slow{background:rgba(255,100,0,0.6);}
+.rtBar.very-slow{background:rgba(255,41,41,0.7);}
+
+/* STATE CHECKBOXES */
+.stateGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;}
+.stateChk{display:flex;align-items:center;gap:4px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#8898cc;cursor:pointer;padding:3px 6px;border-radius:4px;border:1px solid rgba(55,75,130,0.3);background:rgba(0,0,0,0.2);}
+.stateChk input{cursor:pointer;}
+.stateChk.active{border-color:rgba(255,80,80,0.5);background:rgba(255,80,80,0.08);color:#ff8080;}
+
+/* INJECT FORM */
+.injectRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;}
+.injectLabel{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#5568a0;margin-bottom:4px;}
+.injectInput{width:100%;border:1px solid rgba(55,75,130,0.7);background:rgba(0,0,0,0.3);color:#dde4ff;padding:6px 8px;border-radius:6px;font-size:11px;font-family:'Share Tech Mono',monospace;outline:none;}
+
+/* FILE TABLE */
+.fileTable{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:10px;}
+.fileTable th{color:#5568a0;text-align:left;padding:4px 8px;border-bottom:1px solid rgba(55,75,130,0.4);}
+.fileTable td{color:#8898cc;padding:4px 8px;border-bottom:1px solid rgba(55,75,130,0.15);}
+.fileTable tr:last-child td{border-bottom:none;}
+
 @media(max-width:900px){
-  .grid2,.grid3,.statGrid,.templateGrid{grid-template-columns:1fr;}
+  .grid2,.grid3,.statGrid,.statGrid8,.templateGrid,.stateGrid,.injectRow{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -135,7 +161,7 @@ body::before{
 <div class="container">
 
   <!-- STAT CARDS -->
-  <div class="statGrid">
+  <div class="statGrid8">
     <div class="statCard">
       <div class="statLabel">Connection</div>
       <div class="statValue" id="statConn">
@@ -146,7 +172,7 @@ body::before{
     <div class="statCard">
       <div class="statLabel">Active Alerts</div>
       <div class="statValue" id="statAlerts">{{ status.after_filter_count or 0 }}</div>
-      <div class="statSub">{{ status.nws_total_features or 0 }} from NWS feed</div>
+      <div class="statSub" id="statAlertsSub">{{ status.nws_total_features or 0 }} from NWS feed</div>
     </div>
     <div class="statCard">
       <div class="statLabel">Image Cache</div>
@@ -157,6 +183,41 @@ body::before{
       <div class="statLabel">Data Cache</div>
       <div class="statValue" id="statDataCache">{{ data_count }}</div>
       <div class="statSub">entries cached</div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Uptime</div>
+      <div class="statValue statOk" id="statUptime" style="font-size:20px;">—</div>
+      <div class="statSub">since last restart</div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Active Users</div>
+      <div class="statValue" id="statActiveUsers">—</div>
+      <div class="statSub">last 5 min (est.)</div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Avg Response</div>
+      <div class="statValue" id="statAvgResp" style="font-size:20px;">—</div>
+      <div class="statSub" id="statAvgRespSub">NWS fetch time</div>
+    </div>
+    <div class="statCard">
+      <div class="statLabel">Peak Today</div>
+      <div class="statValue statWarn" id="statPeakToday">—</div>
+      <div class="statSub" id="statPeakWeekSub">week peak: —</div>
+    </div>
+  </div>
+
+  <!-- RESPONSE TIME SPARKLINE -->
+  <div class="panel">
+    <div class="panelHeader">
+      <div class="panelTitle">Response Times</div>
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#5568a0;">Last 10 NWS fetches (ms)</span>
+    </div>
+    <div class="panelBody" style="display:flex;align-items:flex-end;gap:2px;height:64px;padding:8px 16px;">
+      <div id="rtBars" style="display:flex;align-items:flex-end;gap:3px;height:48px;flex:1;"></div>
+      <div style="margin-left:16px;display:grid;gap:4px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#5568a0;">Avg: <span id="rtAvg" class="statOk">—</span></div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#5568a0;">Last: <span id="rtLast">—</span></div>
+      </div>
     </div>
   </div>
 
@@ -205,6 +266,141 @@ body::before{
     </div>
   </div>
 
+  <!-- ALERT SUPPRESSION + GEO FILTER -->
+  <div class="grid2">
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Alert Suppression</div>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#5568a0;" id="suppressCount">{{ suppressed|length }} active</span>
+      </div>
+      <div class="panelBody">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px;align-items:end;">
+          <div>
+            <div class="injectLabel">Alert ID</div>
+            <input id="suppressAlertId" class="injectInput" placeholder="urn:oid:2.49.0.1.840…">
+          </div>
+          <button class="btn btnDanger" onclick="suppressAlert()" style="padding:6px 12px;">✕ Suppress</button>
+        </div>
+        <input id="suppressReason" class="injectInput" placeholder="Reason (optional)" style="margin-bottom:12px;">
+        <div id="suppressTable" style="display:grid;gap:6px;max-height:200px;overflow-y:auto;">
+          {% for aid, reason in suppressed.items() %}
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(255,41,41,0.25);border-radius:6px;background:rgba(255,41,41,0.06);">
+            <div style="flex:1;min-width:0;">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#ff8080;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ aid }}">{{ aid }}</div>
+              <div style="font-size:10px;color:#5568a0;margin-top:2px;">{{ reason }}</div>
+            </div>
+            <button class="btn btnDanger" onclick="unsuppressAlert('{{ aid }}')" style="padding:3px 8px;font-size:10px;">✕</button>
+          </div>
+          {% else %}
+          <div style="color:#3a4a70;font-family:'Share Tech Mono',monospace;font-size:11px;" id="suppressEmpty">No suppressions.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Geo Filter</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="selectAllStates(false)" style="padding:4px 10px;font-size:10px;">Clear All</button>
+          <button class="btn btnDanger" onclick="saveGeoFilter()" style="padding:4px 10px;font-size:10px;">Save</button>
+        </div>
+      </div>
+      <div class="panelBody">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#5568a0;margin-bottom:8px;">Checked states are <span style="color:#ff8080;">excluded</span> from the feed.</div>
+        <div class="stateGrid" id="stateGrid">
+          {% set all_states = ['AK','AL','AR','AZ','CA','CO','CT','DE','FL','GA','HI','IA','ID','IL','IN','KS','KY','LA','MA','MD','ME','MI','MN','MO','MS','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VA','VT','WA','WI','WV','WY','DC'] %}
+          {% for st in all_states %}
+          <label class="stateChk{% if st in geo_filter.excluded_states %} active{% endif %}">
+            <input type="checkbox" value="{{ st }}" {% if st in geo_filter.excluded_states %}checked{% endif %} onchange="this.closest('label').classList.toggle('active',this.checked)">
+            {{ st }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM ALERT INJECTOR -->
+  <div class="panel">
+    <div class="panelHeader">
+      <div class="panelTitle">Custom Alert Injector</div>
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#5568a0;">Test alerts shown on dashboard without real weather</span>
+    </div>
+    <div class="panelBody">
+      <div class="injectRow">
+        <div>
+          <div class="injectLabel">Event Type</div>
+          <input id="injectEvent" class="injectInput" list="nwsEventList" placeholder="Tornado Warning" value="Tornado Warning">
+          <datalist id="nwsEventList">
+            <option value="Tornado Warning"><option value="Tornado Watch"><option value="Severe Thunderstorm Warning">
+            <option value="Severe Thunderstorm Watch"><option value="Flash Flood Warning"><option value="Flash Flood Watch">
+            <option value="Winter Storm Warning"><option value="Blizzard Warning"><option value="Ice Storm Warning">
+            <option value="High Wind Warning"><option value="Hurricane Warning"><option value="Flood Warning">
+          </datalist>
+        </div>
+        <div>
+          <div class="injectLabel">Severity</div>
+          <select id="injectSeverity" class="injectInput">
+            <option value="Extreme">Extreme</option>
+            <option value="Severe">Severe</option>
+            <option value="Moderate" selected>Moderate</option>
+            <option value="Minor">Minor</option>
+          </select>
+        </div>
+        <div>
+          <div class="injectLabel">Area</div>
+          <input id="injectArea" class="injectInput" placeholder="Test County, TX">
+        </div>
+      </div>
+      <div class="injectRow">
+        <div style="grid-column:1/-1;">
+          <div class="injectLabel">Headline</div>
+          <input id="injectHeadline" class="injectInput" placeholder="Optional headline text">
+        </div>
+      </div>
+      <div class="injectRow">
+        <div style="grid-column:1/-1;">
+          <div class="injectLabel">Description</div>
+          <textarea id="injectDescription" class="injectInput" rows="3" placeholder="Optional description…" style="resize:vertical;"></textarea>
+        </div>
+      </div>
+      <button class="btn btnSuccess" onclick="injectAlert()" style="margin-top:4px;">⚡ Inject Alert</button>
+      <div id="injectedTable" style="display:grid;gap:6px;margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <!-- MOTD -->
+  <div class="panel">
+    <div class="panelHeader">
+      <div class="panelTitle">Message of the Day</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="motdStatus" class="{% if motd.enabled %}statOk{% else %}statSub{% endif %}" style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;">
+          {% if motd.enabled %}LIVE{% else %}OFF{% endif %}
+        </span>
+      </div>
+    </div>
+    <div class="panelBody">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div class="injectLabel">Style</div>
+          <select id="motdStyle" class="injectInput">
+            <option value="info" {% if motd.style=='info' %}selected{% endif %}>Info (blue)</option>
+            <option value="warning" {% if motd.style=='warning' %}selected{% endif %}>Warning (amber)</option>
+            <option value="alert" {% if motd.style=='alert' %}selected{% endif %}>Alert (red)</option>
+            <option value="success" {% if motd.style=='success' %}selected{% endif %}>Success (green)</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;">
+          <button class="btn btnSuccess" onclick="saveMOTD(true)" style="flex:1;justify-content:center;">Enable</button>
+          <button class="btn btnDanger" onclick="saveMOTD(false)" style="flex:1;justify-content:center;">Disable</button>
+        </div>
+      </div>
+      <div class="injectLabel">Message</div>
+      <textarea id="motdMessage" class="injectInput" rows="3" placeholder="Site-wide banner message…" style="resize:vertical;">{{ motd.message }}</textarea>
+    </div>
+  </div>
+
   <!-- CACHE MANAGEMENT -->
   <div class="panel">
     <div class="panelHeader">
@@ -245,6 +441,79 @@ body::before{
             <div style="color:#3a4a70;font-family:'Share Tech Mono',monospace;font-size:11px;">Empty</div>
             {% endfor %}
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEBHOOK + STATIC FILE MANAGER -->
+  <div class="grid2">
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Webhook / Alert Push</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="dot {% if webhook.enabled %}dotOk{% else %}dotWarn{% endif %}" id="webhookDot"></div>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#5568a0;" id="webhookLabel">{% if webhook.enabled %}ENABLED{% else %}DISABLED{% endif %}</span>
+        </div>
+      </div>
+      <div class="panelBody">
+        <div class="injectLabel">Discord / Slack Webhook URL</div>
+        <input id="webhookUrl" class="injectInput" placeholder="https://discord.com/api/webhooks/…" value="{{ webhook.url }}" style="margin-bottom:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div>
+            <div class="injectLabel">Min Severity</div>
+            <select id="webhookSeverity" class="injectInput">
+              <option value="Extreme" {% if webhook.min_severity=='Extreme' %}selected{% endif %}>Extreme only</option>
+              <option value="Severe" {% if webhook.min_severity=='Severe' %}selected{% endif %}>Severe+</option>
+              <option value="Moderate" {% if webhook.min_severity=='Moderate' %}selected{% endif %}>Moderate+</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px;">
+            <button class="btn btnSuccess" onclick="saveWebhook(true)" style="flex:1;justify-content:center;">Enable</button>
+            <button class="btn btnDanger" onclick="saveWebhook(false)" style="flex:1;justify-content:center;">Disable</button>
+          </div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#3a4a70;">Posts new severe alerts to channel when detected.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Static File Manager</div>
+        <button class="btn btnSuccess" onclick="document.getElementById('staticUploadInput').click()" style="padding:4px 10px;font-size:10px;">⬆ Upload</button>
+        <input type="file" id="staticUploadInput" multiple style="display:none;" onchange="uploadStaticFiles(this)">
+      </div>
+      <div class="panelBody" style="padding:8px 0;">
+        <div id="staticFileList" style="max-height:220px;overflow-y:auto;padding:0 16px;">
+          <div style="color:#3a4a70;font-family:'Share Tech Mono',monospace;font-size:11px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RATE LIMIT MONITOR + EXPORT -->
+  <div class="grid2">
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Rate Limit Monitor</div>
+        <button class="btn" onclick="loadRateLimits()" style="padding:4px 10px;font-size:10px;">↺ Refresh</button>
+      </div>
+      <div class="panelBody" style="padding:8px 0;">
+        <div id="rateLimitTable" style="max-height:220px;overflow-y:auto;padding:0 16px;">
+          <div style="color:#3a4a70;font-family:'Share Tech Mono',monospace;font-size:11px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Export Data</div>
+      </div>
+      <div class="panelBody">
+        <p style="color:#8898cc;font-size:13px;line-height:1.6;margin-bottom:16px;">Download current active alerts as a file.</p>
+        <div style="display:grid;gap:8px;">
+          <a class="btn btnSuccess" href="/admin/export?format=json" style="justify-content:center;padding:10px;">⬇ Export as JSON</a>
+          <a class="btn" href="/admin/export?format=csv" style="justify-content:center;padding:10px;">⬇ Export as CSV</a>
         </div>
       </div>
     </div>
@@ -494,15 +763,53 @@ body::before{
 </div>
 
 <script>
-  // ── Auto refresh status and logs ──────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function fmtUptime(s) {
+    if (s < 60) return s + 's';
+    if (s < 3600) return Math.floor(s/60) + 'm ' + (s%60) + 's';
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
+    return h + 'h ' + m + 'm';
+  }
+
+  // ── Auto refresh status, metrics, and logs ─────────────────────────────────
   async function loadStatus() {
     try {
       const r = await fetch('/admin/status_json');
       const d = await r.json();
       document.getElementById('statAlerts').textContent = d.status.after_filter_count || 0;
+      document.getElementById('statAlertsSub').textContent = (d.status.nws_total_features || 0) + ' from NWS feed';
       document.getElementById('statImgCache').textContent = d.img_cache_count || 0;
       document.getElementById('statDataCache').textContent = d.data_cache_count || 0;
+      // New stat cards
+      if (d.uptime_s !== undefined) document.getElementById('statUptime').textContent = fmtUptime(d.uptime_s);
+      if (d.active_users !== undefined) document.getElementById('statActiveUsers').textContent = d.active_users;
+      if (d.avg_response_ms !== undefined) {
+        const ms = d.avg_response_ms;
+        const el = document.getElementById('statAvgResp');
+        el.textContent = ms + 'ms';
+        el.className = 'statValue ' + (ms > 5000 ? 'statErr' : ms > 2000 ? 'statWarn' : 'statOk');
+        document.getElementById('statAvgRespSub').textContent = 'last: ' + (d.last_response_ms||0) + 'ms';
+      }
+      if (d.peak_today !== undefined) {
+        document.getElementById('statPeakToday').textContent = d.peak_today;
+        document.getElementById('statPeakWeekSub').textContent = 'week peak: ' + d.peak_week;
+      }
+      // Response time sparkline
+      if (d.response_times) renderRtBars(d.response_times);
     } catch(e) {}
+  }
+
+  function renderRtBars(times) {
+    const container = document.getElementById('rtBars');
+    if (!container || !times.length) return;
+    const max = Math.max(...times, 1);
+    container.innerHTML = times.map(ms => {
+      const h = Math.max(4, Math.round((ms / max) * 48));
+      const cls = ms > 5000 ? 'very-slow' : ms > 2000 ? 'slow' : '';
+      return `<div class="rtBar ${cls}" style="height:${h}px;" title="${ms}ms"></div>`;
+    }).join('');
+    document.getElementById('rtAvg').textContent = Math.round(times.reduce((a,b)=>a+b,0)/times.length) + 'ms';
+    document.getElementById('rtLast').textContent = times[times.length-1] + 'ms';
   }
 
   async function loadLogs() {
@@ -802,6 +1109,245 @@ body::before{
       }
 
       loadAnnouncements();
+
+  // ── Alert Suppression ──────────────────────────────────────────────────────
+  async function suppressAlert() {
+    const aid    = document.getElementById('suppressAlertId').value.trim();
+    const reason = document.getElementById('suppressReason').value.trim();
+    if (!aid) { alert('Enter an Alert ID.'); return; }
+    try {
+      const r = await fetch('/admin/suppress', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({alert_id: aid, reason})
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) { alert('Server error: ' + (d.error || r.status)); return; }
+      document.getElementById('suppressAlertId').value = '';
+      document.getElementById('suppressReason').value = '';
+      await loadSuppressed();
+    } catch(e) { alert('Failed: ' + e); }
+  }
+
+  async function unsuppressAlert(aid) {
+    if (!confirm('Remove suppression for this alert?')) return;
+    try {
+      const r = await fetch('/admin/suppress', {
+        method: 'DELETE', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({alert_id: aid})
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) { alert('Server error: ' + (d.error || r.status)); return; }
+      await loadSuppressed();
+    } catch(e) { alert('Failed: ' + e); }
+  }
+
+  async function loadSuppressed() {
+    try {
+      const r = await fetch('/admin/suppress');
+      if (!r.ok) { console.error('loadSuppressed failed:', r.status); return; }
+      const d = await r.json();
+      const entries = Object.entries(d.suppressed || {});
+      document.getElementById('suppressCount').textContent = entries.length + ' active';
+      const tbl = document.getElementById('suppressTable');
+      if (!entries.length) {
+        tbl.innerHTML = '<div style="color:#3a4a70;font-family:\'Share Tech Mono\',monospace;font-size:11px;">No suppressions.</div>';
+        return;
+      }
+      tbl.innerHTML = entries.map(([aid, reason]) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(255,41,41,0.25);border-radius:6px;background:rgba(255,41,41,0.06);">
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#ff8080;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${aid}">${aid}</div>
+            <div style="font-size:10px;color:#5568a0;margin-top:2px;">${reason}</div>
+          </div>
+          <button class="btn btnDanger" onclick="unsuppressAlert('${aid}')" style="padding:3px 8px;font-size:10px;">✕</button>
+        </div>`).join('');
+    } catch(e) {}
+  }
+
+  // ── Geo Filter ────────────────────────────────────────────────────────────
+  function selectAllStates(checked) {
+    document.querySelectorAll('#stateGrid input[type=checkbox]').forEach(cb => {
+      cb.checked = checked;
+      cb.closest('label').classList.toggle('active', checked);
+    });
+  }
+
+  async function saveGeoFilter() {
+    const states = [...document.querySelectorAll('#stateGrid input[type=checkbox]:checked')].map(cb => cb.value);
+    try {
+      await fetch('/admin/geo_filter', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({excluded_states: states})
+      });
+      alert('Geo filter saved. Takes effect on next fetch cycle.');
+    } catch(e) { alert('Failed to save.'); }
+  }
+
+  // ── Injected Alerts ───────────────────────────────────────────────────────
+  async function injectAlert() {
+    const payload = {
+      event:       document.getElementById('injectEvent').value.trim() || 'Tornado Warning',
+      severity:    document.getElementById('injectSeverity').value,
+      area:        document.getElementById('injectArea').value.trim() || 'Test Area',
+      headline:    document.getElementById('injectHeadline').value.trim(),
+      description: document.getElementById('injectDescription').value.trim(),
+    };
+    try {
+      const r = await fetch('/admin/inject_alert', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) { alert('Server error: ' + (d.error || r.status)); return; }
+      await loadInjectedAlerts();
+    } catch(e) { alert('Failed: ' + e); }
+  }
+
+  async function deleteInjectedAlert(aid) {
+    if (!confirm('Remove this injected alert?')) return;
+    try {
+      await fetch('/admin/inject_alert', {
+        method: 'DELETE', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({alert_id: aid})
+      });
+      await loadInjectedAlerts();
+    } catch(e) {}
+  }
+
+  async function toggleInjectedAlert(aid) {
+    try {
+      await fetch('/admin/inject_alert', {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({alert_id: aid})
+      });
+      await loadInjectedAlerts();
+    } catch(e) {}
+  }
+
+  async function loadInjectedAlerts() {
+    try {
+      const r = await fetch('/admin/inject_alert');
+      if (!r.ok) { console.error('loadInjectedAlerts failed:', r.status); return; }
+      const d = await r.json();
+      const tbl = document.getElementById('injectedTable');
+      const items = d.injected_alerts || [];
+      if (!items.length) { tbl.innerHTML = ''; return; }
+      tbl.innerHTML = items.map(a => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(55,75,130,0.4);border-radius:8px;background:rgba(0,0,0,0.2);opacity:${a.enabled ? 1 : 0.5};">
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#29c6ff;">${a.event}</div>
+            <div style="font-size:10px;color:#5568a0;margin-top:2px;">${a.severity} — ${a.area}</div>
+          </div>
+          <button class="btn" onclick="toggleInjectedAlert('${a.id}')" style="padding:3px 8px;font-size:10px;">${a.enabled ? 'Disable' : 'Enable'}</button>
+          <button class="btn btnDanger" onclick="deleteInjectedAlert('${a.id}')" style="padding:3px 8px;font-size:10px;">✕</button>
+        </div>`).join('');
+    } catch(e) {}
+  }
+
+  // ── MOTD ──────────────────────────────────────────────────────────────────
+  async function saveMOTD(enabled) {
+    const msg   = document.getElementById('motdMessage').value.trim();
+    const style = document.getElementById('motdStyle').value;
+    if (enabled && !msg) { alert('Enter a message before enabling.'); return; }
+    try {
+      const r = await fetch('/admin/motd', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({message: msg, enabled, style})
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) { alert('Server error: ' + (d.error || r.status)); return; }
+      const el = document.getElementById('motdStatus');
+      el.textContent = enabled ? 'LIVE' : 'OFF';
+      el.className = enabled ? 'statOk' : 'statSub';
+      el.style.fontFamily = "'Barlow Condensed',sans-serif";
+      el.style.fontSize = '12px';
+      el.style.fontWeight = '700';
+    } catch(e) { alert('Failed: ' + e); }
+  }
+
+  // ── Webhook ───────────────────────────────────────────────────────────────
+  async function saveWebhook(enabled) {
+    const url = document.getElementById('webhookUrl').value.trim();
+    const min_severity = document.getElementById('webhookSeverity').value;
+    try {
+      await fetch('/admin/webhook', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({url, enabled, min_severity})
+      });
+      const dot   = document.getElementById('webhookDot');
+      const label = document.getElementById('webhookLabel');
+      dot.className   = 'dot ' + (enabled ? 'dotOk' : 'dotWarn');
+      label.textContent = enabled ? 'ENABLED' : 'DISABLED';
+    } catch(e) { alert('Failed.'); }
+  }
+
+  // ── Static File Manager ───────────────────────────────────────────────────
+  async function loadStaticFiles() {
+    try {
+      const r = await fetch('/admin/static_files');
+      const d = await r.json();
+      const tbl = document.getElementById('staticFileList');
+      if (!d.files.length) { tbl.innerHTML = '<div style="color:#3a4a70;font-family:\'Share Tech Mono\',monospace;font-size:11px;">No files.</div>'; return; }
+      tbl.innerHTML = `<table class="fileTable">
+        <thead><tr><th>Name</th><th>Size</th><th></th></tr></thead>
+        <tbody>${d.files.map(f => `
+          <tr>
+            <td><a href="/static/${f.name}" target="_blank" style="color:#29c6ff;text-decoration:none;">${f.name}</a></td>
+            <td>${(f.size/1024).toFixed(1)}KB</td>
+            <td><button class="btn btnDanger" onclick="deleteStaticFile('${f.name}')" style="padding:2px 8px;font-size:10px;">✕</button></td>
+          </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {}
+  }
+
+  async function deleteStaticFile(fname) {
+    if (!confirm('Delete ' + fname + '?')) return;
+    try {
+      await fetch('/admin/static_files', {
+        method: 'DELETE', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({filename: fname})
+      });
+      await loadStaticFiles();
+    } catch(e) { alert('Failed.'); }
+  }
+
+  async function uploadStaticFiles(input) {
+    const fd = new FormData();
+    Array.from(input.files).forEach(f => fd.append('files', f));
+    try {
+      await fetch('/admin/static_files', { method: 'POST', body: fd });
+      input.value = '';
+      await loadStaticFiles();
+    } catch(e) { alert('Upload failed.'); }
+  }
+
+  // ── Rate Limit Monitor ────────────────────────────────────────────────────
+  async function loadRateLimits() {
+    try {
+      const r = await fetch('/admin/rate_limits');
+      const d = await r.json();
+      const tbl = document.getElementById('rateLimitTable');
+      const rows = d.rate_limits || [];
+      if (!rows.length) { tbl.innerHTML = '<div style="color:#3a4a70;font-family:\'Share Tech Mono\',monospace;font-size:11px;">No proxy traffic yet.</div>'; return; }
+      tbl.innerHTML = `<table class="fileTable">
+        <thead><tr><th>IP</th><th>60s</th><th>5m</th><th>1h</th></tr></thead>
+        <tbody>${rows.map(row => `
+          <tr>
+            <td style="color:#dde4ff;">${row.ip}</td>
+            <td style="color:${row.hits_60s > 30 ? '#ff8080' : '#8898cc'};">${row.hits_60s}</td>
+            <td>${row.hits_5m}</td>
+            <td>${row.hits_1h}</td>
+          </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {}
+  }
+
+  // ── Init all new panels ───────────────────────────────────────────────────
+  loadSuppressed();
+  loadInjectedAlerts();
+  loadStaticFiles();
+  loadRateLimits();
+  setInterval(loadRateLimits, 30000);
 </script>
 </body>
 </html>
