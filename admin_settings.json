@@ -1,1 +1,1 @@
-{"tag_overrides": {}, "user_override_enabled": false, "announcements": []}
+{"tag_overrides": {}, "user_override_enabled": true, "announcements": [], "suppressed_alerts": {}, "injected_alerts": [], "motd": {"message": "IT WORKS", "enabled": false, "style": "alert"}, "geo_filter": {"excluded_states": []}}

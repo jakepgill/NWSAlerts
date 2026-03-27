@@ -1760,25 +1760,19 @@ function renderStormReports(data) {
    NEW DATA: SPC MESOSCALE DISCUSSIONS (RSS)
 ═══════════════════════════════════════════════════ */
 async function fetchSpcMDs() {
-  const key = "spc:md", cached = cacheGet(key, 10*60*1000); if(cached) return cached;
+  const key = "spc:md", cached = cacheGet(key, 5*60*1000); if(cached) return cached;
   try {
-    // SPC MD list page — RSS feed no longer available at the old URL
-    const rawHtml = await fetchTextSafe('https://www.spc.noaa.gov/products/md/', 10*60*1000);
-    // Parse MD links from the page — they follow pattern like /products/md/md1234.html
-    const mdMatches = [...rawHtml.matchAll(/href="([^"]*\/md\/md(\d+)\.html)"/gi)];
-    const seen = new Set();
+    const xml = await fetchTextSafe('https://www.spc.noaa.gov/products/spcmdrss.xml');
+    if (!xml) return cacheSet(key, []);
     const mds = [];
-    for (const m of mdMatches.slice(0, 8)) {
-      const num = m[2];
-      if (seen.has(num)) continue;
-      seen.add(num);
-      const url = m[1].startsWith('http') ? m[1] : `https://www.spc.noaa.gov${m[1].startsWith('/') ? '' : '/products/md/'}${m[1].startsWith('/') ? m[1] : ''}`;
-      mds.push({
-        title:   `SPC Mesoscale Discussion ${num}`,
-        link:    m[1].startsWith('http') ? m[1] : `https://www.spc.noaa.gov${m[1]}`,
-        pubDate: '',
-        desc:    ''
-      });
+    for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {
+      const c = m[1];
+      const title   = (c.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/is)?.[1] || '').trim();
+      const link    = (c.match(/<link>(.*?)<\/link>/is)?.[1] || '').trim();
+      const rawDesc = (c.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/is)?.[1] || '');
+      const desc    = rawDesc.replace(/<[^>]+>/g, '').trim().slice(0, 200);
+      const pubDate = (c.match(/<pubDate>(.*?)<\/pubDate>/is)?.[1] || '').trim();
+      if (title && link) mds.push({ title, link, pubDate, desc });
     }
     return cacheSet(key, mds);
   } catch(e) { return []; }
