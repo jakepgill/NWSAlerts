@@ -70,23 +70,19 @@ a:hover{text-decoration:underline;}
 </div>
 <div class="container">
   <div class="pageTitle">Data Source Attribution</div>
-  <div class="pageMeta">Last Updated: March 18, 2026</div>
+  <div class="pageMeta">Last Updated: March 28, 2026</div>
 
   <div class="section">
     <h2>1. National Weather Service Alerts</h2>
-    <p>This site displays active alerts sourced from the National Weather Service (NWS) public API:</p>
-    <div class="code">https://api.weather.gov/alerts</div>
-    <p>NWS data is provided by NOAA/NWS and may be subject to change, delay, or outage.</p>
+    <p>Active weather alerts displayed on the dashboard are sourced from the National Weather Service (NWS) public API:</p>
+    <div class="code">https://api.weather.gov/alerts/active?status=actual</div>
+    <p>NWS data is provided by NOAA/NWS and may be subject to change, delay, or outage. Alert polygons that are not included directly in the API response are retrieved from NWS zone geometry endpoints under the same domain.</p>
   </div>
 
   <div class="section">
-    <h2>2. NWS Forecast and Observations</h2>
-    <p>Focused weather information (forecast and latest observations) is sourced from NWS endpoints such as:</p>
-    <ul>
-      <li><div class="code">https://api.weather.gov/points/{lat},{lon}</div></li>
-      <li><div class="code">https://api.weather.gov/gridpoints/{office}/{x},{y}/forecast</div></li>
-      <li><div class="code">https://api.weather.gov/stations/{station}/observations/latest</div></li>
-    </ul>
+    <h2>2. NWS Watch/Warning/Advisory Map Overlay</h2>
+    <p>The optional WWA map overlay image is sourced from NWS forecast pages:</p>
+    <div class="code">https://forecast.weather.gov</div>
   </div>
 
   <div class="section">
@@ -96,44 +92,53 @@ a:hover{text-decoration:underline;}
   </div>
 
   <div class="section">
-    <h2>4. Storm Prediction Center (SPC)</h2>
-    <p>Convective outlooks, fire weather outlooks, and related severe weather products are sourced from the NOAA Storm Prediction Center:</p>
+    <h2>4. Storm Prediction Center (SPC) — Outlooks &amp; Mesoscale Discussions</h2>
+    <p>Convective outlooks (Day 1–3), fire weather outlooks, Mesoscale Discussions, and related severe weather products are sourced from the NOAA Storm Prediction Center:</p>
     <div class="code">https://www.spc.noaa.gov</div>
+    <p>This includes GeoJSON outlook boundaries and discussion text displayed in the Severe Weather Command Center and on the main dashboard map overlay.</p>
   </div>
 
   <div class="section">
-    <h2>5. National Hurricane Center (NHC)</h2>
+    <h2>5. Storm Prediction Center (SPC) — Storm Reports</h2>
+    <p>Local storm reports (LSRs) plotted on the map are retrieved from the SPC storm reports archive:</p>
+    <div class="code">https://www.spc.noaa.gov/climo/reports/</div>
+    <p>Reports include tornado, wind, and hail events and are updated throughout the day.</p>
+  </div>
+
+  <div class="section">
+    <h2>6. National Hurricane Center (NHC)</h2>
     <p>Tropical weather data and advisories are sourced from the NOAA National Hurricane Center:</p>
     <div class="code">https://www.nhc.noaa.gov</div>
   </div>
 
   <div class="section">
-    <h2>6. Weather Prediction Center (WPC)</h2>
-    <p>Excessive rainfall outlooks, winter weather outlooks, and surface analysis products are sourced from the NOAA Weather Prediction Center:</p>
+    <h2>7. Weather Prediction Center (WPC)</h2>
+    <p>Excessive rainfall outlooks (ERO), quantitative precipitation forecasts (QPF), winter weather outlooks, and surface analysis products are sourced from the NOAA Weather Prediction Center:</p>
     <div class="code">https://www.wpc.ncep.noaa.gov</div>
   </div>
 
   <div class="section">
-    <h2>7. Radar Layer</h2>
+    <h2>8. Radar Layer</h2>
     <p>The NEXRAD radar tile overlay used on the map is provided by Iowa State University IEM / Mesonet:</p>
     <div class="code">https://mesonet.agron.iastate.edu</div>
   </div>
 
   <div class="section">
-    <h2>8. Base Map Tiles (Light)</h2>
-    <p>The default light base map tiles are provided by OpenStreetMap contributors:</p>
+    <h2>9. Base Map Tiles (Light)</h2>
+    <p>The default light base map tiles are provided by OpenStreetMap contributors via the standard tile CDN:</p>
     <div class="code">https://www.openstreetmap.org</div>
   </div>
 
   <div class="section">
-    <h2>9. Base Map Tiles (Dark)</h2>
+    <h2>10. Base Map Tiles (Dark)</h2>
     <p>The dark base map tiles are provided by CartoDB / CARTO:</p>
     <div class="code">https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png</div>
   </div>
 
   <div class="section">
-    <h2>10. Disclaimer</h2>
+    <h2>11. Disclaimer</h2>
     <p>This site is independently operated and is not affiliated with NOAA, the National Weather Service, the Storm Prediction Center, the National Hurricane Center, the Weather Prediction Center, or the U.S. Government. All trademarks and names belong to their respective owners.</p>
+    <p>Weather data is intended for general informational purposes only. Always follow official guidance from your local NWS office during severe weather events.</p>
   </div>
 </div>
 </body>

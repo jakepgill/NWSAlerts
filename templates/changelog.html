@@ -99,6 +99,18 @@ a:hover{text-decoration:underline;}
       </div>
 
       <div class="section">
+        <div class="sectionTitle">🩹 Patch Fixes</div>
+        <div class="changeList">
+          <div class="changeItem"><span class="changeIcon">🗺️</span><span><strong>Overlapping Alert Picker</strong> — Clicking a point on the map where multiple alert polygons overlap now shows a picker menu listing all overlapping alerts sorted by severity, instead of opening only the top-most alert.</span></div>
+          <div class="changeItem"><span class="changeIcon">☠</span><span><strong>Life-Threatening Tag False Positive</strong> — Cancellation/expiration notices containing phrases like "no longer poses an immediate threat to life" no longer incorrectly receive the Life Threatening tag.</span></div>
+          <div class="changeItem"><span class="changeIcon">🗺️</span><span><strong>SPC Outlook &amp; Storm Reports Default Off</strong> — Both map layers now default to off on page load instead of on.</span></div>
+          <div class="changeItem"><span class="changeIcon">📄</span><span><strong>Privacy Policy Updated</strong> — Added sections covering the desktop app, webhooks, and third-party data sources. Contact info added.</span></div>
+          <div class="changeItem"><span class="changeIcon">📄</span><span><strong>Terms of Service Updated</strong> — Added sections for the desktop app, acceptable use (proxy abuse, scraping), third-party services, and contact info.</span></div>
+          <div class="changeItem"><span class="changeIcon">📡</span><span><strong>Data Sources Updated</strong> — Added SPC Storm Reports and NWS WWA overlay as distinct entries. Clarified SPC section to cover Mesoscale Discussions.</span></div>
+        </div>
+      </div>
+
+      <div class="section">
         <div class="sectionTitle">⚡ Performance</div>
         <div class="changeList">
           <div class="changeItem"><span class="changeIcon">🚀</span><span><strong>Eliminated per-request file I/O</strong> — <code>/data_shown</code> and <code>/data_all</code> now serve suppression, injection, MOTD, and overrides directly from in-memory globals instead of reading <code>admin_settings.json</code> on every poll cycle.</span></div>

@@ -1489,7 +1489,7 @@
       <div>
         <a href="/terms">Terms</a> • <a href="/privacy">Privacy</a> • <a href="/dsa">Data Sources</a> • <a href="/changelog">Changelog</a> • <a href="/download" id="footerDownloadLink">⬇ Download</a>
       </div>
-      <div class="bottomFootRight">Beta Version 1.5 • Updated Mar 25 2026</div>
+      <div class="bottomFootRight">Beta Version 1.5 (Patched) • Updated Mar 28 2026</div>
     </div>
   </div>
 
@@ -1684,8 +1684,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (typeof s.sortMode !== "string")       s.sortMode      = "severity_desc";
       if (typeof s.mobileView !== "string")     s.mobileView    = "map";
       if (typeof s.hoverScroll !== "boolean")       s.hoverScroll       = false;
-      if (typeof s.spcOutlookEnabled !== "boolean")   s.spcOutlookEnabled   = true;
-      if (typeof s.stormReportsEnabled !== "boolean") s.stormReportsEnabled = true;
+      if (typeof s.spcOutlookEnabled !== "boolean")   s.spcOutlookEnabled   = false;
+      if (typeof s.stormReportsEnabled !== "boolean") s.stormReportsEnabled = false;
       return s;
     } catch(e) {
       return {
@@ -1693,7 +1693,7 @@ document.addEventListener("DOMContentLoaded", () => {
         soundEnabled: true, voiceEnabled: true, voiceName: "",
         autoZoomNew: true, autoZoomMode: "all",
         rotateEnabled: false, noAlaska: false, debugEnabled: true,
-        stateFilter: [], stateFilterEnabled: false, flashSpeed: "medium", tickerSpeed: "medium", mapDark: false, cycleMode: "all", sortMode: "severity_desc", mobileView: "map", hoverScroll: false, spcOutlookEnabled: true, stormReportsEnabled: true,
+        stateFilter: [], stateFilterEnabled: false, flashSpeed: "medium", tickerSpeed: "medium", mapDark: false, cycleMode: "all", sortMode: "severity_desc", mobileView: "map", hoverScroll: false, spcOutlookEnabled: false, stormReportsEnabled: false,
       };
     }
   }

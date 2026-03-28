@@ -104,47 +104,69 @@ a:hover{text-decoration:underline;}
 
 <div class="container">
   <div class="pageTitle">Privacy Policy</div>
-  <div class="pageMeta">Last Updated: March 5, 2026</div>
+  <div class="pageMeta">Last Updated: March 28, 2026</div>
 
   <div class="section">
     <h2>1. Overview</h2>
-    <p>This Privacy Policy explains how this website handles information. The site is an independent dashboard and is not affiliated with NOAA, the NWS, or any U.S. Government agency.</p>
+    <p>This Privacy Policy explains how NWSAlerts.net handles information when you use this website or the NWSAlerts desktop app. This site is an independent dashboard and is not affiliated with NOAA, the NWS, or any U.S. Government agency.</p>
   </div>
 
   <div class="section">
     <h2>2. Information We Collect</h2>
-    <p>By default, this site does not require you to create an account and does not intentionally collect personal information such as your name, address, or phone number.</p>
-    <p>However, like most websites, basic technical information may be processed by the hosting provider and standard web infrastructure:</p>
+    <p>This site does not require you to create an account and does not intentionally collect personal information such as your name, address, or phone number.</p>
+    <p>However, like most websites, basic technical information may be logged by the hosting provider and standard web infrastructure:</p>
     <ul>
-      <li>IP address and device/browser information (for security, rate limiting, and troubleshooting)</li>
+      <li>IP address and device/browser information (used for security, rate limiting, and troubleshooting)</li>
       <li>Approximate location inferred from IP (city/region level, depending on provider)</li>
       <li>Log data such as timestamps and requested URLs</li>
     </ul>
+    <p>This data is not sold or shared with third parties for advertising purposes.</p>
   </div>
 
   <div class="section">
     <h2>3. Local Storage (Settings)</h2>
-    <p>This website stores certain preferences in your browser (for example selected alert types, sound/voice settings, etc.) using local browser storage. These settings remain on your device unless you clear your browser data.</p>
+    <p>This website stores your preferences in your browser using local browser storage (not cookies). This includes settings such as selected alert types, sound and voice preferences, map options, and filter configuration. These settings remain on your device and are never transmitted to our servers. You can clear them at any time by clearing your browser's local storage.</p>
   </div>
 
   <div class="section">
-    <h2>4. Cookies</h2>
-    <p>This site does not intentionally set advertising cookies. Some third-party services (such as hosting, analytics if enabled, or embedded resources) may set cookies.</p>
+    <h2>4. Desktop App</h2>
+    <p>The NWSAlerts Windows desktop app connects to NWSAlerts.net to display live alert data. The app does not collect or transmit personal information beyond what the web dashboard does (see Section 2). Desktop notification preferences are stored locally on your device.</p>
+    <p>The app checks for updates via an auto-updater. Update checks connect to GitHub Releases and may transmit your IP address and app version to GitHub's servers, subject to GitHub's privacy policy.</p>
   </div>
 
   <div class="section">
-    <h2>5. Third-Party Links</h2>
-    <p>The site may contain links to third-party sites (for example, "Submit Feedback"). We are not responsible for the privacy practices of those sites.</p>
+    <h2>5. Webhooks (Admin Feature)</h2>
+    <p>Site administrators may configure a webhook URL to receive notifications for new alerts. When enabled, the server will send alert data (event name, severity, area, headline) as an HTTP POST request to the configured external URL. No user data is included in webhook payloads. Webhook configuration is an admin-only feature and is not accessible to regular visitors.</p>
   </div>
 
   <div class="section">
-    <h2>6. Data Security</h2>
-    <p>We take reasonable measures to protect the Service, but no method of transmission or storage is 100% secure.</p>
+    <h2>6. Cookies</h2>
+    <p>This site does not set advertising or tracking cookies. An admin session cookie is set only when an administrator logs in to the admin panel. No cookies are set for regular visitors.</p>
   </div>
 
   <div class="section">
-    <h2>7. Changes</h2>
+    <h2>7. Third-Party Data Sources</h2>
+    <p>The dashboard fetches weather data from several government and third-party sources on the server side (your browser does not contact these services directly). These include NOAA/NWS APIs, the Storm Prediction Center, the National Hurricane Center, the Weather Prediction Center, and Iowa State University IEM. Map tiles are served by OpenStreetMap and CartoDB. See our <a href="/dsa">Data Source Attribution</a> page for the full list.</p>
+  </div>
+
+  <div class="section">
+    <h2>8. Data Security</h2>
+    <p>We take reasonable measures to protect this service, but no method of transmission or storage is 100% secure. Do not submit sensitive personal information through this site.</p>
+  </div>
+
+  <div class="section">
+    <h2>9. Children's Privacy</h2>
+    <p>This site is not directed at children under 13 and does not knowingly collect personal information from children.</p>
+  </div>
+
+  <div class="section">
+    <h2>10. Changes</h2>
     <p>We may update this Privacy Policy from time to time. Updates will be posted on this page with a new "Last Updated" date.</p>
+  </div>
+
+  <div class="section">
+    <h2>11. Contact</h2>
+    <p>If you have questions about this Privacy Policy, you can reach us at <a href="mailto:contact@nwsalerts.net">contact@nwsalerts.net</a>.</p>
   </div>
 </div>
 

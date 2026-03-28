@@ -50,7 +50,7 @@ DEFAULT_SELECTED_EVENTS = [
     "Wind Advisory","Winter Storm Warning","Winter Storm Watch","Winter Weather Advisory",
 ]
 
-FETCH_INTERVAL_SECONDS = 15
+FETCH_INTERVAL_SECONDS = 30
 EXCLUDE_MARINE_ZONES = True
 EXCLUDE_TERRITORIES = True
 TERRITORY_PREFIXES = ("GU", "AS", "MP", "PR", "VI")
@@ -79,7 +79,7 @@ _state_lock = threading.Lock()
 
 SESSION = requests.Session()
 SESSION.headers.update({
-    "User-Agent": "NWSAlerts/1.5 (https://nwsalerts.net)",
+    "User-Agent": "NWSAlerts/1.5 (nwsalerts.net, contact@nwsalerts.net)",
     "Accept": "application/geo+json, application/ld+json, application/json;q=0.9, */*;q=0.8",
 })
 
